@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="PropertyManagementSystemVer2.BLL/PropertyManagementSystemVer2.BLL.csproj" Id="7c58ca4b-ff78-4673-8347-23fa068cbfc7" />
+  <Project Path="PropertyManagementSystemVer2.DAL/PropertyManagementSystemVer2.DAL.csproj" Id="7adb7858-521d-4ee3-a156-57ec5fccc64a" />
+  <Project Path="PropertyManagementSystemVer2.Web/PropertyManagementSystemVer2.Web.csproj" Id="8093d5ee-e6f9-4303-8c8a-1feedaa961d5" />
+</Solution>
