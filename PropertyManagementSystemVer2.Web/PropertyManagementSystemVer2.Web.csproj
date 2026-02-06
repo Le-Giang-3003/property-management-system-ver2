@@ -9,5 +9,11 @@
   <ItemGroup>
     <ProjectReference Include="..\PropertyManagementSystemVer2.BLL\PropertyManagementSystemVer2.BLL.csproj" />
   </ItemGroup>
-
+	<ItemGroup>
+		<PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" />
+		<PackageReference Include="QRCoder" />
+		<PackageReference Include="QuestPDF" />
+	</ItemGroup>
 </Project>

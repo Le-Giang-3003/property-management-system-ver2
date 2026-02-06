@@ -5,21 +5,18 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
-<ItemGroup>
-		<PackageReference Include="BCrypt.Net-Next" />
-		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
-		<PackageReference Include="Microsoft.EntityFrameworkCore" />
-		<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
-		<PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
+	<ItemGroup>
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Design">
-			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+			<PrivateAssets>all</PrivateAssets>
 		</PackageReference>
+		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools">
-			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+			<PrivateAssets>all</PrivateAssets>
 		</PackageReference>
 		<PackageReference Include="Microsoft.Extensions.Configuration" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.Json" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" />
 	</ItemGroup>
 </Project>

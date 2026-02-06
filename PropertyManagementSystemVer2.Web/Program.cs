@@ -1,9 +1,15 @@
+using PropertyManagementSystemVer2.DAL;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
 
+// Dependency injection (phải đăng ký trước Build())
+builder.Services.AddInfrastructure(builder.Configuration);
+
 var app = builder.Build();
+
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())

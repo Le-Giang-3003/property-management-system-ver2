@@ -16,5 +16,11 @@
   <ItemGroup>
     <ProjectReference Include="..\PropertyManagementSystemVer2.DAL\PropertyManagementSystemVer2.DAL.csproj" />
   </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="MailKit" />
+		<PackageReference Include="BCrypt.Net-Next" />
+		<PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
+		<PackageReference Include="QuestPDF" />
 
+	</ItemGroup>
 </Project>
