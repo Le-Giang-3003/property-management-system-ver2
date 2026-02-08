@@ -396,7 +396,7 @@ namespace PropertyManagementSystemVer2.DAL.Data
                 entity.HasOne(e => e.ReplyToMessage)
                     .WithMany(m => m.Replies)
                     .HasForeignKey(e => e.ReplyToMessageId)
-                    .OnDelete(DeleteBehavior.SetNull);
+                    .OnDelete(DeleteBehavior.NoAction);
 
                 entity.HasIndex(e => e.ConversationId);
                 entity.HasIndex(e => e.SenderId);
