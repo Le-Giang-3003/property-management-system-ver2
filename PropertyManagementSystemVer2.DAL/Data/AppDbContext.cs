@@ -44,9 +44,20 @@ namespace PropertyManagementSystemVer2.DAL.Data
                 entity.Property(e => e.AvatarUrl).HasMaxLength(500);
                 entity.Property(e => e.Role).HasConversion<int>();
 
+                // Dual-role flags
+                entity.Property(e => e.IsTenant).HasDefaultValue(true);
+                entity.Property(e => e.IsLandlord).HasDefaultValue(false);
+
+                // Landlord-specific info
+                entity.Property(e => e.IdentityNumber).HasMaxLength(20);
+                entity.Property(e => e.BankAccountNumber).HasMaxLength(30);
+                entity.Property(e => e.BankName).HasMaxLength(100);
+                entity.Property(e => e.BankAccountHolder).HasMaxLength(200);
+
                 entity.HasIndex(e => e.Email).IsUnique();
                 entity.HasIndex(e => e.PhoneNumber);
                 entity.HasIndex(e => e.Role);
+                entity.HasIndex(e => e.IsLandlord);
             });
 
             // ===== PROPERTY =====
