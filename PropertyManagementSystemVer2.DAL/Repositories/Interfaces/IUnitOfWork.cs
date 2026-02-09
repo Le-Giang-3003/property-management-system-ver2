@@ -1,8 +1,22 @@
-﻿namespace PropertyManagementSystemVer2.DAL.Repositories.Interfaces
+namespace PropertyManagementSystemVer2.DAL.Repositories.Interfaces
 {
     public interface IUnitOfWork : IDisposable
     {
-        // Repository
+        // Specific Repositories
+        IUserRepository Users { get; }
+        IPropertyRepository Properties { get; }
+        IPropertyImageRepository PropertyImages { get; }
+        IBookingRepository Bookings { get; }
+        IRentalApplicationRepository RentalApplications { get; }
+        ILeaseRepository Leases { get; }
+        IPaymentRepository Payments { get; }
+        IMaintenanceRequestRepository MaintenanceRequests { get; }
+        IRevenueRepository Revenues { get; }
+        IConversationRepository Conversations { get; }
+        IMessageRepository Messages { get; }
+        ISystemConfigurationRepository SystemConfigurations { get; }
+
+        // Generic Repository
         IGenericRepository<TEntity> GetRepository<TEntity>() where TEntity : class;
 
         // Save

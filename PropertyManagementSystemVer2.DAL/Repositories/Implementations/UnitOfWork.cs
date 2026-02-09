@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.EntityFrameworkCore.Storage;
 using PropertyManagementSystemVer2.DAL.Data;
 using PropertyManagementSystemVer2.DAL.Repositories.Interfaces;
 
@@ -10,11 +10,39 @@ namespace PropertyManagementSystemVer2.DAL.Repositories.Implementations
         private readonly Dictionary<Type, object> _repositories;
         private IDbContextTransaction? _transaction;
 
+        // Lazy-initialized specific repositories
+        private IUserRepository? _users;
+        private IPropertyRepository? _properties;
+        private IPropertyImageRepository? _propertyImages;
+        private IBookingRepository? _bookings;
+        private IRentalApplicationRepository? _rentalApplications;
+        private ILeaseRepository? _leases;
+        private IPaymentRepository? _payments;
+        private IMaintenanceRequestRepository? _maintenanceRequests;
+        private IRevenueRepository? _revenues;
+        private IConversationRepository? _conversations;
+        private IMessageRepository? _messages;
+        private ISystemConfigurationRepository? _systemConfigurations;
+
         public UnitOfWork(AppDbContext context)
         {
             _context = context;
             _repositories = new Dictionary<Type, object>();
         }
+
+        // Specific Repository Properties
+        public IUserRepository Users => _users ??= new UserRepository(_context);
+        public IPropertyRepository Properties => _properties ??= new PropertyRepository(_context);
+        public IPropertyImageRepository PropertyImages => _propertyImages ??= new PropertyImageRepository(_context);
+        public IBookingRepository Bookings => _bookings ??= new BookingRepository(_context);
+        public IRentalApplicationRepository RentalApplications => _rentalApplications ??= new RentalApplicationRepository(_context);
+        public ILeaseRepository Leases => _leases ??= new LeaseRepository(_context);
+        public IPaymentRepository Payments => _payments ??= new PaymentRepository(_context);
+        public IMaintenanceRequestRepository MaintenanceRequests => _maintenanceRequests ??= new MaintenanceRequestRepository(_context);
+        public IRevenueRepository Revenues => _revenues ??= new RevenueRepository(_context);
+        public IConversationRepository Conversations => _conversations ??= new ConversationRepository(_context);
+        public IMessageRepository Messages => _messages ??= new MessageRepository(_context);
+        public ISystemConfigurationRepository SystemConfigurations => _systemConfigurations ??= new SystemConfigurationRepository(_context);
 
         public IGenericRepository<TEntity> GetRepository<TEntity>() where TEntity : class
         {
