@@ -1,12 +1,28 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Microsoft.Extensions.DependencyInjection;
+using PropertyManagementSystemVer2.BLL.Services.Implementations;
+using PropertyManagementSystemVer2.BLL.Services.Interfaces;
 
 namespace PropertyManagementSystemVer2.BLL
 {
-    internal class DependencyInjection
+    public static class DependencyInjection
     {
+        public static IServiceCollection AddBusinessLogic(this IServiceCollection services)
+        {
+            // Services
+            services.AddScoped<IUserService, UserService>();
+            services.AddScoped<IPropertyService, PropertyService>();
+            services.AddScoped<IBookingService, BookingService>();
+            services.AddScoped<IRentalApplicationService, RentalApplicationService>();
+            services.AddScoped<ILeaseService, LeaseService>();
+            services.AddScoped<IPaymentService, PaymentService>();
+            services.AddScoped<IMaintenanceService, MaintenanceService>();
+            services.AddScoped<IChatService, ChatService>();
+            services.AddScoped<INotificationService, NotificationService>();
+            services.AddScoped<IReviewService, ReviewService>();
+            services.AddScoped<IAdminService, AdminService>();
+            services.AddScoped<IDashboardService, DashboardService>();
+
+            return services;
+        }
     }
 }

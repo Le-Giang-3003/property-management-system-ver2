@@ -11,10 +11,11 @@ namespace PropertyManagementSystemVer2.DAL
     {
         public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
         {
+            // DbContext
             services.AddDbContext<AppDbContext>(options =>
                 options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
 
-            // UnitOfWork
+            // UnitOfWork (UnitOfWork sẽ tự tạo các repositories internally)
             services.AddScoped<IUnitOfWork, UnitOfWork>();
 
             return services;
