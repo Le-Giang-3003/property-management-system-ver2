@@ -291,9 +291,10 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
             return AuthResultDto.Ok("Email xác thực đã được gửi lại.");
         }
 
-        public Task<AuthResultDto> LogoutAsync(int userId, string refreshToken, string? ipAddress = null)
+        public async Task<AuthResultDto> LogoutAsync(int userId, string refreshToken, string? ipAddress = null)
         {
-            throw new NotImplementedException();
+            await RevokeRefreshTokenAsync(refreshToken, ipAddress);
+            return AuthResultDto.Ok("Đăng xuất thành công.");
         }
     }
 }
