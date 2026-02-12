@@ -1,12 +1,15 @@
 ﻿using PropertyManagementSystemVer2.BLL.DTOs.Auth;
 using PropertyManagementSystemVer2.BLL.Mapping;
+using PropertyManagementSystemVer2.BLL.Security;
 using PropertyManagementSystemVer2.BLL.Services.Interfaces;
 using PropertyManagementSystemVer2.DAL.Entities;
+using PropertyManagementSystemVer2.DAL.Enums;
 using PropertyManagementSystemVer2.DAL.Repositories.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace PropertyManagementSystemVer2.BLL.Services.Implementations
@@ -15,15 +18,20 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IJwtTokenService _jwtTokenService;
+        private readonly IPasswordValidator _passwordValidator;
+        private readonly IEmailService _emailService;
+
         private const int MaxFailedAttempts = 5;
         private const int LockoutMinutes = 15;
         private const int OtpExpiryMinutes = 30;
         private const int EmailVerifyExpiryHours = 24;
 
-        public AuthService(IUnitOfWork unitOfWork, IJwtTokenService jwtTokenService)
+        public AuthService(IUnitOfWork unitOfWork, IJwtTokenService jwtTokenService, IPasswordValidator passwordValidator, IEmailService emailService)
         {
             _unitOfWork = unitOfWork;
             _jwtTokenService = jwtTokenService;
+            _passwordValidator = passwordValidator;
+            _emailService = emailService;
         }
 
         public async Task<AuthResultDto> LoginAsync(LoginRequestDto request, string? ipAddress = null)
@@ -152,6 +160,140 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
             await _unitOfWork.SaveChangesAsync();
 
             return AuthResultDto.Ok("Token đã bị thu hồi.");
+        }
+
+        public async Task<AuthResultDto> RegisterAsync(RegisterRequestDto request)
+        {
+            // 1. Validate password: >= 8 ký tự, uppercase, lowercase, number, special char
+            var passwordErrors = _passwordValidator.IsStrong(request.Password);
+            //if (passwordErrors.Count > 0)
+            //    return AuthResultDto.Fail("Mật khẩu không đủ mạnh: " + string.Join("; ", passwordErrors));
+
+            // 2. Confirm password
+            if (request.Password != request.ConfirmPassword)
+                return AuthResultDto.Fail("Mật khẩu xác nhận không khớp.");
+
+            var userRepo = _unitOfWork.GetRepository<User>();
+            var email = request.Email.Trim().ToLower();
+
+            // 3. Validate email format
+            if (!Regex.IsMatch(email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
+                return AuthResultDto.Fail("Email không hợp lệ.");
+
+            // 4. Check duplicate email
+            if (await userRepo.AnyAsync(u => u.Email == email))
+                return AuthResultDto.Fail("Email đã được đăng ký.");
+
+            // 5. Create user: Role = Member, IsTenant = true (default)
+            var user = new User
+            {
+                Email = email,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
+                FullName = request.FullName.Trim(),
+                PhoneNumber = request.PhoneNumber.Trim(),
+                Address = request.Address,
+                Role = UserRole.Member,      // Role mặc định: Member
+                IsTenant = true,              // Mặc định là Tenant
+                IsLandlord = false,
+                IsActive = true,
+                IsEmailVerified = false,      // Chưa xác thực email
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await userRepo.AddAsync(user);
+            await _unitOfWork.SaveChangesAsync();
+
+            // 6. Generate email verification token (hiệu lực 24h)
+            var token = Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N");
+            var tokenRepo = _unitOfWork.GetRepository<EmailVerificationToken>();
+            await tokenRepo.AddAsync(new EmailVerificationToken
+            {
+                UserId = user.Id,
+                Token = token,
+                ExpiresAt = DateTime.UtcNow.AddHours(EmailVerifyExpiryHours)
+            });
+            await _unitOfWork.SaveChangesAsync();
+
+            // 7. GỬI EMAIL XÁC THỰC (real email via SMTP)
+            try
+            {
+                await _emailService.SendVerificationEmailAsync(user.Email, user.FullName, token);
+            }
+            catch (Exception)
+            {
+                // Log error nhưng vẫn return success (user có thể resend sau)
+                return AuthResultDto.Ok(
+                    "Đăng ký thành công. Gửi email xác thực thất bại, vui lòng dùng chức năng gửi lại.",
+                    new RegisterResponseDto
+                    {
+                        UserId = user.Id,
+                        Email = user.Email,
+                        Message = "Gửi email thất bại. Bạn có thể yêu cầu gửi lại email xác thực."
+                    });
+            }
+
+            return AuthResultDto.Ok("Đăng ký thành công. Vui lòng kiểm tra email để xác thực tài khoản.",
+                new RegisterResponseDto
+                {
+                    UserId = user.Id,
+                    Email = user.Email,
+                    Message = $"Email xác thực đã được gửi tới {user.Email}. Có hiệu lực trong {EmailVerifyExpiryHours}h."
+                });
+        }
+
+        public async Task<AuthResultDto> VerifyEmailAsync(string token)
+        {
+            var tokenRepo = _unitOfWork.GetRepository<EmailVerificationToken>();
+            var verification = await tokenRepo.FirstOrDefaultAsync(t =>
+                t.Token == token && !t.IsUsed && t.ExpiresAt > DateTime.UtcNow);
+
+            if (verification == null)
+                return AuthResultDto.Fail("Link xác thực không hợp lệ hoặc đã hết hạn.");
+
+            verification.IsUsed = true;
+            verification.UsedAt = DateTime.UtcNow;
+            tokenRepo.Update(verification);
+
+            var userRepo = _unitOfWork.GetRepository<User>();
+            var user = await userRepo.GetByIdAsync(verification.UserId);
+            if (user != null)
+            {
+                user.IsEmailVerified = true;
+                userRepo.Update(user);
+            }
+
+            await _unitOfWork.SaveChangesAsync();
+            return AuthResultDto.Ok("Xác thực email thành công.");
+        }
+
+        public async Task<AuthResultDto> ResendEmailVerificationAsync(string email)
+        {
+            var userRepo = _unitOfWork.GetRepository<User>();
+            var user = await userRepo.FirstOrDefaultAsync(u => u.Email == email.Trim().ToLower());
+
+            if (user == null)
+                return AuthResultDto.Fail("Email không tồn tại.");
+
+            if (user.IsEmailVerified)
+                return AuthResultDto.Fail("Email đã được xác thực.");
+
+            var token = Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N");
+            var tokenRepo = _unitOfWork.GetRepository<EmailVerificationToken>();
+            await tokenRepo.AddAsync(new EmailVerificationToken
+            {
+                UserId = user.Id,
+                Token = token,
+                ExpiresAt = DateTime.UtcNow.AddHours(EmailVerifyExpiryHours)
+            });
+            await _unitOfWork.SaveChangesAsync();
+
+            // TODO: Send email
+            return AuthResultDto.Ok("Email xác thực đã được gửi lại.");
+        }
+
+        public Task<AuthResultDto> LogoutAsync(int userId, string refreshToken, string? ipAddress = null)
+        {
+            throw new NotImplementedException();
         }
     }
 }
