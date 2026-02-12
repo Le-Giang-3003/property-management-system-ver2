@@ -1,9 +1,4 @@
 ﻿using PropertyManagementSystemVer2.BLL.DTOs.Auth;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace PropertyManagementSystemVer2.BLL.Services.Interfaces
 {
@@ -18,6 +13,8 @@ namespace PropertyManagementSystemVer2.BLL.Services.Interfaces
         Task<AuthResultDto> VerifyEmailAsync(string token);
         Task<AuthResultDto> ResendEmailVerificationAsync(string email);
 
+        Task<AuthResultDto> ForgotPasswordAsync(ForgotPasswordRequestDto request);
+        Task<AuthResultDto> ResetPasswordAsync(ResetPasswordRequestDto request);
 
     }
 }

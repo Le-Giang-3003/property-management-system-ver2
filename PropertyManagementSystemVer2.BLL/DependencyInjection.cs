@@ -15,6 +15,7 @@ namespace PropertyManagementSystemVer2.BLL
             services.Configure<JwtSettings>(configuration.GetSection("JwtSettings"));
             services.Configure<EmailSettings>(configuration.GetSection("EmailSettings"));
             services.AddScoped<IPasswordValidator, PasswordValidator>();
+            services.AddScoped<IOtpGenerator, OtpGenerator>();
             services.AddScoped<IJwtTokenService, JwtTokenService>();
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<IEmailService, EmailService>();
