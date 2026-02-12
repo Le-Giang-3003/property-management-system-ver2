@@ -5,9 +5,11 @@ namespace PropertyManagementSystemVer2.BLL.Security
 {
     public class OtpGenerator : IOtpGenerator
     {
-        public string Generate()
+        public string Generate(int length = 6)
         {
-            var number = RandomNumberGenerator.GetInt32(100000, 999999);
+            var min = (int)Math.Pow(10, length - 1);   // 100000
+            var max = (int)Math.Pow(10, length);        // 1000000
+            var number = RandomNumberGenerator.GetInt32(min, max);
             return number.ToString();
         }
     }
