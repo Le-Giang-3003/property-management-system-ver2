@@ -8,6 +8,6 @@ namespace PropertyManagementSystemVer2.BLL.Services.Interfaces
 {
     public interface IOtpGenerator
     {
-        string Generate();
+        string Generate(int length = 6);
     }
 }

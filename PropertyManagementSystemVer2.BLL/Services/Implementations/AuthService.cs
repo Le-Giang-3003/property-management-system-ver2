@@ -5,12 +5,7 @@ using PropertyManagementSystemVer2.BLL.Services.Interfaces;
 using PropertyManagementSystemVer2.DAL.Entities;
 using PropertyManagementSystemVer2.DAL.Enums;
 using PropertyManagementSystemVer2.DAL.Repositories.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 namespace PropertyManagementSystemVer2.BLL.Services.Implementations
 {
@@ -20,18 +15,20 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
         private readonly IJwtTokenService _jwtTokenService;
         private readonly IPasswordValidator _passwordValidator;
         private readonly IEmailService _emailService;
+        private readonly IOtpGenerator _otpGenerator;
 
         private const int MaxFailedAttempts = 5;
         private const int LockoutMinutes = 15;
         private const int OtpExpiryMinutes = 30;
         private const int EmailVerifyExpiryHours = 24;
 
-        public AuthService(IUnitOfWork unitOfWork, IJwtTokenService jwtTokenService, IPasswordValidator passwordValidator, IEmailService emailService)
+        public AuthService(IUnitOfWork unitOfWork, IJwtTokenService jwtTokenService, IPasswordValidator passwordValidator, IEmailService emailService, IOtpGenerator otpGenerator)
         {
             _unitOfWork = unitOfWork;
             _jwtTokenService = jwtTokenService;
             _passwordValidator = passwordValidator;
             _emailService = emailService;
+            _otpGenerator = otpGenerator;
         }
 
         public async Task<AuthResultDto> LoginAsync(LoginRequestDto request, string? ipAddress = null)
@@ -165,9 +162,9 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
         public async Task<AuthResultDto> RegisterAsync(RegisterRequestDto request)
         {
             // 1. Validate password: >= 8 ký tự, uppercase, lowercase, number, special char
-            var passwordErrors = _passwordValidator.IsStrong(request.Password);
-            //if (passwordErrors.Count > 0)
-            //    return AuthResultDto.Fail("Mật khẩu không đủ mạnh: " + string.Join("; ", passwordErrors));
+            var passwordErrors = _passwordValidator.Validate(request.Password);
+            if (passwordErrors.Count > 0)
+                return AuthResultDto.Fail("Mật khẩu không đủ mạnh: " + string.Join("; ", passwordErrors));
 
             // 2. Confirm password
             if (request.Password != request.ConfirmPassword)
@@ -295,6 +292,100 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
         {
             await RevokeRefreshTokenAsync(refreshToken, ipAddress);
             return AuthResultDto.Ok("Đăng xuất thành công.");
+        }
+
+        public async Task<AuthResultDto> ForgotPasswordAsync(ForgotPasswordRequestDto request)
+        {
+            var userRepo = _unitOfWork.GetRepository<User>();
+            var identifier = request.Identifier.Trim();
+
+            // Tìm user theo email hoặc SĐT
+            var user = await userRepo.FirstOrDefaultAsync(u =>
+                u.Email == identifier.ToLower() || u.PhoneNumber == identifier);
+
+            if (user == null)
+                return AuthResultDto.Ok("Nếu tài khoản tồn tại, OTP đã được gửi."); // Không tiết lộ user có tồn tại hay không
+
+            // Generate OTP (6 digits)
+            var otp = _otpGenerator.Generate();
+
+            var otpRepo = _unitOfWork.GetRepository<OtpVerification>();
+            await otpRepo.AddAsync(new OtpVerification
+            {
+                UserId = user.Id,
+                Identifier = identifier,
+                OtpCode = otp,
+                Purpose = "ResetPassword",
+                ExpiresAt = DateTime.UtcNow.AddMinutes(OtpExpiryMinutes)
+            });
+            await _unitOfWork.SaveChangesAsync();
+
+            // Gửi OTP qua email
+            try
+            {
+                if (identifier.Contains('@'))
+                {
+                    await _emailService.SendPasswordResetOtpAsync(user.Email, user.FullName, otp);
+                }
+                // TODO: else gửi SMS nếu identifier là SĐT
+            }
+            catch (Exception)
+            {
+                return AuthResultDto.Fail("Gửi OTP thất bại. Vui lòng thử lại sau.");
+            }
+
+            return AuthResultDto.Ok("OTP đã được gửi. Có hiệu lực trong 30 phút, chỉ dùng 1 lần.");
+        }
+
+        public async Task<AuthResultDto> ResetPasswordAsync(ResetPasswordRequestDto request)
+        {
+            // 1. Validate password mới
+            var passwordErrors = _passwordValidator.Validate(request.NewPassword);
+            if (passwordErrors.Count > 0 )
+                return AuthResultDto.Fail("Mật khẩu không đủ mạnh: " + string.Join("; ", passwordErrors));
+
+            if (request.NewPassword != request.ConfirmPassword)
+                return AuthResultDto.Fail("Mật khẩu xác nhận không khớp.");
+
+            // 2. Tìm OTP hợp lệ
+            var otpRepo = _unitOfWork.GetRepository<OtpVerification>();
+            var otp = await otpRepo.FirstOrDefaultAsync(o =>
+                o.OtpCode == request.Token.Trim() &&
+                o.Purpose == "ResetPassword" &&
+                !o.IsUsed &&
+                o.ExpiresAt > DateTime.UtcNow);
+
+            if (otp == null)
+                return AuthResultDto.Fail("OTP không hợp lệ hoặc đã hết hạn.");
+
+            // 3. Đánh dấu OTP đã dùng
+            otp.IsUsed = true;
+            otp.UsedAt = DateTime.UtcNow;
+            otpRepo.Update(otp);
+
+            // 4. Đổi mật khẩu
+            var userRepo = _unitOfWork.GetRepository<User>();
+            var user = await userRepo.GetByIdAsync(otp.UserId!.Value);
+            if (user == null)
+                return AuthResultDto.Fail("Người dùng không tồn tại.");
+
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+            user.UpdatedAt = DateTime.UtcNow;
+            userRepo.Update(user);
+
+            // 5. Invalidate tất cả refresh tokens (đá hết sessions cũ)
+            var refreshTokenRepo = _unitOfWork.GetRepository<RefreshToken>();
+            var activeTokens = await refreshTokenRepo.FindAsync(rt =>
+                rt.UserId == user.Id && rt.RevokedAt == null && rt.ExpiresAt > DateTime.UtcNow);
+
+            foreach (var token in activeTokens)
+            {
+                token.RevokedAt = DateTime.UtcNow;
+                refreshTokenRepo.Update(token);
+            }
+
+            await _unitOfWork.SaveChangesAsync();
+            return AuthResultDto.Ok("Đặt lại mật khẩu thành công. Vui lòng đăng nhập lại.");
         }
     }
 }

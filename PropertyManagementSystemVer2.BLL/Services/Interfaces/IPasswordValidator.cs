@@ -2,7 +2,7 @@
 {
     public interface IPasswordValidator
     {
+        List<string> Validate(string password);
         bool IsStrong(string password);
-
     }
 }
