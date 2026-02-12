@@ -1,0 +1,72 @@
+﻿@* File: Pages/Auth/Login.cshtml *@
+@page
+@model PropertyManagementSystemVer2.Web.Pages.Auth.LoginModel
+@{
+    ViewData["Title"] = "Đăng nhập";
+    Layout = "_AuthLayout";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5 col-xl-4">
+        <div class="auth-card">
+            <h4 class="text-center fw-bold mb-1">Đăng nhập</h4>
+            <p class="text-center text-muted mb-4">Chào mừng bạn trở lại</p>
+
+            <form method="post">
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                <div class="mb-3">
+                    <label asp-for="Input.Email" class="form-label">Email</label>
+                    <div class="input-icon-wrapper">
+                        <i class="bi bi-envelope input-icon"></i>
+                        <input asp-for="Input.Email" class="form-control" placeholder="email@example.com" autocomplete="email" />
+                    </div>
+                    <span asp-validation-for="Input.Email" class="text-danger small"></span>
+                </div>
+
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <label asp-for="Input.Password" class="form-label">Mật khẩu</label>
+                        <a asp-page="/Auth/ForgotPassword" class="small text-decoration-none">Quên mật khẩu?</a>
+                    </div>
+                    <div class="input-icon-wrapper">
+                        <i class="bi bi-lock input-icon"></i>
+                        <input asp-for="Input.Password" class="form-control" type="password" placeholder="••••••••" autocomplete="current-password" />
+                        <button type="button" class="password-toggle"><i class="bi bi-eye"></i></button>
+                    </div>
+                    <span asp-validation-for="Input.Password" class="text-danger small"></span>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100 mb-3">
+                    <i class="bi bi-box-arrow-in-right me-2"></i>Đăng nhập
+                </button>
+            </form>
+
+            <div class="divider-text my-3">hoặc</div>
+
+            <p class="text-center mb-0">
+                Chưa có tài khoản?
+                <a asp-page="/Auth/Register" class="fw-semibold text-decoration-none">Đăng ký ngay</a>
+            </p>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.querySelectorAll('.password-toggle').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var input = this.closest('.input-icon-wrapper').querySelector('input');
+                var icon = this.querySelector('i');
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    icon.classList.replace('bi-eye', 'bi-eye-slash');
+                } else {
+                    input.type = 'password';
+                    icon.classList.replace('bi-eye-slash', 'bi-eye');
+                }
+            });
+        });
+    </script>
+}

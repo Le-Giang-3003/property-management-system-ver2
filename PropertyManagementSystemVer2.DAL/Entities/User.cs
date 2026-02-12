@@ -91,6 +91,9 @@ namespace PropertyManagementSystemVer2.DAL.Entities
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
         public DateTime? LastLoginAt { get; set; }
+        // Account lockout
+        public int FailedLoginAttempts { get; set; } = 0;
+        public DateTime? LockoutEnd { get; set; }
 
         // Navigation - As Landlord
         public ICollection<Property> OwnedProperties { get; set; } = new List<Property>();

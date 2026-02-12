@@ -25,6 +25,10 @@ namespace PropertyManagementSystemVer2.DAL.Data
         public DbSet<DeletedMessage> DeletedMessages => Set<DeletedMessage>();
         public DbSet<TypingIndicator> TypingIndicators => Set<TypingIndicator>();
         public DbSet<UserPresence> UserPresences => Set<UserPresence>();
+        public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+        public DbSet<OtpVerification> OtpVerifications => Set<OtpVerification>();
+        public DbSet<EmailVerificationToken> EmailVerificationTokens => Set<EmailVerificationToken>();
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -471,6 +475,62 @@ namespace PropertyManagementSystemVer2.DAL.Data
                 entity.HasIndex(e => e.Status);
                 entity.HasIndex(e => e.ConnectionId);
                 entity.HasIndex(e => e.LastSeenAt);
+            });
+
+            modelBuilder.Entity<RefreshToken>(entity =>
+            {
+                entity.ToTable("RefreshTokens");
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.Token).HasMaxLength(500).IsRequired();
+                entity.Property(e => e.CreatedByIp).HasMaxLength(50);
+                entity.Property(e => e.RevokedByIp).HasMaxLength(50);
+
+                entity.HasOne(e => e.User)
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(e => e.Token).IsUnique();
+                entity.HasIndex(e => e.UserId);
+                entity.HasIndex(e => e.ExpiresAt);
+            });
+
+            // ===== OTP VERIFICATION =====
+            modelBuilder.Entity<OtpVerification>(entity =>
+            {
+                entity.ToTable("OtpVerifications");
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.Identifier).HasMaxLength(256).IsRequired();
+                entity.Property(e => e.OtpCode).HasMaxLength(10).IsRequired();
+                entity.Property(e => e.Purpose).HasMaxLength(50).IsRequired();
+
+                entity.HasOne(e => e.User)
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(e => new { e.Identifier, e.Purpose });
+                entity.HasIndex(e => e.ExpiresAt);
+            });
+
+            // ===== EMAIL VERIFICATION TOKEN =====
+            modelBuilder.Entity<EmailVerificationToken>(entity =>
+            {
+                entity.ToTable("EmailVerificationTokens");
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.Token).HasMaxLength(500).IsRequired();
+
+                entity.HasOne(e => e.User)
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(e => e.Token).IsUnique();
+                entity.HasIndex(e => e.UserId);
+                entity.HasIndex(e => e.ExpiresAt);
             });
         }
     }
