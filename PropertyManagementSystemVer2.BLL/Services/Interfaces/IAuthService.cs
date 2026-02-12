@@ -12,5 +12,12 @@ namespace PropertyManagementSystemVer2.BLL.Services.Interfaces
         Task<AuthResultDto> LoginAsync(LoginRequestDto request, string? ipAddress = null);
         Task<AuthResultDto> RefreshTokenAsync(string refreshToken, string? ipAddress = null);
         Task<AuthResultDto> RevokeRefreshTokenAsync(string refreshToken, string? ipAddress = null);
+        Task<AuthResultDto> LogoutAsync(int userId, string refreshToken, string? ipAddress = null);
+
+        Task<AuthResultDto> RegisterAsync(RegisterRequestDto request);
+        Task<AuthResultDto> VerifyEmailAsync(string token);
+        Task<AuthResultDto> ResendEmailVerificationAsync(string email);
+
+
     }
 }
