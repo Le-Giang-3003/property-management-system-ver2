@@ -35,7 +35,7 @@ namespace PropertyManagementSystemVer2.BLL
             services.AddScoped<IReviewService, ReviewService>();
             services.AddScoped<IAdminService, AdminService>();
             services.AddScoped<IDashboardService, DashboardService>();
-
+            services.AddScoped<ILandlordRegistrationService, LandlordRegistrationService>();
             return services;
         }
     }

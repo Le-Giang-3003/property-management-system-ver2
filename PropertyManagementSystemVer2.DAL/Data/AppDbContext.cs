@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using PropertyManagementSystemVer2.DAL.Entities;
+using PropertyManagementSystemVer2.DAL.Enums;
 
 namespace PropertyManagementSystemVer2.DAL.Data
 {
@@ -58,10 +59,16 @@ namespace PropertyManagementSystemVer2.DAL.Data
                 entity.Property(e => e.BankName).HasMaxLength(100);
                 entity.Property(e => e.BankAccountHolder).HasMaxLength(200);
 
+                entity.Property(e => e.LandlordStatus).HasConversion<int>().HasDefaultValue(LandlordApprovalStatus.None);
+                entity.Property(e => e.LandlordRejectionReason).HasMaxLength(1000);
+                entity.Property(e => e.LandlordSubmittedAt);
+                entity.Property(e => e.LandlordReviewedAt);
+
                 entity.HasIndex(e => e.Email).IsUnique();
                 entity.HasIndex(e => e.PhoneNumber);
                 entity.HasIndex(e => e.Role);
                 entity.HasIndex(e => e.IsLandlord);
+                entity.HasIndex(e => e.LandlordStatus);
             });
 
             // ===== PROPERTY =====
