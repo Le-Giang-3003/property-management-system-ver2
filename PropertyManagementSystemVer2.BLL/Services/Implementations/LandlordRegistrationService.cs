@@ -1,8 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
-using PropertyManagementSystemVer2.BLL.DTOs.Auth;
+﻿using PropertyManagementSystemVer2.BLL.DTOs.Auth;
 using PropertyManagementSystemVer2.BLL.Helpers;
 using PropertyManagementSystemVer2.BLL.Services.Interfaces;
-using PropertyManagementSystemVer2.DAL.Entities;
 using PropertyManagementSystemVer2.DAL.Enums;
 using PropertyManagementSystemVer2.DAL.Repositories.Interfaces;
 
@@ -42,24 +40,15 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
         /// <returns></returns>
         public async Task<AuthResultDto> SubmitAsync(int userId, SubmitLandlordRequestDto request)
         {
-            var userRepo = _unitOfWork.GetRepository<User>();
-            var user = await userRepo.GetByIdAsync(userId);
-
-            if (user == null)
-                return AuthResultDto.Fail("Người dùng không tồn tại.");
-
-            if (user.IsLandlord)
-                return AuthResultDto.Fail("Bạn đã là Landlord.");
-
+            var user = await _unitOfWork.Users.GetByIdAsync(userId);
+            if (user == null) return AuthResultDto.Fail("Người dùng không tồn tại.");
+            if (user.IsLandlord) return AuthResultDto.Fail("Bạn đã là Landlord.");
             if (user.LandlordStatus == LandlordApprovalStatus.Pending)
                 return AuthResultDto.Fail("Đơn đang chờ duyệt. Vui lòng chờ Admin xử lý.");
 
-            // Validate
             var errors = LandlordRegistrationHelper.Validate(request);
-            if (errors.Count > 0)
-                return AuthResultDto.Fail(string.Join("; ", errors));
+            if (errors.Count > 0) return AuthResultDto.Fail(string.Join("; ", errors));
 
-            // Lưu thông tin lên User
             user.IdentityNumber = request.IdentityNumber.Trim();
             user.BankAccountNumber = request.BankAccountNumber.Trim();
             user.BankName = request.BankName.Trim();
@@ -69,7 +58,7 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
             user.LandlordSubmittedAt = DateTime.UtcNow;
             user.UpdatedAt = DateTime.UtcNow;
 
-            userRepo.Update(user);
+            _unitOfWork.Users.Update(user);
             await _unitOfWork.SaveChangesAsync();
 
             return AuthResultDto.Ok("Đơn đăng ký Landlord đã được gửi. Vui lòng chờ Admin duyệt.");
@@ -83,21 +72,14 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
         /// <returns></returns>
         public async Task<AuthResultDto> ResubmitAsync(int userId, SubmitLandlordRequestDto request)
         {
-            var userRepo = _unitOfWork.GetRepository<User>();
-            var user = await userRepo.GetByIdAsync(userId);
-
-            if (user == null)
-                return AuthResultDto.Fail("Người dùng không tồn tại.");
-
-            if (user.IsLandlord)
-                return AuthResultDto.Fail("Bạn đã là Landlord.");
-
+            var user = await _unitOfWork.Users.GetByIdAsync(userId);
+            if (user == null) return AuthResultDto.Fail("Người dùng không tồn tại.");
+            if (user.IsLandlord) return AuthResultDto.Fail("Bạn đã là Landlord.");
             if (user.LandlordStatus != LandlordApprovalStatus.Rejected)
                 return AuthResultDto.Fail("Chỉ có thể gửi lại đơn đã bị từ chối.");
 
-            var errors = LandlordRegistrationHelper.Validate(request);
-            if (errors.Count > 0)
-                return AuthResultDto.Fail(string.Join("; ", errors));
+            var errors = Validate(request);
+            if (errors.Count > 0) return AuthResultDto.Fail(string.Join("; ", errors));
 
             user.IdentityNumber = request.IdentityNumber.Trim();
             user.BankAccountNumber = request.BankAccountNumber.Trim();
@@ -108,7 +90,7 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
             user.LandlordSubmittedAt = DateTime.UtcNow;
             user.UpdatedAt = DateTime.UtcNow;
 
-            userRepo.Update(user);
+            _unitOfWork.Users.Update(user);
             await _unitOfWork.SaveChangesAsync();
 
             return AuthResultDto.Ok("Đơn đã được gửi lại. Vui lòng chờ Admin duyệt.");
@@ -121,25 +103,19 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
         /// <returns></returns>
         public async Task<AuthResultDto> GetMyStatusAsync(int userId)
         {
-            var userRepo = _unitOfWork.GetRepository<User>();
-            var user = await userRepo.GetByIdAsync(userId);
+            var user = await _unitOfWork.Users.GetByIdAsync(userId);
+            if (user == null) return AuthResultDto.Fail("Người dùng không tồn tại.");
 
-            if (user == null)
-                return AuthResultDto.Fail("Người dùng không tồn tại.");
-
-            var dto = new LandlordStatusDto
+            return AuthResultDto.Ok(data: new LandlordStatusDto
             {
                 Status = user.LandlordStatus.ToString(),
                 IsLandlord = user.IsLandlord,
                 RejectionReason = user.LandlordRejectionReason,
-                // Prefill form data
                 IdentityNumber = user.IdentityNumber,
                 BankAccountNumber = user.BankAccountNumber,
                 BankName = user.BankName,
                 BankAccountHolder = user.BankAccountHolder
-            };
-
-            return AuthResultDto.Ok(data: dto);
+            });
         }
 
         /// <summary>
@@ -150,25 +126,18 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
         /// <returns></returns>
         public async Task<AuthResultDto> GetPendingListAsync(int page = 1, int pageSize = 20)
         {
-            var userRepo = _unitOfWork.GetRepository<User>();
-            var query = userRepo.QueryAsNoTracking()
-                .Where(u => u.LandlordStatus == LandlordApprovalStatus.Pending)
-                .OrderBy(u => u.LandlordSubmittedAt);
+            var total = await _unitOfWork.Users.CountPendingLandlordsAsync();
+            var users = await _unitOfWork.Users.GetPendingLandlordsAsync(page, pageSize);
 
-            var total = await query.CountAsync();
-            var items = await query
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .Select(u => new LandlordStatusDto
-                {
-                    Status = u.LandlordStatus.ToString(),
-                    IsLandlord = u.IsLandlord,
-                    IdentityNumber = u.IdentityNumber,
-                    BankAccountNumber = u.BankAccountNumber,
-                    BankName = u.BankName,
-                    BankAccountHolder = u.BankAccountHolder
-                })
-                .ToListAsync();
+            var items = users.Select(u => new LandlordStatusDto
+            {
+                Status = u.LandlordStatus.ToString(),
+                IsLandlord = u.IsLandlord,
+                IdentityNumber = u.IdentityNumber,
+                BankAccountNumber = u.BankAccountNumber,
+                BankName = u.BankName,
+                BankAccountHolder = u.BankAccountHolder
+            }).ToList();
 
             return AuthResultDto.Ok(data: new { items, total, page, pageSize });
         }
@@ -181,11 +150,8 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
         /// <returns></returns>
         public async Task<AuthResultDto> ReviewAsync(int adminId, ReviewLandlordRequestDto request)
         {
-            var userRepo = _unitOfWork.GetRepository<User>();
-            var user = await userRepo.GetByIdAsync(request.UserId);
-
-            if (user == null)
-                return AuthResultDto.Fail("Người dùng không tồn tại.");
+            var user = await _unitOfWork.Users.GetByIdAsync(request.UserId);
+            if (user == null) return AuthResultDto.Fail("Người dùng không tồn tại.");
 
             if (user.LandlordStatus != LandlordApprovalStatus.Pending)
                 return AuthResultDto.Fail($"Trạng thái hiện tại là '{user.LandlordStatus}', không thể duyệt.");
@@ -199,44 +165,24 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
 
             if (request.IsApproved)
             {
-                // APPROVE
                 user.LandlordStatus = LandlordApprovalStatus.Approved;
                 user.IsLandlord = true;
                 user.IsIdentityVerified = true;
-
-                userRepo.Update(user);
+                _unitOfWork.Users.Update(user);
                 await _unitOfWork.SaveChangesAsync();
 
-                // Notify qua email
-                try
-                {
-                    await _emailService.SendEmailAsync(
-                        user.Email,
-                        "Đơn đăng ký Landlord đã được duyệt - PropertyMS",
-                        LandlordRegistrationHelper.BuildApprovalEmail(user.FullName));
-                }
-                catch { }
+                try { await _emailService.SendEmailAsync(user.Email, "Đơn đăng ký Landlord đã được duyệt - PropertyMS", BuildApprovalEmail(user.FullName)); } catch { }
 
                 return AuthResultDto.Ok($"Đã duyệt. {user.FullName} giờ là Landlord.");
             }
             else
             {
-                // REJECT
                 user.LandlordStatus = LandlordApprovalStatus.Rejected;
                 user.LandlordRejectionReason = request.RejectionReason;
-
-                userRepo.Update(user);
+                _unitOfWork.Users.Update(user);
                 await _unitOfWork.SaveChangesAsync();
 
-                // Notify qua email kèm lý do
-                try
-                {
-                    await _emailService.SendEmailAsync(
-                        user.Email,
-                        "Đơn đăng ký Landlord bị từ chối - PropertyMS",
-                        LandlordRegistrationHelper.BuildRejectionEmail(user.FullName, request.RejectionReason!));
-                }
-                catch { }
+                try { await _emailService.SendEmailAsync(user.Email, "Đơn đăng ký Landlord bị từ chối - PropertyMS", BuildRejectionEmail(user.FullName, request.RejectionReason!)); } catch { }
 
                 return AuthResultDto.Ok("Đã từ chối. Member sẽ nhận email thông báo.");
             }

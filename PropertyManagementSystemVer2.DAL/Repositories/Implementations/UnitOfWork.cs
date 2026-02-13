@@ -23,6 +23,9 @@ namespace PropertyManagementSystemVer2.DAL.Repositories.Implementations
         private IConversationRepository? _conversations;
         private IMessageRepository? _messages;
         private ISystemConfigurationRepository? _systemConfigurations;
+        private IRefreshTokenRepository? _refreshTokens;
+        private IEmailVerificationTokenRepository? _emailVerificationTokens;
+        private IOtpVerificationRepository? _otpVerifications;
 
         public UnitOfWork(AppDbContext context)
         {
@@ -43,7 +46,9 @@ namespace PropertyManagementSystemVer2.DAL.Repositories.Implementations
         public IConversationRepository Conversations => _conversations ??= new ConversationRepository(_context);
         public IMessageRepository Messages => _messages ??= new MessageRepository(_context);
         public ISystemConfigurationRepository SystemConfigurations => _systemConfigurations ??= new SystemConfigurationRepository(_context);
-
+        public IRefreshTokenRepository RefreshTokens => _refreshTokens ??= new RefreshTokenRepository(_context);
+        public IEmailVerificationTokenRepository EmailVerificationTokens => _emailVerificationTokens ??= new EmailVerificationTokenRepository(_context);
+        public IOtpVerificationRepository OtpVerifications => _otpVerifications ??= new OtpVerificationRepository(_context);
         public IGenericRepository<TEntity> GetRepository<TEntity>() where TEntity : class
         {
             var type = typeof(TEntity);

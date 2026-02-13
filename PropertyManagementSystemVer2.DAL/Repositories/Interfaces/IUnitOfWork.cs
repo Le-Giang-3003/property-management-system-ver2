@@ -15,7 +15,9 @@ namespace PropertyManagementSystemVer2.DAL.Repositories.Interfaces
         IConversationRepository Conversations { get; }
         IMessageRepository Messages { get; }
         ISystemConfigurationRepository SystemConfigurations { get; }
-
+        IRefreshTokenRepository RefreshTokens { get; }
+        IEmailVerificationTokenRepository EmailVerificationTokens { get; }
+        IOtpVerificationRepository OtpVerifications { get; }
         // Generic Repository
         IGenericRepository<TEntity> GetRepository<TEntity>() where TEntity : class;
 
