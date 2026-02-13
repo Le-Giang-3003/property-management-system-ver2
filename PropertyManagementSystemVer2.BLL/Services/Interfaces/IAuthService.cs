@@ -16,5 +16,12 @@ namespace PropertyManagementSystemVer2.BLL.Services.Interfaces
         Task<AuthResultDto> ForgotPasswordAsync(ForgotPasswordRequestDto request);
         Task<AuthResultDto> ResetPasswordAsync(ResetPasswordRequestDto request);
 
+        Task<AuthResultDto> GetProfileAsync(int userId);
+        Task<AuthResultDto> UpdateProfileAsync(int userId, UpdateProfileRequestDto request);
+        Task<AuthResultDto> UpdateLandlordInfoAsync(int userId, UpdateLandlordInfoRequestDto request);
+
+        Task<AuthResultDto> SendPhoneOtpAsync(int userId, SendPhoneOtpRequestDto request);
+        Task<AuthResultDto> VerifyPhoneOtpAsync(int userId, VerifyPhoneOtpRequestDto request);
+
     }
 }

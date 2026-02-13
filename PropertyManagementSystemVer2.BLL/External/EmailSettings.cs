@@ -1,4 +1,4 @@
-﻿namespace PropertyManagementSystemVer2.BLL.Email
+﻿namespace PropertyManagementSystemVer2.BLL.External
 {
     public class EmailSettings
     {
