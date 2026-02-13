@@ -16,19 +16,21 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
         private readonly IPasswordValidator _passwordValidator;
         private readonly IEmailService _emailService;
         private readonly IOtpGenerator _otpGenerator;
+        private readonly ISmsService _smsService;
 
         private const int MaxFailedAttempts = 5;
         private const int LockoutMinutes = 15;
         private const int OtpExpiryMinutes = 30;
         private const int EmailVerifyExpiryHours = 24;
 
-        public AuthService(IUnitOfWork unitOfWork, IJwtTokenService jwtTokenService, IPasswordValidator passwordValidator, IEmailService emailService, IOtpGenerator otpGenerator)
+        public AuthService(IUnitOfWork unitOfWork, IJwtTokenService jwtTokenService, IPasswordValidator passwordValidator, IEmailService emailService, IOtpGenerator otpGenerator, ISmsService smsService)
         {
             _unitOfWork = unitOfWork;
             _jwtTokenService = jwtTokenService;
             _passwordValidator = passwordValidator;
             _emailService = emailService;
             _otpGenerator = otpGenerator;
+            _smsService = smsService;
         }
 
         public async Task<AuthResultDto> LoginAsync(LoginRequestDto request, string? ipAddress = null)
@@ -386,6 +388,138 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
 
             await _unitOfWork.SaveChangesAsync();
             return AuthResultDto.Ok("Đặt lại mật khẩu thành công. Vui lòng đăng nhập lại.");
+        }
+
+        public async Task<AuthResultDto> GetProfileAsync(int userId)
+        {
+            var userRepo = _unitOfWork.GetRepository<User>();
+            var user = await userRepo.GetByIdAsync(userId);
+
+            if (user == null)
+                return AuthResultDto.Fail("Người dùng không tồn tại.");
+
+            return AuthResultDto.Ok(data: UserMapper.ToDto(user));
+        }
+
+        public async Task<AuthResultDto> UpdateProfileAsync(int userId, UpdateProfileRequestDto request)
+        {
+            var userRepo = _unitOfWork.GetRepository<User>();
+            var user = await userRepo.GetByIdAsync(userId);
+
+            if (user == null)
+                return AuthResultDto.Fail("Người dùng không tồn tại.");
+
+            if (!string.IsNullOrWhiteSpace(request.FullName))
+                user.FullName = request.FullName.Trim();
+
+            // SĐT thay đổi -> cần xác thực lại qua OTP
+            if (!string.IsNullOrWhiteSpace(request.PhoneNumber) && request.PhoneNumber != user.PhoneNumber)
+            {
+                user.PhoneNumber = request.PhoneNumber.Trim();
+                user.IsPhoneVerified = false; // Reset phone verification
+            }
+
+            if (request.Address != null)
+                user.Address = request.Address.Trim();
+
+            if (request.AvatarUrl != null)
+                user.AvatarUrl = request.AvatarUrl;
+
+            user.UpdatedAt = DateTime.UtcNow;
+            userRepo.Update(user);
+            await _unitOfWork.SaveChangesAsync();
+
+            return AuthResultDto.Ok("Cập nhật thông tin thành công.", UserMapper.ToDto(user));
+        }
+
+        public async Task<AuthResultDto> UpdateLandlordInfoAsync(int userId, UpdateLandlordInfoRequestDto request)
+        {
+            var userRepo = _unitOfWork.GetRepository<User>();
+            var user = await userRepo.GetByIdAsync(userId);
+
+            if (user == null)
+                return AuthResultDto.Fail("Người dùng không tồn tại.");
+
+            if (!user.IsLandlord)
+                return AuthResultDto.Fail("Bạn cần được cấp quyền Landlord trước.");
+
+            user.IdentityNumber = request.IdentityNumber.Trim();
+            user.BankAccountNumber = request.BankAccountNumber.Trim();
+            user.BankName = request.BankName.Trim();
+            user.BankAccountHolder = request.BankAccountHolder.Trim();
+            user.IsIdentityVerified = true; // Đánh dấu đã bổ sung CMND/CCCD
+            user.UpdatedAt = DateTime.UtcNow;
+
+            userRepo.Update(user);
+            await _unitOfWork.SaveChangesAsync();
+
+            return AuthResultDto.Ok("Cập nhật thông tin Landlord thành công.", UserMapper.ToDto(user));
+        }
+
+        // =====================================================================
+        // PHONE OTP
+        // =====================================================================
+        public async Task<AuthResultDto> SendPhoneOtpAsync(int userId, SendPhoneOtpRequestDto request)
+        {
+            var userRepo = _unitOfWork.GetRepository<User>();
+            var user = await userRepo.GetByIdAsync(userId);
+
+            if (user == null)
+                return AuthResultDto.Fail("Người dùng không tồn tại.");
+
+            var otp = _otpGenerator.Generate();
+            var otpRepo = _unitOfWork.GetRepository<OtpVerification>();
+            await otpRepo.AddAsync(new OtpVerification
+            {
+                UserId = userId,
+                Identifier = request.PhoneNumber.Trim(),
+                OtpCode = otp,
+                Purpose = "PhoneVerify",
+                ExpiresAt = DateTime.UtcNow.AddMinutes(OtpExpiryMinutes)
+            });
+            await _unitOfWork.SaveChangesAsync();
+
+            try
+            {
+                await _smsService.SendOtpAsync(request.PhoneNumber.Trim(), otp);
+            }
+            catch (Exception)
+            {
+                return AuthResultDto.Fail("Gửi OTP qua SMS thất bại. Vui lòng thử lại sau.");
+            }
+
+            return AuthResultDto.Ok("OTP đã được gửi tới SĐT của bạn.");
+        }
+
+        public async Task<AuthResultDto> VerifyPhoneOtpAsync(int userId, VerifyPhoneOtpRequestDto request)
+        {
+            var otpRepo = _unitOfWork.GetRepository<OtpVerification>();
+            var otp = await otpRepo.FirstOrDefaultAsync(o =>
+                o.UserId == userId &&
+                o.Identifier == request.PhoneNumber.Trim() &&
+                o.OtpCode == request.OtpCode.Trim() &&
+                o.Purpose == "PhoneVerify" &&
+                !o.IsUsed &&
+                o.ExpiresAt > DateTime.UtcNow);
+
+            if (otp == null)
+                return AuthResultDto.Fail("OTP không hợp lệ hoặc đã hết hạn.");
+
+            otp.IsUsed = true;
+            otp.UsedAt = DateTime.UtcNow;
+            otpRepo.Update(otp);
+
+            var userRepo = _unitOfWork.GetRepository<User>();
+            var user = await userRepo.GetByIdAsync(userId);
+            if (user != null)
+            {
+                user.IsPhoneVerified = true;
+                user.UpdatedAt = DateTime.UtcNow;
+                userRepo.Update(user);
+            }
+
+            await _unitOfWork.SaveChangesAsync();
+            return AuthResultDto.Ok("Xác thực SĐT thành công.");
         }
     }
 }

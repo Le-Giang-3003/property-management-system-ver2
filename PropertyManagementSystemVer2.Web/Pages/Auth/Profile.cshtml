@@ -1,0 +1,233 @@
+﻿@* File: Pages/Auth/Profile.cshtml *@
+@page
+@model PropertyManagementSystemVer2.Web.Pages.Auth.ProfileModel
+@{
+    ViewData["Title"] = "Hồ sơ cá nhân";
+}
+
+<div class="row">
+    <!-- Left: Avatar + Info -->
+    <div class="col-md-4 mb-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center py-4">
+                @if (!string.IsNullOrEmpty(Model.Profile?.AvatarUrl))
+                {
+                    <img src="@Model.Profile.AvatarUrl" alt="Avatar" class="profile-avatar mb-3" />
+                }
+                else
+                {
+                    <div class="profile-avatar-placeholder mx-auto mb-3">
+                        <i class="bi bi-person"></i>
+                    </div>
+                }
+
+                <h5 class="fw-bold mb-1">@Model.Profile?.FullName</h5>
+                <p class="text-muted mb-2">@Model.Profile?.Email</p>
+
+                <!-- Roles -->
+                <div class="mb-3">
+                    @if (Model.Profile?.IsLandlord == true)
+                    {
+                        <span class="badge bg-primary me-1"><i class="bi bi-building me-1"></i>Landlord</span>
+                    }
+                    @if (Model.Profile?.IsTenant == true)
+                    {
+                        <span class="badge bg-info me-1"><i class="bi bi-person me-1"></i>Tenant</span>
+                    }
+                    <span class="badge bg-secondary">@Model.Profile?.Role</span>
+                </div>
+
+                <!-- Verification Status -->
+                <div class="text-start px-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span><i class="bi bi-envelope me-2"></i>Email</span>
+                        @if (Model.Profile?.IsEmailVerified == true)
+                        {
+                            <span class="badge bg-success badge-verified"><i class="bi bi-check me-1"></i>Đã xác thực</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-warning badge-verified">Chưa xác thực</span>
+                        }
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span><i class="bi bi-phone me-2"></i>SĐT</span>
+                        @if (Model.Profile?.IsPhoneVerified == true)
+                        {
+                            <span class="badge bg-success badge-verified"><i class="bi bi-check me-1"></i>Đã xác thực</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-warning badge-verified">Chưa xác thực</span>
+                        }
+                    </div>
+                    @if (Model.Profile?.IsLandlord == true)
+                    {
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-card-text me-2"></i>CMND/CCCD</span>
+                            @if (Model.Profile?.IsIdentityVerified == true)
+                            {
+                                <span class="badge bg-success badge-verified"><i class="bi bi-check me-1"></i>Đã bổ sung</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-danger badge-verified">Chưa bổ sung</span>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right: Edit Forms -->
+    <div class="col-md-8">
+        <!-- Tab Navigation -->
+        <ul class="nav nav-tabs mb-3" role="tablist">
+            <li class="nav-item">
+                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabProfile" type="button">
+                    <i class="bi bi-person me-1"></i>Thông tin cá nhân
+                </button>
+            </li>
+            @if (Model.Profile?.IsLandlord == true)
+            {
+                <li class="nav-item">
+                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabLandlord" type="button">
+                        <i class="bi bi-building me-1"></i>Thông tin Landlord
+                    </button>
+                </li>
+            }
+            <li class="nav-item">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabPhone" type="button">
+                    <i class="bi bi-phone me-1"></i>Xác thực SĐT
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content">
+            <!-- TAB 1: Personal Info -->
+            <div class="tab-pane fade show active" id="tabProfile">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <h5 class="card-title fw-bold mb-4">Cập nhật thông tin</h5>
+                        <form method="post" asp-page-handler="UpdateProfile">
+                            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                            <div class="mb-3">
+                                <label asp-for="ProfileInput.FullName" class="form-label">Họ và tên</label>
+                                <input asp-for="ProfileInput.FullName" class="form-control" />
+                                <span asp-validation-for="ProfileInput.FullName" class="text-danger small"></span>
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="ProfileInput.PhoneNumber" class="form-label">
+                                    Số điện thoại
+                                    <small class="text-muted">(thay đổi sẽ cần xác thực lại)</small>
+                                </label>
+                                <input asp-for="ProfileInput.PhoneNumber" class="form-control" />
+                                <span asp-validation-for="ProfileInput.PhoneNumber" class="text-danger small"></span>
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="ProfileInput.Address" class="form-label">Địa chỉ</label>
+                                <input asp-for="ProfileInput.Address" class="form-control" />
+                            </div>
+
+                            <div class="mb-4">
+                                <label asp-for="ProfileInput.AvatarUrl" class="form-label">URL Avatar</label>
+                                <input asp-for="ProfileInput.AvatarUrl" class="form-control" placeholder="https://..." />
+                            </div>
+
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-lg me-2"></i>Lưu thay đổi
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: Landlord Info -->
+            @if (Model.Profile?.IsLandlord == true)
+            {
+                <div class="tab-pane fade" id="tabLandlord">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body p-4">
+                            <h5 class="card-title fw-bold mb-2">Thông tin Landlord</h5>
+                            <p class="text-muted mb-4">Bổ sung CMND/CCCD và thông tin ngân hàng để hoàn tất hồ sơ Landlord.</p>
+
+                            <form method="post" asp-page-handler="UpdateLandlord">
+                                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                                <div class="mb-3">
+                                    <label asp-for="LandlordInput.IdentityNumber" class="form-label">Số CMND/CCCD</label>
+                                    <input asp-for="LandlordInput.IdentityNumber" class="form-control" placeholder="001234567890" />
+                                    <span asp-validation-for="LandlordInput.IdentityNumber" class="text-danger small"></span>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label asp-for="LandlordInput.BankName" class="form-label">Ngân hàng</label>
+                                    <input asp-for="LandlordInput.BankName" class="form-control" placeholder="Vietcombank" />
+                                    <span asp-validation-for="LandlordInput.BankName" class="text-danger small"></span>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label asp-for="LandlordInput.BankAccountNumber" class="form-label">Số tài khoản</label>
+                                    <input asp-for="LandlordInput.BankAccountNumber" class="form-control" />
+                                    <span asp-validation-for="LandlordInput.BankAccountNumber" class="text-danger small"></span>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label asp-for="LandlordInput.BankAccountHolder" class="form-label">Chủ tài khoản</label>
+                                    <input asp-for="LandlordInput.BankAccountHolder" class="form-control" placeholder="NGUYEN VAN A" />
+                                    <span asp-validation-for="LandlordInput.BankAccountHolder" class="text-danger small"></span>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-check-lg me-2"></i>Cập nhật
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <!-- TAB 3: Phone OTP -->
+            <div class="tab-pane fade" id="tabPhone">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <h5 class="card-title fw-bold mb-2">Xác thực số điện thoại</h5>
+                        <p class="text-muted mb-4">Nhận mã OTP qua SĐT để xác thực.</p>
+
+                        <!-- Step 1: Gửi OTP -->
+                        <form method="post" asp-page-handler="SendPhoneOtp" class="mb-4">
+                            <div class="input-group">
+                                <input asp-for="PhoneOtpInput.PhoneNumber" class="form-control"
+                                       placeholder="0901234567" value="@Model.Profile?.PhoneNumber" />
+                                <button type="submit" class="btn btn-outline-primary">
+                                    <i class="bi bi-send me-1"></i>Gửi OTP
+                                </button>
+                            </div>
+                        </form>
+
+                        <!-- Step 2: Nhập OTP -->
+                        <form method="post" asp-page-handler="VerifyPhoneOtp">
+                            <div class="mb-3">
+                                <label class="form-label">Mã OTP</label>
+                                <input asp-for="PhoneOtpInput.OtpCode" class="form-control text-center fs-5"
+                                       placeholder="000000" maxlength="6" style="letter-spacing: 0.5em;" />
+                            </div>
+                            <input type="hidden" asp-for="PhoneOtpInput.PhoneNumber" value="@Model.Profile?.PhoneNumber" />
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-check-circle me-2"></i>Xác thực
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

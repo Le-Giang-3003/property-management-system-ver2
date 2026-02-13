@@ -3,7 +3,7 @@ using MailKit.Security;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MimeKit;
-using PropertyManagementSystemVer2.BLL.Email;
+using PropertyManagementSystemVer2.BLL.External;
 using PropertyManagementSystemVer2.BLL.Services.Interfaces;
 
 namespace PropertyManagementSystemVer2.BLL.Services.Implementations
