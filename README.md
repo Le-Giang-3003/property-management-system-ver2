@@ -89,8 +89,8 @@ Before running the project, make sure your environment meets the following requi
 ### Step 1: Clone the repository
 
 ```bash
-git clone https://github.com/YourUsername/property-management-razorpages.git
-cd property-management-razorpages
+git clone https://github.com/Le-Giang-3003/property-management-system-ver2.git
+cd property-management-system-ver2
 ```
 
 ### Step 2: Configure database connection
