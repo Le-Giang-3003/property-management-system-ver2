@@ -78,7 +78,7 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
             if (user.LandlordStatus != LandlordApprovalStatus.Rejected)
                 return AuthResultDto.Fail("Chỉ có thể gửi lại đơn đã bị từ chối.");
 
-            var errors = Validate(request);
+            var errors = LandlordRegistrationHelper.Validate(request);
             if (errors.Count > 0) return AuthResultDto.Fail(string.Join("; ", errors));
 
             user.IdentityNumber = request.IdentityNumber.Trim();
@@ -171,7 +171,7 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
                 _unitOfWork.Users.Update(user);
                 await _unitOfWork.SaveChangesAsync();
 
-                try { await _emailService.SendEmailAsync(user.Email, "Đơn đăng ký Landlord đã được duyệt - PropertyMS", BuildApprovalEmail(user.FullName)); } catch { }
+                try { await _emailService.SendEmailAsync(user.Email, "Đơn đăng ký Landlord đã được duyệt - PropertyMS", LandlordRegistrationHelper.BuildApprovalEmail(user.FullName)); } catch { }
 
                 return AuthResultDto.Ok($"Đã duyệt. {user.FullName} giờ là Landlord.");
             }
@@ -182,7 +182,7 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
                 _unitOfWork.Users.Update(user);
                 await _unitOfWork.SaveChangesAsync();
 
-                try { await _emailService.SendEmailAsync(user.Email, "Đơn đăng ký Landlord bị từ chối - PropertyMS", BuildRejectionEmail(user.FullName, request.RejectionReason!)); } catch { }
+                try { await _emailService.SendEmailAsync(user.Email, "Đơn đăng ký Landlord bị từ chối - PropertyMS", LandlordRegistrationHelper.BuildRejectionEmail(user.FullName, request.RejectionReason!)); } catch { }
 
                 return AuthResultDto.Ok("Đã từ chối. Member sẽ nhận email thông báo.");
             }
