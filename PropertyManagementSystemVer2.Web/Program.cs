@@ -1,7 +1,10 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using PropertyManagementSystemVer2.BLL;
+using PropertyManagementSystemVer2.BLL.Services.Interfaces;
 using PropertyManagementSystemVer2.DAL;
+using PropertyManagementSystemVer2.DAL.Data;
 using System.Text;
 
 
@@ -52,6 +55,16 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
+
+// Tự động áp dụng migration và seed dữ liệu (chỉ seed khi chưa có Admin)
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await db.Database.MigrateAsync();
+
+    var seedService = scope.ServiceProvider.GetRequiredService<IDataSeedService>();
+    await seedService.EnsureSeedDataAsync();
+}
 
 if (!app.Environment.IsDevelopment())
 {

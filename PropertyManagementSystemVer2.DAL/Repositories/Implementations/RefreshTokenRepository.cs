@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using PropertyManagementSystemVer2.DAL.Data;
 using PropertyManagementSystemVer2.DAL.Entities;
 using PropertyManagementSystemVer2.DAL.Repositories.Interfaces;
 using System;
@@ -11,7 +12,7 @@ namespace PropertyManagementSystemVer2.DAL.Repositories.Implementations
 {
     public class RefreshTokenRepository : GenericRepository<RefreshToken>, IRefreshTokenRepository
     {
-        public RefreshTokenRepository(DbContext context) : base(context) { }
+        public RefreshTokenRepository(AppDbContext context) : base(context) { }
 
         public async Task<RefreshToken?> GetByTokenAsync(string token)
         {

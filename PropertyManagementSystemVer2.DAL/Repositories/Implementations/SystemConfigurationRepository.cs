@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using PropertyManagementSystemVer2.DAL.Data;
 using PropertyManagementSystemVer2.DAL.Entities;
 using PropertyManagementSystemVer2.DAL.Enums;
 using PropertyManagementSystemVer2.DAL.Repositories.Interfaces;
@@ -7,7 +8,7 @@ namespace PropertyManagementSystemVer2.DAL.Repositories.Implementations
 {
     public class SystemConfigurationRepository : GenericRepository<SystemConfiguration>, ISystemConfigurationRepository
     {
-        public SystemConfigurationRepository(DbContext context) : base(context) { }
+        public SystemConfigurationRepository(AppDbContext context) : base(context) { }
 
         public async Task<SystemConfiguration?> GetByKeyAsync(string key, CancellationToken cancellationToken = default)
         {

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using PropertyManagementSystemVer2.DAL.Data;
 using PropertyManagementSystemVer2.DAL.Entities;
 using PropertyManagementSystemVer2.DAL.Repositories.Interfaces;
 
@@ -6,7 +7,7 @@ namespace PropertyManagementSystemVer2.DAL.Repositories.Implementations
 {
     public class RevenueRepository : GenericRepository<Revenue>, IRevenueRepository
     {
-        public RevenueRepository(DbContext context) : base(context) { }
+        public RevenueRepository(AppDbContext context) : base(context) { }
 
         public async Task<IEnumerable<Revenue>> GetByPropertyIdAsync(int propertyId, CancellationToken cancellationToken = default)
         {

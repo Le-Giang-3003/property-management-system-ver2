@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using PropertyManagementSystemVer2.BLL.DTOs.Auth;
@@ -74,6 +74,14 @@ namespace PropertyManagementSystemVer2.Web.Pages.Auth
                 response.User.IsLandlord ? "Landlord" : "Tenant");
 
             TempData["Success"] = "Đăng nhập thành công!";
+
+            // Admin → Admin Dashboard; nếu có returnUrl thì ưu tiên returnUrl
+            if (string.IsNullOrEmpty(returnUrl) || returnUrl == "/")
+            {
+                if (string.Equals(response.User.Role, "Admin", StringComparison.OrdinalIgnoreCase))
+                    return LocalRedirect("/Admin/Dashboard");
+            }
+
             return LocalRedirect(returnUrl ?? "/");
         }
     }

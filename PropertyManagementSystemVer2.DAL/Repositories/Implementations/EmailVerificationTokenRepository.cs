@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using PropertyManagementSystemVer2.DAL.Data;
 using PropertyManagementSystemVer2.DAL.Entities;
 using PropertyManagementSystemVer2.DAL.Repositories.Interfaces;
 using System;
@@ -11,7 +12,7 @@ namespace PropertyManagementSystemVer2.DAL.Repositories.Implementations
 {
     public class EmailVerificationTokenRepository : GenericRepository<EmailVerificationToken>, IEmailVerificationTokenRepository
     {
-        public EmailVerificationTokenRepository(DbContext context) : base(context) { }
+        public EmailVerificationTokenRepository(AppDbContext context) : base(context) { }
 
         public async Task<EmailVerificationToken?> GetValidTokenAsync(string token)
         {
