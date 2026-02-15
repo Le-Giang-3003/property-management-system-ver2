@@ -1,0 +1,178 @@
+﻿@page "{id:int}"
+@model PropertyManagementSystemVer2.Web.Pages.Admin.Users.DetailModel
+@{
+    ViewData["Title"] = "User Detail";
+}
+
+@if (Model.User == null)
+{
+    <div class="alert alert-warning"><i class="bi bi-exclamation-triangle me-1"></i> User not found.</div>
+    return;
+}
+
+<div class="mb-3">
+    <a asp-page="/Admin/Users/Index" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>Back to Users
+    </a>
+</div>
+
+<div class="row g-3">
+    <!-- Main Info -->
+    <div class="col-lg-8">
+        <div class="card-panel mb-3">
+            <div class="card-header-custom">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center"
+                         style="width:40px;height:40px;font-size:1.1rem;flex-shrink:0">
+                        @Model.User.FullName[0]
+                    </div>
+                    <div>
+                        <h6 class="mb-0">@Model.User.FullName</h6>
+                        <small class="text-muted">ID: #@Model.User.Id</small>
+                    </div>
+                </div>
+                <span class="badge @(Model.User.IsActive ? "badge-soft-success" : "badge-soft-danger")">
+                    @(Model.User.IsActive ? "Active" : "Inactive")
+                </span>
+            </div>
+            <div class="card-body-custom">
+                <div class="row g-3" style="font-size:.85rem">
+                    <div class="col-sm-6">
+                        <div class="text-muted mb-1" style="font-size:.75rem">EMAIL</div>
+                        <div>@Model.User.Email @(Model.User.IsEmailVerified ? "✅" : "❌")</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="text-muted mb-1" style="font-size:.75rem">PHONE</div>
+                        <div>@Model.User.PhoneNumber @(Model.User.IsPhoneVerified ? "✅" : "❌")</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="text-muted mb-1" style="font-size:.75rem">ADDRESS</div>
+                        <div>@(Model.User.Address ?? "—")</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="text-muted mb-1" style="font-size:.75rem">ROLE</div>
+                        <div>
+                            <span class="badge @(Model.User.Role == DAL.Enums.UserRole.Admin ? "badge-soft-danger" : "badge-soft-secondary")">@Model.User.Role</span>
+                            @if (Model.User.IsLandlord)
+                            {
+                                <span class="badge badge-soft-info ms-1">Landlord</span>
+                            }
+                            @if (Model.User.IsTenant)
+                            {
+                                <span class="badge badge-soft-primary ms-1">Tenant</span>
+                            }
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="text-muted mb-1" style="font-size:.75rem">IDENTITY VERIFIED</div>
+                        <div>@(Model.User.IsIdentityVerified ? "✅ Yes" : "❌ No")</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="text-muted mb-1" style="font-size:.75rem">JOINED / LAST LOGIN</div>
+                        <div>@Model.User.CreatedAt.ToString("dd/MM/yyyy") · @(Model.User.LastLoginAt?.ToString("dd/MM/yyyy HH:mm") ?? "Never")</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Landlord Info -->
+        @if (Model.User.IsLandlord)
+        {
+            <div class="card-panel">
+                <div class="card-header-custom">
+                    <h6><i class="bi bi-bank me-1 text-info"></i> Landlord Information</h6>
+                </div>
+                <div class="card-body-custom">
+                    <div class="row g-3" style="font-size:.85rem">
+                        <div class="col-sm-6">
+                            <div class="text-muted mb-1" style="font-size:.75rem">IDENTITY NUMBER</div>
+                            <div>@(Model.User.IdentityNumber ?? "—")</div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="text-muted mb-1" style="font-size:.75rem">BANK NAME</div>
+                            <div>@(Model.User.BankName ?? "—")</div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="text-muted mb-1" style="font-size:.75rem">ACCOUNT NUMBER</div>
+                            <div>@(Model.User.BankAccountNumber ?? "—")</div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="text-muted mb-1" style="font-size:.75rem">ACCOUNT HOLDER</div>
+                            <div>@(Model.User.BankAccountHolder ?? "—")</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        <!-- Stats -->
+        <div class="card-panel mb-3">
+            <div class="card-header-custom"><h6><i class="bi bi-bar-chart me-1"></i> Statistics</h6></div>
+            <div class="card-body-custom p-0">
+                <div class="list-group list-group-flush" style="font-size:.85rem">
+                    <div class="list-group-item d-flex justify-content-between px-3 py-2">
+                        <span class="text-muted">Owned Properties</span><strong>@Model.User.OwnedPropertiesCount</strong>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between px-3 py-2">
+                        <span class="text-muted">Active Leases</span><strong>@Model.User.ActiveLeasesCount</strong>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between px-3 py-2">
+                        <span class="text-muted">Applications</span><strong>@Model.User.ApplicationsCount</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="card-panel">
+            <div class="card-header-custom"><h6><i class="bi bi-gear me-1"></i> Actions</h6></div>
+            <div class="card-body-custom d-grid gap-2">
+                <a asp-page="/Admin/Users/Edit" asp-route-id="@Model.User.Id" class="btn btn-warning btn-sm">
+                    <i class="bi bi-pencil me-1"></i> Edit User
+                </a>
+                <form method="post" asp-page-handler="ToggleActive" asp-route-id="@Model.User.Id">
+                    <button type="submit" class="btn @(Model.User.IsActive ? "btn-danger" : "btn-success") btn-sm w-100"
+                            onclick="return confirm('@(Model.User.IsActive ? "Deactivate" : "Activate") this user?')">
+                        <i class="bi @(Model.User.IsActive ? "bi-person-slash" : "bi-person-check") me-1"></i>
+                        @(Model.User.IsActive ? "Deactivate User" : "Activate User")
+                    </button>
+                </form>
+                <button class="btn btn-outline-dark btn-sm" data-bs-toggle="modal" data-bs-target="#resetPwdModal">
+                    <i class="bi bi-key me-1"></i> Reset Password
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reset Password Modal -->
+<div class="modal fade" id="resetPwdModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="ResetPassword">
+                <input type="hidden" name="id" value="@Model.User.Id" />
+                <div class="modal-header py-2">
+                    <h6 class="modal-title" style="font-size:.9rem">Reset Password</h6>
+                    <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small">New Password</label>
+                        <input type="password" name="newPassword" class="form-control form-control-sm" required minlength="6" />
+                    </div>
+                    <div>
+                        <label class="form-label small">Confirm Password</label>
+                        <input type="password" name="confirmPassword" class="form-control form-control-sm" required minlength="6" />
+                    </div>
+                </div>
+                <div class="modal-footer py-2">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm">Reset</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

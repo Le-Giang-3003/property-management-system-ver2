@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using PropertyManagementSystemVer2.DAL.Data;
 using PropertyManagementSystemVer2.DAL.Entities;
 using PropertyManagementSystemVer2.DAL.Repositories.Interfaces;
 
@@ -6,7 +7,7 @@ namespace PropertyManagementSystemVer2.DAL.Repositories.Implementations
 {
     public class ConversationRepository : GenericRepository<Conversation>, IConversationRepository
     {
-        public ConversationRepository(DbContext context) : base(context) { }
+        public ConversationRepository(AppDbContext context) : base(context) { }
 
         public async Task<Conversation?> GetByIdWithMessagesAsync(int id, int messageCount = 50, CancellationToken cancellationToken = default)
         {

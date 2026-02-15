@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using PropertyManagementSystemVer2.BLL.External;
 using PropertyManagementSystemVer2.BLL.Identity;
@@ -36,6 +36,8 @@ namespace PropertyManagementSystemVer2.BLL
             services.AddScoped<IAdminService, AdminService>();
             services.AddScoped<IDashboardService, DashboardService>();
             services.AddScoped<ILandlordRegistrationService, LandlordRegistrationService>();
+            services.AddScoped<IAdminDashboardService, AdminDashboardService>();
+            services.AddScoped<IDataSeedService, DataSeedService>();
             return services;
         }
     }

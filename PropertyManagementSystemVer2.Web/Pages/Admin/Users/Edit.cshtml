@@ -1,0 +1,81 @@
+﻿@page "{id:int}"
+@model PropertyManagementSystemVer2.Web.Pages.Admin.Users.EditModel
+@{
+    ViewData["Title"] = "Edit User";
+}
+
+@if (Model.User == null)
+{
+    <div class="alert alert-warning">User not found.</div>
+    return;
+}
+
+<div class="mb-3">
+    <a asp-page="/Admin/Users/Detail" asp-route-id="@Model.User.Id" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>Back to Detail
+    </a>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="card-panel">
+            <div class="card-header-custom">
+                <h6><i class="bi bi-pencil-square me-1"></i> Edit: @Model.User.FullName</h6>
+            </div>
+            <div class="card-body-custom">
+                <form method="post">
+                    <input type="hidden" name="id" value="@Model.User.Id" />
+                    <div class="row g-3">
+                        <div class="col-sm-6">
+                            <label class="form-label small">Full Name</label>
+                            <input type="text" name="Input.FullName" value="@Model.Input.FullName" class="form-control form-control-sm" required />
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label small">Email</label>
+                            <input type="email" name="Input.Email" value="@Model.Input.Email" class="form-control form-control-sm" required />
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label small">Phone Number</label>
+                            <input type="text" name="Input.PhoneNumber" value="@Model.Input.PhoneNumber" class="form-control form-control-sm" required />
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label small">Role</label>
+                            <select name="Input.Role" class="form-select form-select-sm">
+                                <option value="Member" selected="@(Model.Input.Role == DAL.Enums.UserRole.Member)">Member</option>
+                                <option value="Admin" selected="@(Model.Input.Role == DAL.Enums.UserRole.Admin)">Admin</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <hr class="my-1" />
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="Input.IsActive" value="true" id="chkActive"
+                                       @(Model.Input.IsActive ? "checked" : "") />
+                                <label class="form-check-label small" for="chkActive">Active</label>
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="Input.IsTenant" value="true" id="chkTenant"
+                                       @(Model.Input.IsTenant ? "checked" : "") />
+                                <label class="form-check-label small" for="chkTenant">Is Tenant</label>
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="Input.IsLandlord" value="true" id="chkLandlord"
+                                       @(Model.Input.IsLandlord ? "checked" : "") />
+                                <label class="form-check-label small" for="chkLandlord">Is Landlord</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-save me-1"></i>Save Changes</button>
+                        <a asp-page="/Admin/Users/Detail" asp-route-id="@Model.User.Id" class="btn btn-outline-secondary btn-sm">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

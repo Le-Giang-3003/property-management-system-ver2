@@ -19,9 +19,6 @@ namespace PropertyManagementSystemVer2.DAL.Data
         public DbSet<Booking> Bookings => Set<Booking>();
         public DbSet<Revenue> Revenues => Set<Revenue>();
         public DbSet<SystemConfiguration> SystemConfigurations => Set<SystemConfiguration>();
-        public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
-        public DbSet<Dispute> Disputes => Set<Dispute>();
-        public DbSet<PropertyReport> PropertyReports => Set<PropertyReport>();
 
         // Chat
         public DbSet<Conversation> Conversations => Set<Conversation>();
@@ -98,7 +95,6 @@ namespace PropertyManagementSystemVer2.DAL.Data
 
                 entity.Property(e => e.PropertyType).HasConversion<int>();
                 entity.Property(e => e.Status).HasConversion<int>();
-                entity.Property(e => e.FlagReason).HasMaxLength(1000);
 
                 entity.HasOne(e => e.Landlord)
                     .WithMany(u => u.OwnedProperties)
@@ -542,113 +538,6 @@ namespace PropertyManagementSystemVer2.DAL.Data
                 entity.HasIndex(e => e.Token).IsUnique();
                 entity.HasIndex(e => e.UserId);
                 entity.HasIndex(e => e.ExpiresAt);
-            });
-
-            modelBuilder.Entity<AuditLog>(entity =>
-            {
-                entity.ToTable("AuditLogs");
-                entity.HasKey(e => e.Id);
-
-                entity.Property(e => e.Action).HasMaxLength(100).IsRequired();
-                entity.Property(e => e.EntityType).HasMaxLength(100).IsRequired();
-                entity.Property(e => e.OldValues).HasColumnType("nvarchar(max)");
-                entity.Property(e => e.NewValues).HasColumnType("nvarchar(max)");
-                entity.Property(e => e.Description).HasMaxLength(1000);
-                entity.Property(e => e.IpAddress).HasMaxLength(50);
-                entity.Property(e => e.UserAgent).HasMaxLength(500);
-
-                entity.HasOne(e => e.User)
-                    .WithMany()
-                    .HasForeignKey(e => e.UserId)
-                    .OnDelete(DeleteBehavior.SetNull);
-
-                entity.HasIndex(e => e.UserId);
-                entity.HasIndex(e => e.Action);
-                entity.HasIndex(e => e.EntityType);
-                entity.HasIndex(e => e.CreatedAt);
-                entity.HasIndex(e => new { e.EntityType, e.EntityId });
-                entity.HasIndex(e => new { e.UserId, e.Action, e.CreatedAt });
-            });
-
-            // ===== DISPUTE =====
-            modelBuilder.Entity<Dispute>(entity =>
-            {
-                entity.ToTable("Disputes");
-                entity.HasKey(e => e.Id);
-
-                entity.Property(e => e.Title).HasMaxLength(300).IsRequired();
-                entity.Property(e => e.Description).HasMaxLength(5000).IsRequired();
-                entity.Property(e => e.LandlordEvidence).HasColumnType("nvarchar(max)");
-                entity.Property(e => e.TenantEvidence).HasColumnType("nvarchar(max)");
-                entity.Property(e => e.AdminDecision).HasMaxLength(3000);
-                entity.Property(e => e.AdminNotes).HasMaxLength(2000);
-                entity.Property(e => e.Status).HasConversion<int>();
-                entity.Property(e => e.Category).HasConversion<int>();
-
-                entity.HasOne(e => e.Lease)
-                    .WithMany()
-                    .HasForeignKey(e => e.LeaseId)
-                    .OnDelete(DeleteBehavior.SetNull);
-
-                entity.HasOne(e => e.Property)
-                    .WithMany()
-                    .HasForeignKey(e => e.PropertyId)
-                    .OnDelete(DeleteBehavior.SetNull);
-
-                entity.HasOne(e => e.Landlord)
-                    .WithMany()
-                    .HasForeignKey(e => e.LandlordId)
-                    .OnDelete(DeleteBehavior.Restrict);
-
-                entity.HasOne(e => e.Tenant)
-                    .WithMany()
-                    .HasForeignKey(e => e.TenantId)
-                    .OnDelete(DeleteBehavior.Restrict);
-
-                entity.HasOne(e => e.Resolver)
-                    .WithMany()
-                    .HasForeignKey(e => e.ResolvedBy)
-                    .OnDelete(DeleteBehavior.SetNull);
-
-                entity.HasIndex(e => e.Status);
-                entity.HasIndex(e => e.Category);
-                entity.HasIndex(e => e.LandlordId);
-                entity.HasIndex(e => e.TenantId);
-                entity.HasIndex(e => e.LeaseId);
-                entity.HasIndex(e => e.CreatedAt);
-            });
-
-            // ===== PROPERTY REPORT =====
-            modelBuilder.Entity<PropertyReport>(entity =>
-            {
-                entity.ToTable("PropertyReports");
-                entity.HasKey(e => e.Id);
-
-                entity.Property(e => e.Reason).HasMaxLength(500).IsRequired();
-                entity.Property(e => e.Description).HasMaxLength(3000);
-                entity.Property(e => e.EvidenceUrls).HasMaxLength(2000);
-                entity.Property(e => e.AdminNotes).HasMaxLength(1000);
-                entity.Property(e => e.Status).HasConversion<int>();
-
-                entity.HasOne(e => e.Property)
-                    .WithMany()
-                    .HasForeignKey(e => e.PropertyId)
-                    .OnDelete(DeleteBehavior.Restrict);
-
-                entity.HasOne(e => e.Reporter)
-                    .WithMany()
-                    .HasForeignKey(e => e.ReportedBy)
-                    .OnDelete(DeleteBehavior.Restrict);
-
-                entity.HasOne(e => e.Reviewer)
-                    .WithMany()
-                    .HasForeignKey(e => e.ReviewedBy)
-                    .OnDelete(DeleteBehavior.SetNull);
-
-                entity.HasIndex(e => e.PropertyId);
-                entity.HasIndex(e => e.ReportedBy);
-                entity.HasIndex(e => e.Status);
-                entity.HasIndex(e => e.CreatedAt);
             });
         }
     }

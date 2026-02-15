@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using PropertyManagementSystemVer2.DAL.Data;
 using PropertyManagementSystemVer2.DAL.Entities;
 using PropertyManagementSystemVer2.DAL.Enums;
 using PropertyManagementSystemVer2.DAL.Repositories.Interfaces;
@@ -7,7 +8,7 @@ namespace PropertyManagementSystemVer2.DAL.Repositories.Implementations
 {
     public class LeaseRepository : GenericRepository<Lease>, ILeaseRepository
     {
-        public LeaseRepository(DbContext context) : base(context) { }
+        public LeaseRepository(AppDbContext context) : base(context) { }
 
         public async Task<Lease?> GetByIdWithDetailsAsync(int id, CancellationToken cancellationToken = default)
         {
