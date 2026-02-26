@@ -1,4 +1,5 @@
 @page
+@using PropertyManagementSystemVer2.DAL.Enums
 @model PropertyManagementSystemVer2.Web.Pages.Tenant.ApplicationsModel
 @{
     ViewData["Title"] = "Đơn đăng ký của tôi";
@@ -10,16 +11,17 @@
 </div>
 
 <div class="card mb-20">
-    <div class="filter-bar" style="margin-bottom: 0;">
+    <form method="get" id="filterForm" class="filter-bar" style="margin-bottom: 0;">
         <div class="header-search" style="flex: 1; min-width: 200px;">
             <i data-feather="search" style="color: var(--text-muted); width: 14px;"></i>
-            <input placeholder="Tìm tên BDS..." style="width: 100%;" />
+            <input type="text" name="SearchTerm" value="@Model.SearchTerm" placeholder="Tìm tên BDS..." style="width: 100%; border: none; outline: none; background: transparent; padding-left: 8px;" />
         </div>
-        <button class="btn btn-primary btn-sm">Tất cả</button>
-        <button class="btn btn-ghost btn-sm text-yellow" style="border-color: var(--warning);">Đang chờ</button>
-        <button class="btn btn-ghost btn-sm text-green" style="border-color: var(--success);">Chấp nhận</button>
-        <button class="btn btn-ghost btn-sm text-red" style="border-color: var(--danger);">Từ chối</button>
-    </div>
+        <input type="hidden" name="StatusFilter" id="statusFilter" value="@Model.StatusFilter" />
+        <button type="button" class="btn btn-sm @(!Model.StatusFilter.HasValue ? "btn-primary" : "btn-ghost")" onclick="setFilter('')">Tất cả (@Model.AllApplications.Count)</button>
+        <button type="button" class="btn btn-sm @(Model.StatusFilter == ApplicationStatus.Pending ? "btn-primary text-yellow" : "btn-ghost text-yellow")" style="border-color: var(--warning);" onclick="setFilter('Pending')">Đang chờ (@Model.AllApplications.Count(a => a.Status == ApplicationStatus.Pending))</button>
+        <button type="button" class="btn btn-sm @(Model.StatusFilter == ApplicationStatus.Approved ? "btn-primary text-green" : "btn-ghost text-green")" style="border-color: var(--success);" onclick="setFilter('Approved')">Chấp nhận (@Model.AllApplications.Count(a => a.Status == ApplicationStatus.Approved))</button>
+        <button type="button" class="btn btn-sm @(Model.StatusFilter == ApplicationStatus.Rejected ? "btn-primary text-red" : "btn-ghost text-red")" style="border-color: var(--danger);" onclick="setFilter('Rejected')">Từ chối (@Model.AllApplications.Count(a => a.Status == ApplicationStatus.Rejected))</button>
+    </form>
 </div>
 
 <div class="property-grid">
@@ -39,19 +41,19 @@
                 <div class="property-body">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
                         <span class="property-type-badge">Đơn thuê</span>
-                        @if (app.Status.ToString() == "Pending")
+                        @if (app.Status == ApplicationStatus.Pending)
                         {
                             <span class="badge badge-warning">Đang xử lý</span>
                         }
-                        else if (app.Status.ToString() == "Approved")
+                        else if (app.Status == ApplicationStatus.Approved)
                         {
                             <span class="badge badge-success">Chấp nhận</span>
                         }
-                        else if (app.Status.ToString() == "Rejected")
+                        else if (app.Status == ApplicationStatus.Rejected)
                         {
                             <span class="badge badge-danger">Từ chối</span>
                         }
-                        else if (app.Status.ToString() == "Withdrawn")
+                        else if (app.Status == ApplicationStatus.Cancelled)
                         {
                             <span class="badge badge-gray">Đã rút</span>
                         }
@@ -69,20 +71,22 @@
 
                     <div style="border-top: 1px solid var(--border); padding-top: 12px; display: flex; align-items: center; justify-content: space-between; margin-top: 12px;">
                         <div>
-                            @if (app.Status.ToString() == "Rejected")
+                            @if (app.Status == ApplicationStatus.Rejected)
                             {
                                 <div class="text-red fw-600" style="font-size: 11px; cursor: help;" title="@app.RejectionReason">Lý do từ chối...</div>
                             }
                         </div>
                         <div style="display: flex; gap: 6px;">
-                            <button class="btn btn-secondary btn-sm" onclick="alert('Xem chi tiết đơn!')">Chi tiết</button>
-                            @if (app.Status.ToString() == "Pending")
+                            @if (app.Status == ApplicationStatus.Pending)
                             {
-                                <button class="btn btn-danger btn-sm" onclick="alert('Rút đơn!')">Rút đơn</button>
+                                <form method="post" asp-page-handler="Withdraw" style="margin: 0;">
+                                    <input type="hidden" name="applicationId" value="@app.Id" />
+                                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Bạn có chắc chắn muốn rút đơn đăng ký này?');">Rút đơn</button>
+                                </form>
                             }
-                            @if (app.Status.ToString() == "Approved")
+                            @if (app.Status == ApplicationStatus.Approved)
                             {
-                                <button class="btn btn-primary btn-sm" onclick="alert('Ký hợp đồng!')">Tiến hành ký</button>
+                                <a href="/Tenant/Leases" class="btn btn-primary btn-sm">Tiến hành ký</a>
                             }
                         </div>
                     </div>
@@ -99,3 +103,12 @@
         </div>
     }
 </div>
+
+@section Scripts {
+    <script>
+        function setFilter(status) {
+            document.getElementById('statusFilter').value = status;
+            document.getElementById('filterForm').submit();
+        }
+    </script>
+}

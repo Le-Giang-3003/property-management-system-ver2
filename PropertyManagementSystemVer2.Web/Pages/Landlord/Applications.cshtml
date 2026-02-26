@@ -1,4 +1,5 @@
 @page
+@using PropertyManagementSystemVer2.DAL.Enums
 @model PropertyManagementSystemVer2.Web.Pages.Landlord.ApplicationsModel
 @{
     ViewData["Title"] = "Đơn xin thuê hiện có";
@@ -10,16 +11,17 @@
 </div>
 
 <div class="card mb-20">
-    <div class="filter-bar" style="margin-bottom: 0;">
+    <form method="get" id="filterForm" class="filter-bar" style="margin-bottom: 0;">
         <div class="header-search" style="flex: 1; min-width: 200px;">
             <i data-feather="search" style="color: var(--text-muted); width: 14px;"></i>
-            <input placeholder="Tìm tên người thuê, SĐT..." style="width: 100%;" />
+            <input type="text" name="SearchTerm" value="@Model.SearchTerm" placeholder="Tìm tên người thuê, SĐT, Bất động sản..." style="width: 100%; border: none; outline: none; background: transparent; padding-left: 8px;" />
         </div>
-        <button class="btn btn-primary btn-sm">Tất cả</button>
-        <button class="btn btn-ghost btn-sm text-yellow" style="border-color: var(--warning);">Chờ duyệt</button>
-        <button class="btn btn-ghost btn-sm text-green" style="border-color: var(--success);">Chấp nhận</button>
-        <button class="btn btn-ghost btn-sm text-red" style="border-color: var(--danger);">Từ chối</button>
-    </div>
+        <input type="hidden" name="StatusFilter" id="statusFilter" value="@Model.StatusFilter" />
+        <button type="button" class="btn btn-sm @(!Model.StatusFilter.HasValue ? "btn-primary" : "btn-ghost")" onclick="setFilter('')">Tất cả (@Model.AllApplications.Count)</button>
+        <button type="button" class="btn btn-sm @(Model.StatusFilter == ApplicationStatus.Pending ? "btn-primary text-yellow" : "btn-ghost text-yellow")" style="border-color: var(--warning);" onclick="setFilter('Pending')">Chờ duyệt (@Model.AllApplications.Count(a => a.Status == ApplicationStatus.Pending))</button>
+        <button type="button" class="btn btn-sm @(Model.StatusFilter == ApplicationStatus.Approved ? "btn-primary text-green" : "btn-ghost text-green")" style="border-color: var(--success);" onclick="setFilter('Approved')">Chấp nhận (@Model.AllApplications.Count(a => a.Status == ApplicationStatus.Approved))</button>
+        <button type="button" class="btn btn-sm @(Model.StatusFilter == ApplicationStatus.Rejected ? "btn-primary text-red" : "btn-ghost text-red")" style="border-color: var(--danger);" onclick="setFilter('Rejected')">Từ chối (@Model.AllApplications.Count(a => a.Status == ApplicationStatus.Rejected))</button>
+    </form>
 </div>
 
 <div class="card">
@@ -41,6 +43,7 @@
                 {
                     foreach (var app in Model.Applications)
                     {
+                        var appJson = System.Text.Json.JsonSerializer.Serialize(app);
                         <tr>
                             <td>
                                 <div class="fw-700">@app.TenantName</div>
@@ -60,15 +63,15 @@
                                 <div class="text-green fw-600" style="font-size: 11px;">@(app.MonthlyIncome?.ToString("N0") ?? "N/A") đ/tháng</div>
                             </td>
                             <td>
-                                @if (app.Status.ToString() == "Pending")
+                                @if (app.Status == ApplicationStatus.Pending)
                                 {
                                     <span class="badge badge-warning">Chờ duyệt</span>
                                 }
-                                else if (app.Status.ToString() == "Approved")
+                                else if (app.Status == ApplicationStatus.Approved)
                                 {
                                     <span class="badge badge-success">Chấp nhận</span>
                                 }
-                                else if (app.Status.ToString() == "Rejected")
+                                else if (app.Status == ApplicationStatus.Rejected)
                                 {
                                     <span class="badge badge-danger">Từ chối</span>
                                 }
@@ -79,11 +82,11 @@
                             </td>
                             <td>
                                 <div style="display: flex; gap: 6px;">
-                                    <button class="btn btn-ghost btn-sm btn-icon" title="Xem chi tiết"><i data-feather="eye" style="width: 14px;"></i></button>
-                                    @if (app.Status.ToString() == "Pending")
+                                    <button class="btn btn-ghost btn-sm btn-icon" title="Xem chi tiết" onclick="openDetailModal(@appJson)"><i data-feather="eye" style="width: 14px;"></i></button>
+                                    @if (app.Status == ApplicationStatus.Pending)
                                     {
-                                        <button class="btn btn-success btn-sm btn-icon" title="Chấp nhận"><i data-feather="check" style="width: 14px;"></i></button>
-                                        <button class="btn btn-danger btn-sm btn-icon" title="Từ chối"><i data-feather="x" style="width: 14px;"></i></button>
+                                        <button class="btn btn-success btn-sm btn-icon" title="Chấp nhận và Tạo hợp đồng" onclick="openCreateLeaseModal(@appJson)"><i data-feather="check" style="width: 14px;"></i></button>
+                                        <button class="btn btn-danger btn-sm btn-icon" title="Từ chối" onclick="openRejectModal(@app.Id, '@Html.Raw(app.TenantName?.Replace("'", "\\'") ?? "")')"><i data-feather="x" style="width: 14px;"></i></button>
                                     }
                                 </div>
                             </td>
@@ -105,3 +108,260 @@
         </table>
     </div>
 </div>
+
+<!-- Reject Modal -->
+<div class="modal-overlay" id="rejectModal" style="display: none;" onclick="closeModals()">
+    <div class="modal" style="max-width: 440px;" onclick="event.stopPropagation()">
+        <form method="post" asp-page-handler="Reject" id="rejectForm">
+            <div class="modal-header">
+                <span class="modal-title">Từ chối Đơn xin thuê</span>
+                <button type="button" class="modal-close btn btn-ghost btn-sm btn-icon" onclick="closeModals()">✕</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 12px; font-size: 13px; color: var(--text-secondary);">
+                    Vui lòng nhập lý do từ chối đơn thuê của khách hàng <strong id="rejectTenantName"></strong>:
+                </p>
+                <div class="form-group">
+                    <label class="form-label">Lý do từ chối *</label>
+                    <textarea name="reason" class="form-control" rows="4" placeholder="Ví dụ: Đã có người thuê khác phù hợp hơn..." required></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModals()">Huỷ</button>
+                <button type="submit" class="btn btn-danger">Từ chối đơn</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Create Lease Modal -->
+<div class="modal-overlay" id="createLeaseModal" style="display: none;" onclick="closeModals()">
+    <div class="modal" style="max-width: 700px;" onclick="event.stopPropagation()">
+        <form method="post" asp-page-handler="ApproveAndCreateLease" id="createLeaseForm">
+            <input type="hidden" asp-for="CreateLeaseForm.RentalApplicationId" id="clApplicationId" />
+            <input type="hidden" asp-for="CreateLeaseForm.PropertyId" id="clPropertyId" />
+            <input type="hidden" asp-for="CreateLeaseForm.TenantId" id="clTenantId" />
+            
+            <div class="modal-header">
+                <span class="modal-title">Chấp nhận đơn & Tạo hợp đồng</span>
+                <button type="button" class="modal-close btn btn-ghost btn-sm btn-icon" onclick="closeModals()">✕</button>
+            </div>
+            <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                <div style="padding: 12px; background-color: var(--primary-light); border-radius: 8px; margin-bottom: 20px;">
+                    <div style="font-weight: 600; color: var(--primary); margin-bottom: 4px;">Thông tin khách thuê:</div>
+                    <div id="clTenantInfo" style="font-size: 13px;"></div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Bắt đầu thuê từ *</label>
+                        <input type="date" asp-for="CreateLeaseForm.StartDate" class="form-control" id="clStartDate" required />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Ngày kết thúc *</label>
+                        <input type="date" asp-for="CreateLeaseForm.EndDate" class="form-control" id="clEndDate" required />
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Tiền thuê hàng tháng (VNĐ) *</label>
+                        <input type="number" asp-for="CreateLeaseForm.MonthlyRent" class="form-control" id="clRent" required />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Tiền cọc (VNĐ) *</label>
+                        <input type="number" asp-for="CreateLeaseForm.DepositAmount" class="form-control" required />
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Ngày thanh toán hàng tháng (vd: mùng 5) *</label>
+                        <input type="number" asp-for="CreateLeaseForm.PaymentDueDay" class="form-control" min="1" max="28" value="5" required />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Phí phạt trả chậm (%)</label>
+                        <input type="number" step="0.1" asp-for="CreateLeaseForm.LateFeePercentage" class="form-control" />
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Điều khoản hợp đồng *</label>
+                    <textarea asp-for="CreateLeaseForm.Terms" class="form-control" rows="5" required placeholder="Nội dung điều khoản..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Lưu ý / Điều kiện đặc biệt</label>
+                    <textarea asp-for="CreateLeaseForm.SpecialConditions" class="form-control" rows="3"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModals()">Huỷ</button>
+                <button type="submit" class="btn btn-success">Lưu và tạo hợp đồng</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Application Detail Modal -->
+<div class="modal-overlay" id="detailModal" style="display: none;" onclick="closeModals()">
+    <div class="modal" style="max-width: 600px;" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <span class="modal-title">Chi tiết đơn xin thuê</span>
+            <button type="button" class="modal-close btn btn-ghost btn-sm btn-icon" onclick="closeModals()">✕</button>
+        </div>
+        <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+                <div>
+                    <div class="fw-700" style="font-size: 16px;" id="dtTenantName"></div>
+                    <div style="color: var(--text-muted); font-size: 13px;" id="dtTenantContact"></div>
+                </div>
+                <span class="badge" id="dtStatus"></span>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Bất động sản</label>
+                    <input type="text" id="dtProperty" class="form-control" disabled />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Nghề nghiệp</label>
+                    <input type="text" id="dtOccupation" class="form-control" disabled />
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Ngày chuyển vào</label>
+                    <input type="text" id="dtMoveIn" class="form-control" disabled />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Thời hạn (Tháng)</label>
+                    <input type="text" id="dtDuration" class="form-control" disabled />
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Thu nhập (VNĐ)</label>
+                    <input type="text" id="dtIncome" class="form-control" disabled />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Số người ở</label>
+                    <input type="text" id="dtOccupants" class="form-control" disabled />
+                </div>
+            </div>
+            
+            <div class="form-group" style="display: none;" id="dtEmployerGroup">
+                <label class="form-label">Nơi làm việc</label>
+                <input type="text" id="dtEmployer" class="form-control" disabled />
+            </div>
+
+            <div class="form-group" id="dtMessageGroup">
+                <label class="form-label">Lời nhắn</label>
+                <textarea id="dtMessage" class="form-control" rows="3" disabled></textarea>
+            </div>
+            
+            <div class="form-group" id="dtRejectReasonGroup" style="display: none;">
+                <label class="form-label text-red">Lý do từ chối</label>
+                <textarea id="dtRejectReason" class="form-control" style="background-color: var(--danger-bg); border-color: var(--danger);" rows="2" disabled></textarea>
+            </div>
+
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeModals()">Đóng</button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function setFilter(status) {
+            document.getElementById('statusFilter').value = status;
+            document.getElementById('filterForm').submit();
+        }
+
+        function closeModals() {
+            document.getElementById('rejectModal').style.display = 'none';
+            document.getElementById('createLeaseModal').style.display = 'none';
+            document.getElementById('detailModal').style.display = 'none';
+        }
+
+        function openRejectModal(id, tenantName) {
+            closeModals();
+            document.getElementById('rejectTenantName').textContent = tenantName;
+            document.getElementById('rejectForm').action = `?handler=Reject&applicationId=${id}`;
+            document.getElementById('rejectModal').style.display = 'flex';
+        }
+
+        function openCreateLeaseModal(app) {
+            closeModals();
+            document.getElementById('clApplicationId').value = app.Id;
+            document.getElementById('clPropertyId').value = app.PropertyId;
+            document.getElementById('clTenantId').value = app.TenantId;
+            
+            document.getElementById('clTenantInfo').innerHTML = `
+                Khách: <strong>${app.TenantName}</strong><br>
+                SĐT: ${app.TenantPhone} | Bất động sản: ${app.PropertyTitle}
+            `;
+
+            const startDate = new Date(app.MoveInDate);
+            document.getElementById('clStartDate').value = startDate.toISOString().split('T')[0];
+            
+            const endDate = new Date(startDate);
+            endDate.setMonth(endDate.getMonth() + app.LeaseDurationMonths);
+            document.getElementById('clEndDate').value = endDate.toISOString().split('T')[0];
+
+            document.getElementById('createLeaseModal').style.display = 'flex';
+        }
+
+        function openDetailModal(app) {
+            closeModals();
+            
+            document.getElementById('dtTenantName').textContent = app.TenantName;
+            document.getElementById('dtTenantContact').textContent = app.TenantEmail + ' | ' + app.TenantPhone;
+            
+            let statusText = app.Status === 1 ? 'Chờ duyệt' :
+                             app.Status === 2 ? 'Chấp nhận' :
+                             app.Status === 3 ? 'Từ chối' :
+                             app.Status === 4 ? 'Đã hủy' : 'Khác';
+            let statusClass = app.Status === 1 ? 'badge-warning' :
+                              app.Status === 2 ? 'badge-success' :
+                              app.Status === 3 ? 'badge-danger' : 'badge-gray';
+
+            const statusEl = document.getElementById('dtStatus');
+            statusEl.textContent = statusText;
+            statusEl.className = `badge ${statusClass}`;
+
+            document.getElementById('dtProperty').value = app.PropertyTitle || '';
+            document.getElementById('dtOccupation').value = app.Occupation || 'Không cung cấp';
+            document.getElementById('dtMoveIn').value = new Date(app.MoveInDate).toLocaleDateString('vi-VN');
+            document.getElementById('dtDuration').value = app.LeaseDurationMonths;
+            document.getElementById('dtIncome').value = app.MonthlyIncome ? new Intl.NumberFormat('vi-VN').format(app.MonthlyIncome) : 'N/A';
+            document.getElementById('dtOccupants').value = app.NumberOfOccupants;
+            
+            if(app.EmployerName) {
+                document.getElementById('dtEmployerGroup').style.display = 'block';
+                document.getElementById('dtEmployer').value = app.EmployerName;
+            } else {
+                document.getElementById('dtEmployerGroup').style.display = 'none';
+            }
+
+            if(app.Message) {
+                document.getElementById('dtMessageGroup').style.display = 'block';
+                document.getElementById('dtMessage').value = app.Message;
+            } else {
+                document.getElementById('dtMessageGroup').style.display = 'none';
+            }
+
+            if(app.Status === 3 && app.RejectionReason) {
+                document.getElementById('dtRejectReasonGroup').style.display = 'block';
+                document.getElementById('dtRejectReason').value = app.RejectionReason;
+            } else {
+                document.getElementById('dtRejectReasonGroup').style.display = 'none';
+            }
+
+            document.getElementById('detailModal').style.display = 'flex';
+        }
+    </script>
+}

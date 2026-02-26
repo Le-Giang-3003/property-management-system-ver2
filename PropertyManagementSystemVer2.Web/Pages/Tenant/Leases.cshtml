@@ -1,4 +1,5 @@
 @page
+@using PropertyManagementSystemVer2.DAL.Enums
 @model PropertyManagementSystemVer2.Web.Pages.Tenant.LeasesModel
 @{
     ViewData["Title"] = "Hợp đồng của tôi";
@@ -10,16 +11,18 @@
 </div>
 
 <div class="card mb-20">
-    <div class="filter-bar" style="margin-bottom: 0;">
+    <form method="get" id="filterForm" class="filter-bar" style="margin-bottom: 0;">
         <div class="header-search" style="flex: 1; min-width: 200px;">
             <i data-feather="search" style="color: var(--text-muted); width: 14px;"></i>
-            <input placeholder="Tìm mã hợp đồng..." style="width: 100%;" />
+            <input type="text" name="SearchTerm" value="@Model.SearchTerm" placeholder="Tìm mã HĐ, Chủ nhà, Bất động sản..." style="width: 100%; border: none; outline: none; background: transparent; padding-left: 8px;" />
         </div>
-        <button class="btn btn-primary btn-sm">Tất cả</button>
-        <button class="btn btn-ghost btn-sm">Hiệu lực</button>
-        <button class="btn btn-ghost btn-sm">Chờ ký</button>
-        <button class="btn btn-ghost btn-sm">Đã kết thúc</button>
-    </div>
+        <input type="hidden" name="StatusFilter" id="statusFilter" value="@Model.StatusFilter" />
+        <button type="button" class="btn btn-sm @(!Model.StatusFilter.HasValue ? "btn-primary" : "btn-ghost")" onclick="setFilter('')">Tất cả (@Model.AllLeases.Count)</button>
+        <button type="button" class="btn btn-sm @(Model.StatusFilter == LeaseStatus.Active ? "btn-primary text-green" : "btn-ghost text-green")" style="border-color: var(--success);" onclick="setFilter('Active')">Hiệu lực (@Model.AllLeases.Count(l => l.Status == LeaseStatus.Active))</button>
+        <button type="button" class="btn btn-sm @(Model.StatusFilter == LeaseStatus.Pending ? "btn-primary text-yellow" : "btn-ghost text-yellow")" style="border-color: var(--warning);" onclick="setFilter('Pending')">Chờ ký (@Model.AllLeases.Count(l => l.Status == LeaseStatus.Pending))</button>
+        <button type="button" class="btn btn-sm @(Model.StatusFilter == LeaseStatus.Expired ? "btn-primary text-gray" : "btn-ghost text-gray")" style="border-color: var(--text-muted);" onclick="setFilter('Expired')">Hết hạn (@Model.AllLeases.Count(l => l.Status == LeaseStatus.Expired))</button>
+        <button type="button" class="btn btn-sm @(Model.StatusFilter == LeaseStatus.Terminated ? "btn-primary text-red" : "btn-ghost text-red")" style="border-color: var(--danger);" onclick="setFilter('Terminated')">Chấm dứt (@Model.AllLeases.Count(l => l.Status == LeaseStatus.Terminated))</button>
+    </form>
 </div>
 
 <div class="card">
@@ -58,17 +61,28 @@
                             </td>
                             <td class="text-green fw-600">@lease.MonthlyRent.ToString("N0") đ</td>
                             <td>
-                                @if (lease.Status.ToString() == "Active")
+                                @if (lease.Status == LeaseStatus.Active)
                                 {
                                     <span class="badge badge-success">Hiệu lực</span>
                                 }
-                                else if (lease.Status.ToString() == "PendingSignature")
+                                else if (lease.Status == LeaseStatus.Pending)
                                 {
-                                    <span class="badge badge-warning">Chờ ký</span>
+                                    if (!lease.TenantSigned)
+                                    {
+                                        <span class="badge badge-warning">Cần bạn ký</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge badge-warning" style="opacity: 0.7;">Chờ chủ nhà ký</span>
+                                    }
                                 }
-                                else if (lease.Status.ToString() == "Expired" || lease.Status.ToString() == "Terminated")
+                                else if (lease.Status == LeaseStatus.Expired)
                                 {
-                                    <span class="badge badge-gray">K.thúc</span>
+                                    <span class="badge badge-gray">Hết hạn</span>
+                                }
+                                else if (lease.Status == LeaseStatus.Terminated)
+                                {
+                                    <span class="badge badge-danger">Chấm dứt</span>
                                 }
                                 else
                                 {
@@ -76,7 +90,16 @@
                                 }
                             </td>
                             <td>
-                                <button class="btn btn-ghost btn-sm btn-icon" title="Xem chi tiết"><i data-feather="eye" style="width: 14px;"></i></button>
+                                <div style="display: flex; gap: 6px;">
+                                    <button class="btn btn-ghost btn-sm btn-icon" title="Xem chi tiết"><i data-feather="eye" style="width: 14px;"></i></button>
+                                    @if (lease.Status == LeaseStatus.Pending && !lease.TenantSigned)
+                                    {
+                                        <form method="post" asp-page-handler="Sign" style="margin: 0;">
+                                            <input type="hidden" name="leaseId" value="@lease.Id" />
+                                            <button type="submit" class="btn btn-primary btn-sm btn-icon" title="Ký Hợp Đồng"><i data-feather="edit-3" style="width: 14px;"></i></button>
+                                        </form>
+                                    }
+                                </div>
                             </td>
                         </tr>
                     }
@@ -96,3 +119,12 @@
         </table>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        function setFilter(status) {
+            document.getElementById('statusFilter').value = status;
+            document.getElementById('filterForm').submit();
+        }
+    </script>
+}

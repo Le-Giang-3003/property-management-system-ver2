@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using PropertyManagementSystemVer2.BLL.DTOs;
 using PropertyManagementSystemVer2.BLL.Services.Interfaces;
+using PropertyManagementSystemVer2.DAL.Enums;
 using System.Security.Claims;
 
 namespace PropertyManagementSystemVer2.Web.Pages.Landlord
@@ -17,7 +18,14 @@ namespace PropertyManagementSystemVer2.Web.Pages.Landlord
             _leaseService = leaseService;
         }
 
+        public List<LeaseDto> AllLeases { get; set; } = new List<LeaseDto>();
         public List<LeaseDto> Leases { get; set; } = new List<LeaseDto>();
+
+        [BindProperty(SupportsGet = true)]
+        public LeaseStatus? StatusFilter { get; set; }
+
+        [BindProperty(SupportsGet = true)]
+        public string? SearchTerm { get; set; }
 
         public async Task<IActionResult> OnGetAsync()
         {
@@ -28,11 +36,45 @@ namespace PropertyManagementSystemVer2.Web.Pages.Landlord
                 
                 if (result.IsSuccess && result.Data != null)
                 {
-                    Leases = result.Data;
+                    AllLeases = result.Data;
+
+                    var query = AllLeases.AsEnumerable();
+                    if (StatusFilter.HasValue)
+                    {
+                        query = query.Where(l => l.Status == StatusFilter.Value);
+                    }
+                    if (!string.IsNullOrWhiteSpace(SearchTerm))
+                    {
+                        var lowerSearch = SearchTerm.ToLower();
+                        query = query.Where(l => 
+                            (l.TenantName != null && l.TenantName.ToLower().Contains(lowerSearch)) ||
+                            (l.LeaseNumber != null && l.LeaseNumber.ToLower().Contains(lowerSearch)) ||
+                            (l.PropertyTitle != null && l.PropertyTitle.ToLower().Contains(lowerSearch))
+                        );
+                    }
+                    Leases = query.ToList();
                 }
             }
 
             return Page();
+        }
+
+        public async Task<IActionResult> OnPostSignAsync(int leaseId)
+        {
+            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(userIdString, out int userId)) return Unauthorized();
+
+            var result = await _leaseService.SignLeaseAsync(userId, leaseId);
+            if (result.IsSuccess)
+            {
+                TempData["SuccessMessage"] = result.Message;
+            }
+            else
+            {
+                TempData["ErrorMessage"] = result.Message;
+            }
+
+            return RedirectToPage();
         }
     }
 }

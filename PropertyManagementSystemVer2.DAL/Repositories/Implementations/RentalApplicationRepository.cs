@@ -31,6 +31,17 @@ namespace PropertyManagementSystemVer2.DAL.Repositories.Implementations
             return await query.OrderByDescending(a => a.CreatedAt).ToListAsync(cancellationToken);
         }
 
+        public async Task<IEnumerable<RentalApplication>> GetByLandlordIdAsync(int landlordId, ApplicationStatus? status = null, CancellationToken cancellationToken = default)
+        {
+            var query = _dbSet
+                .Include(a => a.Property)
+                .Include(a => a.Tenant)
+                .Where(a => a.Property.LandlordId == landlordId);
+                
+            if (status.HasValue) query = query.Where(a => a.Status == status.Value);
+            return await query.OrderByDescending(a => a.CreatedAt).ToListAsync(cancellationToken);
+        }
+
         public async Task<bool> HasActiveApplicationAsync(int tenantId, int propertyId, CancellationToken cancellationToken = default)
         {
             return await _dbSet.AnyAsync(a => a.TenantId == tenantId && a.PropertyId == propertyId && a.Status == ApplicationStatus.Pending, cancellationToken);
