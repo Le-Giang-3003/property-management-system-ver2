@@ -42,7 +42,7 @@ namespace PropertyManagementSystemVer2.DAL.Data
                 entity.Property(e => e.PhoneNumber).HasMaxLength(20).IsRequired();
                 entity.Property(e => e.Address).HasMaxLength(500);
                 entity.Property(e => e.AvatarUrl).HasMaxLength(500);
-                entity.Property(e => e.Role).HasConversion<int>();
+                entity.Property(e => e.Role).HasConversion<string>();
 
                 // Dual-role flags
                 entity.Property(e => e.IsTenant).HasDefaultValue(true);
@@ -82,8 +82,8 @@ namespace PropertyManagementSystemVer2.DAL.Data
                 entity.Property(e => e.Latitude).HasPrecision(10, 8);
                 entity.Property(e => e.Longitude).HasPrecision(11, 8);
 
-                entity.Property(e => e.PropertyType).HasConversion<int>();
-                entity.Property(e => e.Status).HasConversion<int>();
+                entity.Property(e => e.PropertyType).HasConversion<string>();
+                entity.Property(e => e.Status).HasConversion<string>();
 
                 entity.HasOne(e => e.Landlord)
                     .WithMany(u => u.OwnedProperties)
@@ -132,7 +132,7 @@ namespace PropertyManagementSystemVer2.DAL.Data
                 entity.Property(e => e.ReferenceRelationship).HasMaxLength(100);
                 entity.Property(e => e.RejectionReason).HasMaxLength(1000);
                 entity.Property(e => e.MonthlyIncome).HasPrecision(18, 2);
-                entity.Property(e => e.Status).HasConversion<int>();
+                entity.Property(e => e.Status).HasConversion<string>();
 
                 entity.HasOne(e => e.Property)
                     .WithMany(p => p.RentalApplications)
@@ -165,7 +165,7 @@ namespace PropertyManagementSystemVer2.DAL.Data
                 entity.Property(e => e.MonthlyRent).HasPrecision(18, 2);
                 entity.Property(e => e.DepositAmount).HasPrecision(18, 2);
                 entity.Property(e => e.LateFeePercentage).HasPrecision(5, 2);
-                entity.Property(e => e.Status).HasConversion<int>();
+                entity.Property(e => e.Status).HasConversion<string>();
 
                 entity.HasOne(e => e.Property)
                     .WithMany(p => p.Leases)
@@ -209,9 +209,9 @@ namespace PropertyManagementSystemVer2.DAL.Data
 
                 entity.Property(e => e.Amount).HasPrecision(18, 2);
                 entity.Property(e => e.LateFeeAmount).HasPrecision(18, 2);
-                entity.Property(e => e.PaymentType).HasConversion<int>();
-                entity.Property(e => e.Status).HasConversion<int>();
-                entity.Property(e => e.PaymentMethod).HasConversion<int?>();
+                entity.Property(e => e.PaymentType).HasConversion<string>();
+                entity.Property(e => e.Status).HasConversion<string>();
+                entity.Property(e => e.PaymentMethod).HasConversion<string>();
 
                 entity.HasOne(e => e.Lease)
                     .WithMany(l => l.Payments)
@@ -239,9 +239,9 @@ namespace PropertyManagementSystemVer2.DAL.Data
 
                 entity.Property(e => e.EstimatedCost).HasPrecision(18, 2);
                 entity.Property(e => e.ActualCost).HasPrecision(18, 2);
-                entity.Property(e => e.Status).HasConversion<int>();
-                entity.Property(e => e.Priority).HasConversion<int>();
-                entity.Property(e => e.Category).HasConversion<int>();
+                entity.Property(e => e.Status).HasConversion<string>();
+                entity.Property(e => e.Priority).HasConversion<string>();
+                entity.Property(e => e.Category).HasConversion<string>();
 
                 entity.HasOne(e => e.Property)
                     .WithMany(p => p.MaintenanceRequests)
@@ -276,7 +276,7 @@ namespace PropertyManagementSystemVer2.DAL.Data
                 entity.Property(e => e.ConfirmationNotes).HasMaxLength(500);
                 entity.Property(e => e.CancellationReason).HasMaxLength(500);
                 entity.Property(e => e.CompletionNotes).HasMaxLength(500);
-                entity.Property(e => e.Status).HasConversion<int>();
+                entity.Property(e => e.Status).HasConversion<string>();
 
                 entity.HasOne(e => e.Property)
                     .WithMany(p => p.Bookings)
@@ -334,7 +334,7 @@ namespace PropertyManagementSystemVer2.DAL.Data
                 entity.Property(e => e.Value).HasMaxLength(500).IsRequired();
                 entity.Property(e => e.Description).HasMaxLength(500);
                 entity.Property(e => e.Unit).HasMaxLength(20);
-                entity.Property(e => e.Type).HasConversion<int>();
+                entity.Property(e => e.Type).HasConversion<string>();
 
                 entity.HasIndex(e => e.Key).IsUnique();
                 entity.HasIndex(e => e.Type);
@@ -392,7 +392,7 @@ namespace PropertyManagementSystemVer2.DAL.Data
                 entity.Property(e => e.AttachmentName).HasMaxLength(255);
                 entity.Property(e => e.AttachmentMimeType).HasMaxLength(100);
                 entity.Property(e => e.Metadata).HasMaxLength(2000);
-                entity.Property(e => e.MessageType).HasConversion<int>();
+                entity.Property(e => e.MessageType).HasConversion<string>();
 
                 entity.HasOne(e => e.Conversation)
                     .WithMany(c => c.Messages)
@@ -460,7 +460,7 @@ namespace PropertyManagementSystemVer2.DAL.Data
 
                 entity.Property(e => e.ConnectionId).HasMaxLength(100);
                 entity.Property(e => e.DeviceInfo).HasMaxLength(500);
-                entity.Property(e => e.Status).HasConversion<int>();
+                entity.Property(e => e.Status).HasConversion<string>();
 
                 entity.HasOne(e => e.User)
                     .WithMany()

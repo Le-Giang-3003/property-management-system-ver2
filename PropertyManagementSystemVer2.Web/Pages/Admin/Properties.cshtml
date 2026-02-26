@@ -1,7 +1,63 @@
 @page
 @model PropertyManagementSystemVer2.Web.Pages.Admin.PropertiesModel
+@using PropertyManagementSystemVer2.DAL.Enums
 @{
     ViewData["Title"] = "Quản lý Bất động sản";
+}
+
+<style>
+    .image-slider {
+        display: flex;
+        overflow-x: auto;
+        gap: 10px;
+        padding-bottom: 10px;
+        margin-bottom: 20px;
+        scroll-snap-type: x mandatory;
+    }
+    .image-slider::-webkit-scrollbar {
+        height: 6px;
+    }
+    .image-slider::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: 3px;
+    }
+    .slide {
+        flex: 0 0 100%;
+        scroll-snap-align: start;
+        position: relative;
+    }
+    .slide img {
+        width: 100%;
+        height: 250px;
+        object-fit: cover;
+        border-radius: 8px;
+    }
+    .primary-badge {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        background: var(--primary);
+        color: white;
+        font-size: 11px;
+        font-weight: 600;
+        padding: 4px 8px;
+        border-radius: 4px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+</style>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="mb-20" style="padding: 12px 16px; background: var(--success-bg); color: var(--success); border-radius: var(--radius-sm); border: 1px solid var(--success);">
+        @TempData["SuccessMessage"]
+    </div>
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="mb-20" style="padding: 12px 16px; background: var(--danger-bg); color: var(--danger); border-radius: var(--radius-sm); border: 1px solid var(--danger);">
+        @TempData["ErrorMessage"]
+    </div>
 }
 
 <div class="mb-20">
@@ -10,18 +66,19 @@
 </div>
 
 <div class="card mb-20">
-    <div class="filter-bar" style="margin-bottom: 0;">
+    <form method="get" id="filterForm" class="filter-bar" style="margin-bottom: 0;">
         <div class="header-search" style="flex: 1; min-width: 200px;">
             <i data-feather="search" style="color: var(--text-muted); width: 14px;"></i>
-            <input placeholder="Tìm kiếm tên BDS, chủ nhà, địa chỉ..." style="width: 100%;" />
+            <input type="text" name="SearchTerm" value="@Model.SearchTerm" placeholder="Tìm kiếm tên BDS, chủ nhà, địa chỉ..." style="width: 100%; border: none; outline: none; background: transparent; color: inherit; padding-left: 8px;" />
         </div>
-        <button class="btn btn-primary btn-sm">Tất cả</button>
-        <button class="btn btn-ghost btn-sm">Còn trống</button>
-        <button class="btn btn-ghost btn-sm">Đã thuê</button>
-        <button class="btn btn-ghost btn-sm text-yellow" style="border-color: var(--warning);">Chờ duyệt</button>
-        <button class="btn btn-ghost btn-sm">Nháp</button>
-        <button class="btn btn-ghost btn-sm text-red" style="border-color: var(--danger);">Từ chối</button>
-    </div>
+        <input type="hidden" name="StatusFilter" id="statusFilter" value="@Model.StatusFilter" />
+        <button type="button" class="btn btn-sm @(Model.StatusFilter == null ? "btn-primary" : "btn-ghost")" onclick="setFilter('')">Tất cả</button>
+        <button type="button" class="btn btn-sm @(Model.StatusFilter == PropertyStatus.Available ? "btn-primary" : "btn-ghost")" onclick="setFilter('Available')">Còn trống</button>
+        <button type="button" class="btn btn-sm @(Model.StatusFilter == PropertyStatus.Rented ? "btn-primary" : "btn-ghost")" onclick="setFilter('Rented')">Đã thuê</button>
+        <button type="button" class="btn btn-sm @(Model.StatusFilter == PropertyStatus.Pending ? "btn-primary" : "btn-ghost") text-yellow" style="@(Model.StatusFilter == PropertyStatus.Pending ? "" : "border-color: var(--warning);")" onclick="setFilter('Pending')">Chờ duyệt</button>
+        <button type="button" class="btn btn-sm @(Model.StatusFilter == PropertyStatus.Rejected ? "btn-primary" : "btn-ghost") text-red" style="@(Model.StatusFilter == PropertyStatus.Rejected ? "" : "border-color: var(--danger);")" onclick="setFilter('Rejected')">Từ chối</button>
+        <button type="button" class="btn btn-sm @(Model.StatusFilter == PropertyStatus.Blocked ? "btn-primary" : "btn-ghost") text-dark" style="@(Model.StatusFilter == PropertyStatus.Blocked ? "" : "border-color: #343a40;")" onclick="setFilter('Blocked')">Bị khóa</button>
+    </form>
 </div>
 
 <div class="card">
@@ -61,20 +118,44 @@
                                     </div>
                                 </div>
                             </td>
-                            <td><span class="badge badge-purple">@prop.PropertyType</span></td>
+                            <td><span class="badge badge-purple">
+                                @(prop.PropertyType.ToString() switch {
+                                    "Apartment" => "Căn hộ",
+                                    "House" => "Nhà phố",
+                                    "Studio" => "Căn hộ studio",
+                                    "Room" => "Phòng trọ",
+                                    _ => prop.PropertyType.ToString()
+                                })
+                            </span></td>
                             <td>@prop.Landlord?.FullName</td>
                             <td>
                                 @if (prop.Status.ToString() == "Available")
                                 {
-                                    <span class="badge badge-success">Còn trống</span>
+                                    <span class="badge badge-success">Đang đăng</span>
                                 }
-                                else if (prop.Status.ToString() == "PendingApproval")
+                                else if (prop.Status.ToString() == "Approved")
+                                {
+                                    <span class="badge badge-info">Đã duyệt</span>
+                                }
+                                else if (prop.Status.ToString() == "Pending")
                                 {
                                     <span class="badge badge-warning">Chờ duyệt</span>
                                 }
                                 else if (prop.Status.ToString() == "Rented")
                                 {
-                                    <span class="badge badge-info">Đã thuê</span>
+                                    <span class="badge badge-secondary">Đã thuê</span>
+                                }
+                                else if (prop.Status.ToString() == "Rejected")
+                                {
+                                    <span class="badge badge-danger">Từ chối</span>
+                                }
+                                else if (prop.Status.ToString() == "Unavailable")
+                                {
+                                    <span class="badge badge-gray">Tạm ẩn</span>
+                                }
+                                else if (prop.Status.ToString() == "Blocked")
+                                {
+                                    <span class="badge" style="background: rgba(52, 58, 64, 0.1); color: #343a40; border: 1px solid #343a40;">Bị khóa</span>
                                 }
                                 else
                                 {
@@ -84,15 +165,17 @@
                             <td class="text-green fw-600">@prop.MonthlyRent.ToString("N0") đ</td>
                             <td>
                                 <div style="display: flex; gap: 6px;">
-                                    <button class="btn btn-ghost btn-sm btn-icon" title="Xem chi tiết"><i data-feather="eye" style="width: 14px; height: 14px;"></i></button>
-                                    @if (prop.Status.ToString() == "PendingApproval")
+                                    <button class="btn btn-ghost btn-sm btn-icon" title="Xem chi tiết" onclick="openDetailModal(@prop.Id, '@Html.Raw(prop.Title.Replace("'", "\\'"))')"><i data-feather="eye" style="width: 14px; height: 14px;"></i></button>
+                                    @if (prop.Status == PropertyStatus.Pending)
                                     {
-                                        <button class="btn btn-success btn-sm btn-icon" title="Duyệt"><i data-feather="check" style="width: 14px; height: 14px;"></i></button>
-                                        <button class="btn btn-danger btn-sm btn-icon" title="Từ chối"><i data-feather="x" style="width: 14px; height: 14px;"></i></button>
+                                        <form method="post" asp-page-handler="Approve" asp-route-id="@prop.Id" style="display:inline;">
+                                            <button type="submit" class="btn btn-success btn-sm btn-icon" title="Duyệt"><i data-feather="check" style="width: 14px; height: 14px;"></i></button>
+                                        </form>
+                                        <button class="btn btn-danger btn-sm btn-icon" title="Từ chối" onclick="openRejectModal(@prop.Id, '@Html.Raw(prop.Title.Replace("'", "\\'"))')"><i data-feather="x" style="width: 14px; height: 14px;"></i></button>
                                     }
-                                    else if (prop.Status.ToString() == "Available" || prop.Status.ToString() == "Rented")
+                                    else if (prop.Status == PropertyStatus.Available)
                                     {
-                                        <button class="btn btn-danger btn-sm btn-icon" title="Gỡ đăng"><i data-feather="eye-off" style="width: 14px; height: 14px;"></i></button>
+                                        <button class="btn btn-danger btn-sm btn-icon" title="Khóa bài đăng" onclick="openBlockModal(@prop.Id, '@Html.Raw(prop.Title.Replace("'", "\\'"))')"><i data-feather="lock" style="width: 14px; height: 14px;"></i></button>
                                     }
                                 </div>
                             </td>
@@ -112,5 +195,239 @@
                 }
             </tbody>
         </table>
+</div>
+
+<!-- Detail Modal -->
+<div class="modal-overlay" id="detailModal" style="display: none;" onclick="closeModals()">
+    <div class="modal" style="max-width: 680px;" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <span class="modal-title" id="detailTitle">Chi tiết BDS</span>
+            <button class="modal-close btn btn-ghost btn-sm btn-icon" onclick="closeModals()">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="image-slider" id="detailImageSlider" style="display: none;">
+                <!-- Images will be injected here via JS -->
+            </div>
+            
+            <div id="detailRejectionMsg" style="display: none; background: rgba(255,59,48,0.1); border: 1px solid var(--danger); color: var(--danger); padding: 12px; border-radius: 6px; margin-bottom: 16px; font-size: 13px;">
+                <strong>Lý do từ chối:</strong> <span id="detailRejectionReasonText"></span>
+            </div>
+            <div class="grid-2">
+                <div>
+                    <div class="info-row"><span class="info-label">Loại BDS</span><span class="info-value" id="detailType"></span></div>
+                    <div class="info-row"><span class="info-label">Trạng thái</span><span class="info-value"><span id="detailStatus" class="badge badge-gray"></span></span></div>
+                    <div class="info-row"><span class="info-label">Diện tích</span><span class="info-value" id="detailArea"></span></div>
+                    <div class="info-row"><span class="info-label">Phòng ngủ</span><span class="info-value" id="detailBedrooms"></span></div>
+                    <div class="info-row"><span class="info-label">Phòng tắm</span><span class="info-value" id="detailBathrooms"></span></div>
+                    <div class="info-row"><span class="info-label">Số tầng</span><span class="info-value" id="detailFloors"></span></div>
+                </div>
+                <div>
+                    <div class="info-row"><span class="info-label">Địa chỉ</span><span class="info-value" id="detailAddressFull"></span></div>
+                    <div class="info-row"><span class="info-label">Tiền thuê/tháng</span><span class="info-value text-green fw-700" id="detailRent"></span></div>
+                    <div class="info-row"><span class="info-label">Tiền cọc</span><span class="info-value" id="detailDeposit"></span></div>
+                    <div class="info-row"><span class="info-label">Nuôi thú cưng</span><span class="info-value" id="detailPets"></span></div>
+                    <div class="info-row"><span class="info-label">Hút thuốc</span><span class="info-value" id="detailSmoking"></span></div>
+                    <div class="info-row"><span class="info-label">Chủ nhà</span><span class="info-value" id="detailLandlord"></span></div>
+                </div>
+            </div>
+            <div style="margin-top: 16px;">
+                <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">Tiện ích</div>
+                <div style="font-size: 14px; font-weight: 500;" id="detailAmenities"></div>
+            </div>
+            <div style="margin-top: 16px;">
+                <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">Mô tả chi tiết</div>
+                <div style="font-size: 14px; line-height: 1.5;" id="detailDesc"></div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModals()">Đóng</button>
+        </div>
     </div>
 </div>
+
+<!-- Reject Modal -->
+<div class="modal-overlay" id="rejectModal" style="display: none;" onclick="closeModals()">
+    <div class="modal" style="max-width: 440px;" onclick="event.stopPropagation()">
+        <form method="post" asp-page-handler="Reject" id="rejectForm">
+            <div class="modal-header">
+                <span class="modal-title">Từ chối BDS</span>
+                <button type="button" class="modal-close btn btn-ghost btn-sm btn-icon" onclick="closeModals()">✕</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 12px; font-size: 13px; color: var(--text-secondary);">
+                    Vui lòng nhập lý do từ chối cho <strong id="rejectPropTitle"></strong>:
+                </p>
+                <div class="form-group">
+                    <label class="form-label">Lý do từ chối</label>
+                    <textarea name="reason" class="form-control" rows="4" placeholder="Nhập lý do..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModals()">Huỷ</button>
+                <button type="submit" class="btn btn-danger">Xác nhận từ chối</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Block Modal -->
+<div class="modal-overlay" id="blockModal" style="display: none;" onclick="closeModals()">
+    <div class="modal" style="max-width: 440px;" onclick="event.stopPropagation()">
+        <form method="post" asp-page-handler="Block" id="blockForm">
+            <div class="modal-header">
+                <span class="modal-title">Khóa BDS</span>
+                <button type="button" class="modal-close btn btn-ghost btn-sm btn-icon" onclick="closeModals()">✕</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 12px; font-size: 13px; color: var(--text-secondary);">
+                    Vui lòng nhập lý do khóa cho <strong id="blockPropTitle"></strong> (sẽ hiển thị cho chủ nhà):
+                </p>
+                <div class="form-group">
+                    <label class="form-label">Lý do khóa</label>
+                    <textarea name="reason" class="form-control" rows="4" placeholder="Ví dụ: Nội dung vi phạm chính sách..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModals()">Huỷ</button>
+                <button type="submit" class="btn btn-danger">Xác nhận khóa</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let currentPropId = null;
+        let currentPropTitle = '';
+
+        function closeModals() {
+            document.getElementById('detailModal').style.display = 'none';
+            document.getElementById('rejectModal').style.display = 'none';
+            document.getElementById('blockModal').style.display = 'none';
+        }
+
+        function openDetailModal(id, title) {
+            closeModals();
+            currentPropId = id;
+            currentPropTitle = title;
+            document.getElementById('detailTitle').textContent = title;
+            
+            document.getElementById('detailType').textContent = 'Đang tải...';
+            document.getElementById('detailImageSlider').style.display = 'none';
+            document.getElementById('detailImageSlider').innerHTML = '';
+            document.getElementById('detailRejectionMsg').style.display = 'none';
+
+            fetch(`?handler=PropertyDetails&id=${id}`)
+                .then(res => res.json())
+                .then(prop => {
+                    const slider = document.getElementById('detailImageSlider');
+                    if (prop.Images && prop.Images.length > 0) {
+                        slider.innerHTML = prop.Images.map(img => `
+                            <div class="slide">
+                                <img src="${img.ImageUrl}" alt="Property Image" />
+                                ${img.IsPrimary ? '<span class="primary-badge">Ảnh chính</span>' : ''}
+                            </div>
+                        `).join('');
+                        slider.style.display = 'flex';
+                    } else if (prop.ThumbnailUrl) {
+                        slider.innerHTML = `<div class="slide"><img src="${prop.ThumbnailUrl}" alt="Thumbnail" /></div>`;
+                        slider.style.display = 'flex';
+                    }
+
+                    if (prop.Status === 4 && prop.RejectionReason) {
+                        document.getElementById('detailRejectionReasonText').textContent = prop.RejectionReason;
+                        document.getElementById('detailRejectionMsg').style.display = 'block';
+                    }
+
+                    let typeText = prop.PropertyType === 1 ? 'Căn hộ' :
+                                   prop.PropertyType === 2 ? 'Nhà phố' :
+                                   prop.PropertyType === 3 ? 'Căn hộ studio' :
+                                   prop.PropertyType === 4 ? 'Phòng trọ' : String(prop.PropertyType);
+                    document.getElementById('detailType').textContent = typeText;
+
+                    let statusText = prop.Status === 7 ? 'Còn trống' :
+                                     prop.Status === 5 ? 'Đã thuê' :
+                                     prop.Status === 2 ? 'Chờ duyệt' :
+                                     prop.Status === 3 ? 'Đã duyệt' :
+                                     prop.Status === 4 ? 'Từ chối' :
+                                     prop.Status === 8 ? 'Bị khóa' :
+                                     prop.Status === 6 ? 'Tạm ẩn' : String(prop.Status);
+                    
+                    let statusClass = prop.Status === 7 ? 'badge-success' :
+                                      prop.Status === 5 ? 'badge-info' :
+                                      prop.Status === 2 ? 'badge-warning' :
+                                      prop.Status === 3 ? 'badge-warning' :
+                                      prop.Status === 4 ? 'badge-danger' : 
+                                      prop.Status === 8 ? '' : 'badge-gray';
+
+                    const statusEl = document.getElementById('detailStatus');
+                    statusEl.textContent = statusText;
+                    statusEl.className = `badge ${statusClass}`;
+                    if(prop.Status === 8) {
+                        statusEl.style.background = 'rgba(52, 58, 64, 0.1)';
+                        statusEl.style.color = '#343a40';
+                        statusEl.style.border = '1px solid #343a40';
+                    } else {
+                        statusEl.style.background = '';
+                        statusEl.style.color = '';
+                        statusEl.style.border = '';
+                    }
+
+                    document.getElementById('detailArea').textContent = `${prop.Area} m²`;
+                    document.getElementById('detailBedrooms').textContent = prop.Bedrooms;
+                    document.getElementById('detailBathrooms').textContent = prop.Bathrooms;
+                    document.getElementById('detailFloors').textContent = prop.Floors || 'Không rõ';
+                    
+                    let addr = [prop.Address, prop.Ward, prop.District, prop.City].filter(Boolean).join(', ');
+                    document.getElementById('detailAddressFull').textContent = addr;
+
+                    document.getElementById('detailRent').textContent = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(prop.MonthlyRent);
+                    document.getElementById('detailDeposit').textContent = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(prop.DepositAmount);
+                    
+                    document.getElementById('detailPets').textContent = prop.AllowPets ? 'Có' : 'Không';
+                    document.getElementById('detailSmoking').textContent = prop.AllowSmoking ? 'Có' : 'Không';
+                    document.getElementById('detailAmenities').textContent = prop.Amenities || 'Không có';
+                    document.getElementById('detailDesc').textContent = prop.Description || 'Không có mô tả';
+                    
+                    if (prop.Landlord) {
+                        document.getElementById('detailLandlord').textContent = prop.Landlord.FullName;
+                    } else {
+                        document.getElementById('detailLandlord').textContent = 'N/A';
+                    }
+
+                    document.getElementById('detailModal').style.display = 'flex';
+                })
+                .catch(err => {
+                    console.error("Failed to load details", err);
+                    alert("Không thể tải chi tiết bất động sản.");
+                });
+        }
+
+        function openRejectModal(id, title) {
+            closeModals();
+            currentPropId = id;
+            currentPropTitle = title;
+            document.getElementById('rejectPropTitle').textContent = title;
+            document.getElementById('rejectForm').action = `?handler=Reject&id=${id}`;
+            document.getElementById('rejectModal').style.display = 'flex';
+        }
+
+        function openRejectFromDetail() {
+            openRejectModal(currentPropId, currentPropTitle);
+        }
+
+        function openBlockModal(id, title) {
+            closeModals();
+            currentPropId = id;
+            currentPropTitle = title;
+            document.getElementById('blockPropTitle').textContent = title;
+            document.getElementById('blockForm').action = `?handler=Block&id=${id}`;
+            document.getElementById('blockModal').style.display = 'flex';
+        }
+
+        function setFilter(status) {
+            document.getElementById('statusFilter').value = status;
+            document.getElementById('filterForm').submit();
+        }
+    </script>
+}

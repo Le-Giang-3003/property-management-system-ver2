@@ -17,7 +17,7 @@ namespace PropertyManagementSystemVer2.DAL.Entities
 
         public PropertyType PropertyType { get; set; }
 
-        public PropertyStatus Status { get; set; } = PropertyStatus.Draft;
+        public PropertyStatus Status { get; set; } = PropertyStatus.Pending;
 
         // Địa chỉ
         public string Address { get; set; } = string.Empty;

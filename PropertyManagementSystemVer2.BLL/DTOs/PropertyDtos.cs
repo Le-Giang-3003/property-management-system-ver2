@@ -10,15 +10,23 @@ namespace PropertyManagementSystemVer2.BLL.DTOs
         public PropertyType PropertyType { get; set; }
         public PropertyStatus Status { get; set; }
         public string Address { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
         public string City { get; set; } = string.Empty;
         public string District { get; set; } = string.Empty;
+        public string? Ward { get; set; }
         public decimal Area { get; set; }
         public int Bedrooms { get; set; }
         public int Bathrooms { get; set; }
+        public int? Floors { get; set; }
         public decimal MonthlyRent { get; set; }
+        public decimal DepositAmount { get; set; }
+        public string? Amenities { get; set; }
+        public bool AllowPets { get; set; }
+        public bool AllowSmoking { get; set; }
         public string Currency { get; set; } = "VND";
         public string? ThumbnailUrl { get; set; }
         public DateTime CreatedAt { get; set; }
+        public string? RejectionReason { get; set; }
         public LandlordSummaryDto? Landlord { get; set; }
     }
 
@@ -84,12 +92,23 @@ namespace PropertyManagementSystemVer2.BLL.DTOs
     {
         public string? Title { get; set; }
         public string? Description { get; set; }
-        public string? Amenities { get; set; }
-        public decimal? MonthlyRent { get; set; }
-        public decimal? DepositAmount { get; set; }
+        public PropertyType? PropertyType { get; set; }
         public string? Address { get; set; }
         public string? City { get; set; }
         public string? District { get; set; }
+        public string? Ward { get; set; }
+        public decimal? Latitude { get; set; }
+        public decimal? Longitude { get; set; }
+        public decimal? Area { get; set; }
+        public int? Bedrooms { get; set; }
+        public int? Bathrooms { get; set; }
+        public int? Floors { get; set; }
+        public decimal? MonthlyRent { get; set; }
+        public decimal? DepositAmount { get; set; }
+        public string? Amenities { get; set; }
+        public bool AllowPets { get; set; }
+        public bool AllowSmoking { get; set; }
+        public int? MaxOccupants { get; set; }
     }
 
     // DTO tìm kiếm property
@@ -97,6 +116,7 @@ namespace PropertyManagementSystemVer2.BLL.DTOs
     {
         public string? Keyword { get; set; }
         public PropertyType? PropertyType { get; set; }
+        public PropertyStatus? Status { get; set; }
         public decimal? MinPrice { get; set; }
         public decimal? MaxPrice { get; set; }
         public string? City { get; set; }
@@ -142,7 +162,6 @@ namespace PropertyManagementSystemVer2.BLL.DTOs
         public int TotalProperties { get; set; }
         public int AvailableCount { get; set; }
         public int RentedCount { get; set; }
-        public int DraftCount { get; set; }
         public int PendingCount { get; set; }
         public int InactiveCount { get; set; }
     }

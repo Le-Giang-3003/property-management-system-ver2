@@ -5,6 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- ================= EF Core - TẤT CẢ DÙNG VERSION 8.0.11 ================= -->
+    <PackageVersion Include="CloudinaryDotNet" Version="1.28.0" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="8.0.11" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.11" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.11" />

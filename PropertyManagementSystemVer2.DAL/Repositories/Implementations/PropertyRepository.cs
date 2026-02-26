@@ -39,12 +39,17 @@ namespace PropertyManagementSystemVer2.DAL.Repositories.Implementations
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<IEnumerable<Property>> SearchAsync(string? keyword, PropertyType? propertyType, decimal? minPrice, decimal? maxPrice, string? city, string? district, int? minBedrooms, int? minArea, int pageNumber, int pageSize, string? sortBy, CancellationToken cancellationToken = default)
+        public async Task<IEnumerable<Property>> SearchAsync(string? keyword, PropertyType? propertyType, PropertyStatus? status, decimal? minPrice, decimal? maxPrice, string? city, string? district, int? minBedrooms, int? minArea, int pageNumber, int pageSize, string? sortBy, CancellationToken cancellationToken = default)
         {
             var query = _dbSet
                 .Include(p => p.Landlord)
                 .Include(p => p.Images.Where(i => i.IsPrimary))
-                .Where(p => p.Status == PropertyStatus.Approved && p.IsAvailable);
+                .AsQueryable();
+
+            if (status.HasValue)
+            {
+                query = query.Where(p => p.Status == status.Value);
+            }
 
             if (!string.IsNullOrWhiteSpace(keyword))
             {
@@ -70,9 +75,14 @@ namespace PropertyManagementSystemVer2.DAL.Repositories.Implementations
             return await query.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
         }
 
-        public async Task<int> CountSearchAsync(string? keyword, PropertyType? propertyType, decimal? minPrice, decimal? maxPrice, string? city, string? district, int? minBedrooms, int? minArea, CancellationToken cancellationToken = default)
+        public async Task<int> CountSearchAsync(string? keyword, PropertyType? propertyType, PropertyStatus? status, decimal? minPrice, decimal? maxPrice, string? city, string? district, int? minBedrooms, int? minArea, CancellationToken cancellationToken = default)
         {
-            var query = _dbSet.Where(p => p.Status == PropertyStatus.Approved && p.IsAvailable);
+            var query = _dbSet.AsQueryable();
+
+            if (status.HasValue)
+            {
+                query = query.Where(p => p.Status == status.Value);
+            }
 
             if (!string.IsNullOrWhiteSpace(keyword))
             {

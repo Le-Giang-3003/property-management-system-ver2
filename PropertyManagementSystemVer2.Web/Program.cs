@@ -1,4 +1,5 @@
 using PropertyManagementSystemVer2.BLL;
+using PropertyManagementSystemVer2.BLL.Settings;
 using PropertyManagementSystemVer2.DAL;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -9,6 +10,9 @@ builder.Services.AddRazorPages();
 // Dependency injection (phải đăng ký trước Build())
 builder.Services.AddInfrastructure(builder.Configuration); // DAL Layer
 builder.Services.AddBusinessLogic(); // BLL Layer
+
+// Cloudinary Configuration
+builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection("CloudinarySettings"));
 
 // Configure Authentication
 builder.Services.AddAuthentication("Cookies")

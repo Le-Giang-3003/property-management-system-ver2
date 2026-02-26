@@ -12,13 +12,16 @@ namespace PropertyManagementSystemVer2.BLL.Services.Interfaces
         Task<ServiceResultDto<List<PropertyListDto>>> GetByLandlordIdAsync(int landlordId, PropertyStatus? status = null);
         Task<ServiceResultDto<List<PropertyListDto>>> GetPendingApprovalAsync();
         Task<ServiceResultDto> ApproveRejectPropertyAsync(int adminId, ApproveRejectPropertyDto dto);
+        Task<ServiceResultDto> BlockPropertyAsync(int adminId, int propertyId, string reason);
         Task<ServiceResultDto> SubmitForApprovalAsync(int landlordId, int propertyId);
+        Task<ServiceResultDto> PublishPropertyAsync(int userId, int propertyId);
         Task<ServiceResultDto> UnpublishPropertyAsync(int userId, int propertyId);
         Task<ServiceResultDto> SoftDeletePropertyAsync(int userId, int propertyId);
         Task<ServiceResultDto<PropertySummaryDto>> GetPropertySummaryAsync(int landlordId);
         // Image management
         Task<ServiceResultDto<PropertyImageDto>> AddImageAsync(int landlordId, int propertyId, string imageUrl, string? caption, bool isPrimary);
         Task<ServiceResultDto> RemoveImageAsync(int landlordId, int propertyId, int imageId);
+        Task<ServiceResultDto> SetPrimaryImageAsync(int landlordId, int propertyId, int imageId);
         Task<ServiceResultDto> ReorderImagesAsync(int landlordId, int propertyId, List<int> imageIds);
     }
 }
