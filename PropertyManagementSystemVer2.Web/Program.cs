@@ -10,8 +10,16 @@ builder.Services.AddRazorPages();
 builder.Services.AddInfrastructure(builder.Configuration); // DAL Layer
 builder.Services.AddBusinessLogic(); // BLL Layer
 
-var app = builder.Build();
+// Configure Authentication
+builder.Services.AddAuthentication("Cookies")
+    .AddCookie("Cookies", options =>
+    {
+        options.LoginPath = "/Account/Login";
+        options.AccessDeniedPath = "/Error";
+        options.Cookie.Name = "PropertyMS.Auth";
+    });
 
+var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
@@ -26,6 +34,7 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapRazorPages();

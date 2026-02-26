@@ -1,0 +1,73 @@
+@page
+@model PropertyManagementSystemVer2.Web.Pages.Admin.ReportsModel
+@{
+    ViewData["Title"] = "Báo cáo Thống kê";
+}
+
+<div class="mb-20">
+    <div class="page-title">Báo cáo Hoạt động (Admin)</div>
+    <div class="page-desc">Xuất báo cáo dữ liệu định kỳ cho hệ thống</div>
+</div>
+
+<div class="grid" style="grid-template-columns: 1fr 1fr; gap: 24px;">
+    <!-- Doanh thu -->
+    <div class="card">
+        <h3 class="fw-600 mb-20">Báo cáo Doanh Thu</h3>
+        <p class="text-sm text-muted mb-20">Thống kê toàn bộ giao dịch, tiền thuê, phí bảo trì và phí dịch vụ.</p>
+        
+        <div class="form-group mb-16">
+            <label class="form-label">Chọn khoảng thời gian</label>
+            <div style="display: flex; gap: 12px;">
+                <input type="date" class="form-control flex-1" />
+                <input type="date" class="form-control flex-1" />
+            </div>
+        </div>
+        
+        <button class="btn btn-primary w-full"><i data-feather="download" style="width: 14px;"></i> Xuất Excel</button>
+    </div>
+
+    <!-- Người dùng -->
+    <div class="card">
+        <h3 class="fw-600 mb-20">Báo cáo Người Dùng</h3>
+        <p class="text-sm text-muted mb-20">Thống kê tài khoản mới, tài khoản bị khoá, phân bố người dùng.</p>
+        
+        <div class="form-group mb-16">
+            <label class="form-label">Loại tài khoản</label>
+            <select class="form-control">
+                <option>Tất cả</option>
+                <option>Chủ nhà</option>
+                <option>Người thuê</option>
+            </select>
+        </div>
+        
+        <button class="btn btn-secondary w-full text-white" style="background: var(--success);"><i data-feather="pie-chart" style="width: 14px;"></i> Lập Báo cáo PDF</button>
+    </div>
+
+    <!-- Bất động sản -->
+    <div class="card" style="grid-column: 1 / -1;">
+        <h3 class="fw-600 mb-20">Thông tin Phân bổ Bất Động Sản</h3>
+        <p class="text-sm text-muted mb-20">Theo dõi tỷ lệ phòng trống, tỷ lệ phê duyệt, khu vực có nhiều bất động sản nhất.</p>
+        
+        <div class="stat-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 24px;">
+            <div class="stat-card" style="background: var(--bg-body);">
+                <div class="stat-info">
+                    <div class="stat-label">Tỉ lệ lấp đầy</div>
+                    <div class="stat-value text-green">87%</div>
+                </div>
+            </div>
+            <div class="stat-card" style="background: var(--bg-body);">
+                <div class="stat-info">
+                    <div class="stat-label">Thời hạn thuê TB</div>
+                    <div class="stat-value text-blue">8 Tháng</div>
+                </div>
+            </div>
+            <div class="stat-card" style="background: var(--bg-body);">
+                <div class="stat-info">
+                    <div class="stat-label">Cần duyệt ngay</div>
+                    <div class="stat-value text-yellow">12 BDS</div>
+                </div>
+            </div>
+        </div>
+        <button class="btn btn-primary"><i data-feather="file-text" style="width: 14px;"></i> In báo cáo chi tiết</button>
+    </div>
+</div>

@@ -1,0 +1,135 @@
+@page
+@model PropertyManagementSystemVer2.Web.Pages.Account.LoginModel
+@{
+    Layout = null;
+    ViewData["Title"] = "Đăng nhập";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PropertyMS - @ViewData["Title"]</title>
+    <!-- CSS từ UI -->
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <style>
+        .login-wrapper {
+            min-height: 100vh;
+            background: var(--bg-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .orb-left {
+            position: fixed; top: 10%; left: 15%; width: 300px; height: 300px;
+            background: radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .orb-right {
+            position: fixed; bottom: 20%; right: 10%; width: 400px; height: 400px;
+            background: radial-gradient(circle, rgba(16,185,129,0.1) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .login-content {
+            width: 100%; maxWidth: 480px; position: relative; z-index: 1;
+        }
+        .logo-box {
+            text-align: center; margin-bottom: 32px;
+        }
+        .logo-icon {
+            width: 60px; height: 60px;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            border-radius: 16px; display: flex; align-items: center; justify-content: center;
+            font-size: 28px; margin: 0 auto 12px; box-shadow: 0 8px 32px rgba(99,102,241,0.4);
+        }
+        .logo-text {
+            font-size: 28px; font-weight: 800;
+            background: linear-gradient(135deg, #6366f1, #818cf8);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            margin-bottom: 6px;
+        }
+        .logo-desc { color: var(--text-muted); font-size: 14px; }
+        .demo-card {
+            background: var(--bg-secondary); border: 1px solid var(--border);
+            border-radius: 16px; padding: 24px; margin-bottom: 24px;
+        }
+        .demo-title {
+            font-size: 12px; font-weight: 600; color: var(--text-muted);
+            text-transform: uppercase; letter-spacing: 1px; margin-bottom: 14px;
+        }
+        .demo-btn {
+            display: flex; align-items: center; gap: 12px; padding: 14px 16px;
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 10px; cursor: pointer; transition: var(--transition);
+            text-align: left; width: 100%; color: var(--text-primary); margin-bottom: 10px;
+        }
+        .demo-btn:hover { border-color: var(--accent); background: rgba(99,102,241,0.05); }
+        .demo-btn:last-child { margin-bottom: 0; }
+        .demo-icon {
+            width: 40px; height: 40px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px; flex-shrink: 0;
+        }
+        .demo-btn-role {
+            font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-wrapper">
+        <div class="orb-left"></div>
+        <div class="orb-right"></div>
+        <div class="login-content">
+            <div class="logo-box">
+                <div class="logo-icon">🏢</div>
+                <h1 class="logo-text">PropertyMS</h1>
+                <p class="logo-desc">Hệ thống quản lý bất động sản (C# Razor Pages)</p>
+            </div>
+
+            @if (!ModelState.IsValid)
+            {
+                <div style="background: var(--danger-bg); border: 1px solid var(--danger); color: var(--danger); padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 13px;">
+                    <div asp-validation-summary="All" style="margin: 0;"></div>
+                </div>
+            }
+            @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+            {
+                <div style="background: var(--danger-bg); border: 1px solid var(--danger); color: var(--danger); padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 13px;">
+                    @Model.ErrorMessage
+                </div>
+            }
+
+            <div class="demo-card">
+                <div class="demo-title">Đăng nhập tài khoản</div>
+                <form method="post" id="loginForm">
+                    <div class="form-group">
+                        <label class="form-label" asp-for="Input.Email">Email</label>
+                        <input class="form-control" asp-for="Input.Email" type="email" placeholder="email@example.com" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" asp-for="Input.Password">Mật khẩu</label>
+                        <input class="form-control" asp-for="Input.Password" type="password" placeholder="••••••••" />
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 12px; font-size: 14px;">
+                        Đăng nhập →
+                    </button>
+                </form>
+            </div>
+            
+            <div style="text-align: center; margin-top: 16px; font-size: 12px; color: var(--text-muted);">
+                &copy; 2026 PropertyMS - PRN222 Application
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function quickLogin(email, password) {
+            document.getElementById('Input_Email').value = email;
+            document.getElementById('Input_Password').value = password;
+            document.getElementById('loginForm').submit();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,97 @@
+@page
+@model PropertyManagementSystemVer2.Web.Pages.Tenant.BookingsModel
+@{
+    ViewData["Title"] = "Lịch xem nhà của tôi";
+}
+
+<div class="mb-20">
+    <div class="page-title">Lịch xem nhà</div>
+    <div class="page-desc">Quản lý các cuộc hẹn xem bất động sản của bạn</div>
+</div>
+
+<div class="card mb-20">
+    <div class="filter-bar" style="margin-bottom: 0;">
+        <div class="header-search" style="flex: 1; min-width: 200px;">
+            <i data-feather="search" style="color: var(--text-muted); width: 14px;"></i>
+            <input placeholder="Tìm bất động sản..." style="width: 100%;" />
+        </div>
+        <button class="btn btn-primary btn-sm">Tất cả</button>
+        <button class="btn btn-ghost btn-sm text-yellow" style="border-color: var(--warning);">Chờ xác nhận</button>
+        <button class="btn btn-ghost btn-sm text-green" style="border-color: var(--success);">Đã xác nhận</button>
+        <button class="btn btn-ghost btn-sm text-red" style="border-color: var(--danger);">Đã hủy</button>
+    </div>
+</div>
+
+<div class="property-grid">
+    @if (Model.Bookings != null && Model.Bookings.Any())
+    {
+        foreach (var booking in Model.Bookings)
+        {
+            <div class="property-card" style="position: relative;">
+                @if (!string.IsNullOrEmpty(booking.PropertyThumbnail))
+                {
+                    <img class="property-image" src="@booking.PropertyThumbnail" alt="@booking.PropertyTitle" />
+                }
+                else
+                {
+                    <div class="property-image-placeholder">🏠</div>
+                }
+                
+                <div class="property-body">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                        <span class="property-type-badge">Lịch hẹn</span>
+                        @if (booking.Status.ToString() == "Pending")
+                        {
+                            <span class="badge badge-warning">Chờ xác nhận</span>
+                        }
+                        else if (booking.Status.ToString() == "Confirmed")
+                        {
+                            <span class="badge badge-success">Đã xác nhận</span>
+                        }
+                        else if (booking.Status.ToString() == "Rejected" || booking.Status.ToString() == "Cancelled")
+                        {
+                            <span class="badge badge-danger">Đã hủy/Từ chối</span>
+                        }
+                        else if (booking.Status.ToString() == "Completed")
+                        {
+                            <span class="badge badge-info">Đã xem</span>
+                        }
+                        else
+                        {
+                            <span class="badge badge-gray">@booking.Status</span>
+                        }
+                    </div>
+
+                    <div class="property-title">@booking.PropertyTitle</div>
+                    <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 12px;">CSKH: @booking.LandlordName</div>
+                    
+                    <div class="info-row"><span class="info-label" style="width: 90px;">Ngày xem</span><span class="info-value text-purple fw-600">@booking.ScheduledDate.ToString("dd/MM/yyyy")</span></div>
+                    <div class="info-row"><span class="info-label" style="width: 90px;">Thời gian</span><span class="info-value">@booking.StartTime.ToString(@"hh\:mm") - @booking.EndTime.ToString(@"hh\:mm")</span></div>
+                    
+                    @if (!string.IsNullOrEmpty(booking.Message))
+                    {
+                        <div class="info-row"><span class="info-label" style="width: 90px;">Lời nhắn</span><span class="info-value" style="font-style: italic;">@booking.Message</span></div>
+                    }
+
+                    <div style="border-top: 1px solid var(--border); padding-top: 12px; display: flex; align-items: center; justify-content: flex-end; margin-top: 12px;">
+                        @if (booking.Status.ToString() == "Pending" || booking.Status.ToString() == "Confirmed")
+                        {
+                            <button class="btn btn-danger btn-sm" onclick="alert('Tính năng hủy lịch đang phát triển')">Hủy lịch</button>
+                        }
+                        else
+                        {
+                            <button class="btn btn-secondary btn-sm" disabled>Không thể thao tác</button>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="empty-state" style="grid-column: 1 / -1;">
+            <div class="empty-icon">calendar</div>
+            <p>Bạn chưa đặt lịch xem nhà nào.</p>
+        </div>
+    }
+</div>

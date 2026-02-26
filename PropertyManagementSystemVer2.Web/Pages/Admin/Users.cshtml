@@ -1,0 +1,142 @@
+@page
+@model PropertyManagementSystemVer2.Web.Pages.Admin.UsersModel
+@{
+    ViewData["Title"] = "Quản lý Người dùng";
+}
+
+<div class="mb-20">
+    <div class="page-title">Quản lý Người dùng</div>
+    <div class="page-desc">Quản lý tất cả tài khoản trong hệ thống</div>
+</div>
+
+<div class="stat-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 24px;">
+    <div class="stat-card">
+        <div class="stat-icon purple"><i data-feather="shield"></i></div>
+        <div class="stat-info">
+            <div class="stat-label">Admin</div>
+            <div class="stat-value">@Model.Users.Count(u => u.Role.ToString() == "Admin")</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon blue"><i data-feather="home"></i></div>
+        <div class="stat-info">
+            <div class="stat-label">Chủ nhà</div>
+            <div class="stat-value">@Model.Users.Count(u => u.IsLandlord)</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon green"><i data-feather="user"></i></div>
+        <div class="stat-info">
+            <div class="stat-label">Người thuê</div>
+            <div class="stat-value">@Model.Users.Count(u => u.IsTenant)</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon red"><i data-feather="slash"></i></div>
+        <div class="stat-info">
+            <div class="stat-label">Bị khoá</div>
+            <div class="stat-value">@Model.Users.Count(u => !u.IsActive)</div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-20">
+    <div class="filter-bar" style="margin-bottom: 0;">
+        <div class="header-search" style="flex: 1; min-width: 200px;">
+            <i data-feather="search" style="color: var(--text-muted); width: 14px;"></i>
+            <input placeholder="Tìm kiếm theo tên, email..." style="width: 100%;" />
+        </div>
+        <button class="btn btn-primary btn-sm">Tất cả</button>
+        <button class="btn btn-ghost btn-sm">Admin</button>
+        <button class="btn btn-ghost btn-sm">Chủ nhà</button>
+        <button class="btn btn-ghost btn-sm">Người thuê</button>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>User</th>
+                    <th>Email</th>
+                    <th>Điện thoại</th>
+                    <th>Vai trò</th>
+                    <th>Trạng thái</th>
+                    <th>Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Users != null && Model.Users.Any())
+                {
+                    foreach (var user in Model.Users)
+                    {
+                        <tr>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <div class="user-avatar" style="width: 36px; height: 36px; font-size: 14px;">
+                                        @(user.FullName.FirstOrDefault())
+                                    </div>
+                                    <div>
+                                        <div class="fw-700">@user.FullName</div>
+                                        <div style="font-size: 11px; color: var(--text-muted);">#@user.Id</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td><span class="text-sm" style="color: var(--text-secondary);">@user.Email</span></td>
+                            <td><span class="text-sm" style="color: var(--text-secondary);">@user.PhoneNumber</span></td>
+                            <td>
+                                @if (user.Role.ToString() == "Admin")
+                                {
+                                    <span class="badge" style="background: rgba(239, 68, 68, 0.1); color: var(--danger);">Admin</span>
+                                }
+                                else if (user.IsLandlord)
+                                {
+                                    <span class="badge badge-purple">Chủ nhà</span>
+                                }
+                                else if (user.IsTenant)
+                                {
+                                    <span class="badge badge-info">Người thuê</span>
+                                }
+                            </td>
+                            <td>
+                                @if (user.IsActive)
+                                {
+                                    <span class="badge" style="background: rgba(16, 185, 129, 0.1); color: var(--success);">Hoạt động</span>
+                                }
+                                else
+                                {
+                                    <span class="badge" style="background: rgba(239, 68, 68, 0.1); color: var(--danger);">Bị khoá</span>
+                                }
+                            </td>
+                            <td>
+                                <div style="display: flex; gap: 6px;">
+                                    <button class="btn btn-ghost btn-sm btn-icon" title="Sửa"><i data-feather="edit-2" style="width: 14px; height: 14px;"></i></button>
+                                    @if (user.IsActive)
+                                    {
+                                        <button class="btn btn-danger btn-sm btn-icon" title="Khoá tài khoản"><i data-feather="lock" style="width: 14px; height: 14px;"></i></button>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-success btn-sm btn-icon" title="Mở khoá"><i data-feather="unlock" style="width: 14px; height: 14px;"></i></button>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="6">
+                            <div class="empty-state">
+                                <div class="empty-icon">👥</div>
+                                <p>Không tìm thấy người dùng.</p>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

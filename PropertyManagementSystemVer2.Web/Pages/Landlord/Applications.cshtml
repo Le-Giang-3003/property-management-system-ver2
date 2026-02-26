@@ -1,0 +1,107 @@
+@page
+@model PropertyManagementSystemVer2.Web.Pages.Landlord.ApplicationsModel
+@{
+    ViewData["Title"] = "Đơn xin thuê hiện có";
+}
+
+<div class="mb-20">
+    <div class="page-title">Đơn xin thuê</div>
+    <div class="page-desc">Quản lý và xét duyệt các đơn xin thuê nhà từ khách hàng</div>
+</div>
+
+<div class="card mb-20">
+    <div class="filter-bar" style="margin-bottom: 0;">
+        <div class="header-search" style="flex: 1; min-width: 200px;">
+            <i data-feather="search" style="color: var(--text-muted); width: 14px;"></i>
+            <input placeholder="Tìm tên người thuê, SĐT..." style="width: 100%;" />
+        </div>
+        <button class="btn btn-primary btn-sm">Tất cả</button>
+        <button class="btn btn-ghost btn-sm text-yellow" style="border-color: var(--warning);">Chờ duyệt</button>
+        <button class="btn btn-ghost btn-sm text-green" style="border-color: var(--success);">Chấp nhận</button>
+        <button class="btn btn-ghost btn-sm text-red" style="border-color: var(--danger);">Từ chối</button>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Người nộp đơn</th>
+                    <th>Bất động sản</th>
+                    <th>Chuyển vào</th>
+                    <th>Thời hạn</th>
+                    <th>Nghề nghiệp/Thu nhập</th>
+                    <th>Trạng thái</th>
+                    <th>Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Applications != null && Model.Applications.Any())
+                {
+                    foreach (var app in Model.Applications)
+                    {
+                        <tr>
+                            <td>
+                                <div class="fw-700">@app.TenantName</div>
+                                <div style="font-size: 11px; color: var(--text-muted);">
+                                    <i data-feather="phone" style="width: 10px; height: 10px;"></i> @app.TenantPhone
+                                </div>
+                            </td>
+                            <td>
+                                <div class="fw-600" style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                    @app.PropertyTitle
+                                </div>
+                            </td>
+                            <td>@app.MoveInDate.ToString("dd/MM/yyyy")</td>
+                            <td>@app.LeaseDurationMonths tháng (<i data-feather="users" style="width: 12px; height: 12px;"></i> @app.NumberOfOccupants)</td>
+                            <td>
+                                <div>@app.Occupation</div>
+                                <div class="text-green fw-600" style="font-size: 11px;">@(app.MonthlyIncome?.ToString("N0") ?? "N/A") đ/tháng</div>
+                            </td>
+                            <td>
+                                @if (app.Status.ToString() == "Pending")
+                                {
+                                    <span class="badge badge-warning">Chờ duyệt</span>
+                                }
+                                else if (app.Status.ToString() == "Approved")
+                                {
+                                    <span class="badge badge-success">Chấp nhận</span>
+                                }
+                                else if (app.Status.ToString() == "Rejected")
+                                {
+                                    <span class="badge badge-danger">Từ chối</span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-gray">@app.Status</span>
+                                }
+                            </td>
+                            <td>
+                                <div style="display: flex; gap: 6px;">
+                                    <button class="btn btn-ghost btn-sm btn-icon" title="Xem chi tiết"><i data-feather="eye" style="width: 14px;"></i></button>
+                                    @if (app.Status.ToString() == "Pending")
+                                    {
+                                        <button class="btn btn-success btn-sm btn-icon" title="Chấp nhận"><i data-feather="check" style="width: 14px;"></i></button>
+                                        <button class="btn btn-danger btn-sm btn-icon" title="Từ chối"><i data-feather="x" style="width: 14px;"></i></button>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="7">
+                            <div class="empty-state">
+                                <div class="empty-icon">inbox</div>
+                                <p>Không có đơn đăng ký thuê nhà nào.</p>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

@@ -1,0 +1,120 @@
+@page
+@model PropertyManagementSystemVer2.Web.Pages.Landlord.DashboardModel
+@{
+    ViewData["Title"] = "Dashboard Chủ nhà";
+}
+
+<div class="mb-20">
+    <div class="page-title">Dashboard Chủ nhà</div>
+    <div class="page-desc">Tổng quan các bất động sản bạn đang cho thuê</div>
+</div>
+
+<div class="stat-grid">
+    <div class="stat-card">
+        <div class="stat-icon purple"><i data-feather="home"></i></div>
+        <div class="stat-info">
+            <div class="stat-label">Tổng BDS</div>
+            <div class="stat-value">@Model.DashboardData?.TotalProperties</div>
+            <div class="stat-change up">Hoạt động</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon green"><i data-feather="percent"></i></div>
+        <div class="stat-info">
+            <div class="stat-label">Tỷ lệ lấp đầy</div>
+            <div class="stat-value">@((Model.DashboardData?.OccupancyRate ?? 0).ToString("0.0"))%</div>
+            <div class="stat-change up">Mức tốt</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon yellow"><i data-feather="dollar-sign"></i></div>
+        <div class="stat-info">
+            <div class="stat-label">Doanh thu tháng này</div>
+            <div class="stat-value">@Model.DashboardData?.MonthlyRevenue.ToString("N0") VNĐ</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon blue"><i data-feather="credit-card"></i></div>
+        <div class="stat-info">
+            <div class="stat-label">Thanh toán chờ xử lý</div>
+            <div class="stat-value">@Model.DashboardData?.PendingPayments.ToString("N0") VNĐ</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon red"><i data-feather="tool"></i></div>
+        <div class="stat-info">
+            <div class="stat-label">Bảo trì đang mở</div>
+            <div class="stat-value">@Model.DashboardData?.ActiveMaintenanceRequests</div>
+            <div class="stat-change text-red">Cần xử lý</div>
+        </div>
+    </div>
+</div>
+
+<div class="grid-2 mb-20">
+    <!-- Chart -->
+    <div class="card">
+        <div class="card-header"><div class="card-title">Xu hướng doanh thu (12 tháng gần nhất)</div></div>
+        <div style="height: 250px;">
+            <canvas id="landlordRevenueChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Tình trạng BDS -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">Tình trạng BDS</div>
+        </div>
+        <div class="empty-state">
+            <div class="empty-icon">🏢</div>
+            <p>Dữ liệu Property sẽ được hiển thị tại đây.</p>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var trendData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.DashboardData?.RevenueTrend ?? new List<PropertyManagementSystemVer2.BLL.DTOs.MonthlyRevenueDto>()));
+            
+            var labels = trendData.map(d => d.Month + '/' + d.Year);
+            var data = trendData.map(d => d.Revenue);
+
+            // Dummy data if API empty
+            if (data.length === 0) {
+                labels = ['01/2026', '02/2026', '03/2026'];
+                data = [5000000, 8000000, 12000000];
+            }
+
+            var ctx = document.getElementById('landlordRevenueChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Doanh thu (VND)',
+                        data: data,
+                        backgroundColor: '#10b981',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { 
+                            beginAtZero: true, 
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: { color: '#8b97b4' }
+                        },
+                        x: { 
+                            grid: { display: false },
+                            ticks: { color: '#8b97b4' }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+}

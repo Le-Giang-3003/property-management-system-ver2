@@ -12,9 +12,19 @@ namespace PropertyManagementSystemVer2.Web.Pages
             _logger = logger;
         }
 
-        public void OnGet()
+        public IActionResult OnGet()
         {
+            if (User.Identity?.IsAuthenticated != true)
+            {
+                return RedirectToPage("/Account/Login");
+            }
 
+            var role = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+
+            if (role == "Admin") return RedirectToPage("/Admin/Dashboard");
+            if (role == "Landlord") return RedirectToPage("/Landlord/Dashboard");
+            
+            return RedirectToPage("/Tenant/Dashboard");
         }
     }
 }

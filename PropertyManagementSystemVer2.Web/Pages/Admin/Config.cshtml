@@ -1,0 +1,62 @@
+@page
+@model PropertyManagementSystemVer2.Web.Pages.Admin.ConfigModel
+@{
+    ViewData["Title"] = "Cấu hình Hệ thống";
+}
+
+<div class="mb-20">
+    <div class="page-title">Cấu hình Hệ thống</div>
+    <div class="page-desc">Tùy chỉnh các tham số hoạt động của toàn bộ nền tảng</div>
+</div>
+
+<div class="grid" style="grid-template-columns: 1fr 1fr; gap: 24px;">
+    <!-- Cấu hình chung -->
+    <div class="card">
+        <h3 class="fw-600 mb-20" style="padding-bottom: 12px; border-bottom: 1px solid var(--border);">Cài đặt chung</h3>
+        <div class="form-group mb-16">
+            <label class="form-label">Tên website</label>
+            <input type="text" class="form-control" value="PropertyMS" />
+        </div>
+        <div class="form-group mb-16">
+            <label class="form-label">Phí dịch vụ mặc định (%)</label>
+            <input type="number" class="form-control" value="5" />
+        </div>
+        <div class="form-group mb-16">
+            <label class="form-label">Kích hoạt đăng ký mới (Chủ nhà)</label>
+            <select class="form-control">
+                <option value="1">Có</option>
+                <option value="0">Không</option>
+            </select>
+        </div>
+        <div class="form-group mb-16">
+            <label class="form-label">Số ngày trễ hạn thanh toán cho phép</label>
+            <input type="number" class="form-control" value="5" />
+        </div>
+        <button class="btn btn-primary w-full">Lưu thay đổi chung</button>
+    </div>
+
+    <!-- Cấu hình email -->
+    <div class="card">
+        <h3 class="fw-600 mb-20" style="padding-bottom: 12px; border-bottom: 1px solid var(--border);">Cấu hình Email (SMTP)</h3>
+        <div class="form-group mb-16">
+            <label class="form-label">SMTP Server</label>
+            <input type="text" class="form-control" value="smtp.gmail.com" />
+        </div>
+        <div class="form-group mb-16">
+            <label class="form-label">SMTP Port</label>
+            <input type="number" class="form-control" value="587" />
+        </div>
+        <div class="form-group mb-16">
+            <label class="form-label">SMTP Username</label>
+            <input type="text" class="form-control" value="noreply@propertyms.vn" />
+        </div>
+        <div class="form-group mb-16">
+            <label class="form-label">SMTP Password</label>
+            <input type="password" class="form-control" value="********" />
+        </div>
+        <div style="display: flex; gap: 12px;">
+            <button class="btn btn-secondary flex-1">Gửi test</button>
+            <button class="btn btn-primary flex-1">Lưu thiết lập SMTP</button>
+        </div>
+    </div>
+</div>

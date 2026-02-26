@@ -1,0 +1,120 @@
+@page
+@model PropertyManagementSystemVer2.Web.Pages.Tenant.DashboardModel
+@{
+    ViewData["Title"] = "Dashboard Người thuê";
+}
+
+<div class="mb-20">
+    <div class="page-title">Dashboard Người thuê</div>
+    <div class="page-desc">Tổng quan tình trạng thuê nhà của bạn</div>
+</div>
+
+<div class="stat-grid">
+    <div class="stat-card">
+        <div class="stat-icon green"><i data-feather="file-text"></i></div>
+        <div class="stat-info">
+            <div class="stat-label">Hợp đồng hiện tại</div>
+            <div class="stat-value" style="font-size: 16px;">@(Model.DashboardData?.ActiveLease?.LeaseNumber ?? "—")</div>
+            <div class="stat-change">
+                @if (Model.DashboardData?.ActiveLease != null)
+                {
+                    @($"Hết hạn {Model.DashboardData.ActiveLease.EndDate:dd/MM/yyyy}")
+                }
+                else
+                {
+                    <text>Không có HĐ hiệu lực</text>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon yellow"><i data-feather="credit-card"></i></div>
+        <div class="stat-info">
+            <div class="stat-label">Thanh toán tiếp theo</div>
+            <div class="stat-value" style="font-size: 18px;">
+                @(Model.DashboardData?.NextPayment != null ? Model.DashboardData.NextPayment.Amount.ToString("N0") : "—")
+            </div>
+            <div class="stat-change @(Model.DashboardData?.NextPayment != null ? "down" : "")">
+                @(Model.DashboardData?.NextPayment != null ? $"Đến hạn {Model.DashboardData.NextPayment.DueDate:dd/MM/yyyy}" : "Không có")
+            </div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon red"><i data-feather="tool"></i></div>
+        <div class="stat-info">
+            <div class="stat-label">Bảo trì đang mở</div>
+            <div class="stat-value">@(Model.DashboardData?.OpenMaintenanceRequests ?? 0)</div>
+            <div class="stat-change">@(Model.DashboardData?.OpenMaintenanceRequests > 0 ? "Đang xử lý" : "Tất cả ổn")</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon blue"><i data-feather="calendar"></i></div>
+        <div class="stat-info">
+            <div class="stat-label">Lịch xem nhà</div>
+            <div class="stat-value">@(Model.DashboardData?.UpcomingBookings?.Count ?? 0)</div>
+            <div class="stat-change">Sắp tới</div>
+        </div>
+    </div>
+</div>
+
+<div class="grid-2 mb-24">
+    <!-- Active Lease Card -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">🏠 Hợp đồng đang thuê</div>
+            @if (Model.DashboardData?.ActiveLease != null)
+            {
+                <span class="badge badge-success">Hiệu lực</span>
+            }
+        </div>
+        @if (Model.DashboardData?.ActiveLease != null)
+        {
+            var lease = Model.DashboardData.ActiveLease;
+            <div>
+                <div style="padding: 16px; background: var(--bg-primary); border-radius: 8px; margin-bottom: 12px;">
+                    <div class="fw-700" style="font-size: 16px; color: var(--accent-light); margin-bottom: 4px;">@lease.PropertyTitle</div>
+                </div>
+                <div class="info-row"><span class="info-label">Mã hợp đồng</span><span class="info-value fw-600">@lease.LeaseNumber</span></div>
+                <div class="info-row"><span class="info-label">Chủ nhà</span><span class="info-value">@lease.LandlordName</span></div>
+                <div class="info-row"><span class="info-label">Tiền thuê/tháng</span><span class="info-value text-green fw-700">@lease.MonthlyRent.ToString("N0") VNĐ</span></div>
+                <div class="info-row"><span class="info-label">Thời hạn</span><span class="info-value">@lease.StartDate.ToString("dd/MM/yyyy") → @lease.EndDate.ToString("dd/MM/yyyy")</span></div>
+            </div>
+        }
+        else
+        {
+            <div class="empty-state">
+                <div class="empty-icon">📄</div>
+                <p>Bạn chưa có hợp đồng nào đang hiệu lực</p>
+                <a href="/Tenant/Search" class="btn btn-primary mt-16">Tìm kiếm BDS</a>
+            </div>
+        }
+    </div>
+
+    <!-- Next Payment -->
+    <div class="card">
+        <div class="card-header"><div class="card-title">💳 Thanh toán sắp đến hạn</div></div>
+        @if (Model.DashboardData?.NextPayment != null)
+        {
+            var payment = Model.DashboardData.NextPayment;
+            <div>
+                <div style="text-align: center; padding: 20px; background: var(--bg-primary); border-radius: 8px; margin-bottom: 16px;">
+                    <div class="text-muted text-sm mb-8">Số tiền cần thanh toán</div>
+                    <div style="font-size: 32px; font-weight: 800; color: var(--warning);">@payment.Amount.ToString("N0") VNĐ</div>
+                    <div class="mt-8 text-muted">Đến hạn @payment.DueDate.ToString("dd/MM/yyyy")</div>
+                    <div class="mt-4"><span class="badge badge-warning">Chưa thanh toán</span></div>
+                </div>
+                <div class="info-row"><span class="info-label">Mô tả</span><span class="info-value">@payment.Description</span></div>
+                <div style="margin-top: 16px; display: flex; gap: 10px;">
+                    <button class="btn btn-primary" style="flex: 1;">💳 Thanh toán ngay</button>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="empty-state">
+                <div class="empty-icon">✅</div>
+                <p>Không có thanh toán nào sắp đến hạn</p>
+            </div>
+        }
+    </div>
+</div>

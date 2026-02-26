@@ -1,0 +1,116 @@
+@page
+@model PropertyManagementSystemVer2.Web.Pages.Admin.PropertiesModel
+@{
+    ViewData["Title"] = "Quản lý Bất động sản";
+}
+
+<div class="mb-20">
+    <div class="page-title">Quản lý Bất động sản</div>
+    <div class="page-desc">Duyệt và quản lý tất cả bất động sản trong hệ thống</div>
+</div>
+
+<div class="card mb-20">
+    <div class="filter-bar" style="margin-bottom: 0;">
+        <div class="header-search" style="flex: 1; min-width: 200px;">
+            <i data-feather="search" style="color: var(--text-muted); width: 14px;"></i>
+            <input placeholder="Tìm kiếm tên BDS, chủ nhà, địa chỉ..." style="width: 100%;" />
+        </div>
+        <button class="btn btn-primary btn-sm">Tất cả</button>
+        <button class="btn btn-ghost btn-sm">Còn trống</button>
+        <button class="btn btn-ghost btn-sm">Đã thuê</button>
+        <button class="btn btn-ghost btn-sm text-yellow" style="border-color: var(--warning);">Chờ duyệt</button>
+        <button class="btn btn-ghost btn-sm">Nháp</button>
+        <button class="btn btn-ghost btn-sm text-red" style="border-color: var(--danger);">Từ chối</button>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Tên BDS</th>
+                    <th>Loại</th>
+                    <th>Chủ nhà</th>
+                    <th>Trạng thái</th>
+                    <th>Tiền thuê</th>
+                    <th>Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Properties != null && Model.Properties.Any())
+                {
+                    foreach (var prop in Model.Properties)
+                    {
+                        <tr>
+                            <td>#@prop.Id</td>
+                            <td>
+                                <div style="display: flex; gap: 12px; align-items: center; max-width: 300px;">
+                                    @if (!string.IsNullOrEmpty(prop.ThumbnailUrl))
+                                    {
+                                        <img src="@prop.ThumbnailUrl" alt="@prop.Title" style="width: 40px; height: 40px; border-radius: 8px; object-fit: cover;" />
+                                    }
+                                    else
+                                    {
+                                        <div style="width: 40px; height: 40px; border-radius: 8px; background: var(--bg-input); display: flex; align-items: center; justify-content: center; font-size: 16px;">🏠</div>
+                                    }
+                                    <div style="flex: 1; min-width: 0;">
+                                        <div class="fw-700" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="@prop.Title">@prop.Title</div>
+                                        <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">@prop.City</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td><span class="badge badge-purple">@prop.PropertyType</span></td>
+                            <td>@prop.Landlord?.FullName</td>
+                            <td>
+                                @if (prop.Status.ToString() == "Available")
+                                {
+                                    <span class="badge badge-success">Còn trống</span>
+                                }
+                                else if (prop.Status.ToString() == "PendingApproval")
+                                {
+                                    <span class="badge badge-warning">Chờ duyệt</span>
+                                }
+                                else if (prop.Status.ToString() == "Rented")
+                                {
+                                    <span class="badge badge-info">Đã thuê</span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-gray">@prop.Status</span>
+                                }
+                            </td>
+                            <td class="text-green fw-600">@prop.MonthlyRent.ToString("N0") đ</td>
+                            <td>
+                                <div style="display: flex; gap: 6px;">
+                                    <button class="btn btn-ghost btn-sm btn-icon" title="Xem chi tiết"><i data-feather="eye" style="width: 14px; height: 14px;"></i></button>
+                                    @if (prop.Status.ToString() == "PendingApproval")
+                                    {
+                                        <button class="btn btn-success btn-sm btn-icon" title="Duyệt"><i data-feather="check" style="width: 14px; height: 14px;"></i></button>
+                                        <button class="btn btn-danger btn-sm btn-icon" title="Từ chối"><i data-feather="x" style="width: 14px; height: 14px;"></i></button>
+                                    }
+                                    else if (prop.Status.ToString() == "Available" || prop.Status.ToString() == "Rented")
+                                    {
+                                        <button class="btn btn-danger btn-sm btn-icon" title="Gỡ đăng"><i data-feather="eye-off" style="width: 14px; height: 14px;"></i></button>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="7">
+                            <div class="empty-state">
+                                <div class="empty-icon">🏢</div>
+                                <p>Chưa có dữ liệu bất động sản trong hệ thống.</p>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

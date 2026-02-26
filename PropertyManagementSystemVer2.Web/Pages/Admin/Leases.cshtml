@@ -1,0 +1,51 @@
+@page
+@model PropertyManagementSystemVer2.Web.Pages.Admin.LeasesModel
+@{
+    ViewData["Title"] = "Quản lý Hợp đồng (Admin)";
+}
+
+<div class="mb-20">
+    <div class="page-title">Hợp đồng thuê nhà</div>
+    <div class="page-desc">Giám sát tất cả hợp đồng trong hệ thống</div>
+</div>
+
+<div class="card mb-20">
+    <div class="filter-bar" style="margin-bottom: 0;">
+        <div class="header-search" style="flex: 1; min-width: 200px;">
+            <i data-feather="search" style="color: var(--text-muted); width: 14px;"></i>
+            <input placeholder="Tìm mã HĐ, tên người thuê/chủ nhà..." style="width: 100%;" />
+        </div>
+        <button class="btn btn-primary btn-sm">Tất cả</button>
+        <button class="btn btn-ghost btn-sm">Hiệu lực</button>
+        <button class="btn btn-ghost btn-sm">Đã kết thúc</button>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Mã HĐ</th>
+                    <th>Bất động sản</th>
+                    <th>Chủ nhà / Người thuê</th>
+                    <th>Thời hạn</th>
+                    <th>Tiền thuê</th>
+                    <th>Trạng thái</th>
+                    <th>Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Placeholder for Admin Leases List -->
+                <tr>
+                    <td colspan="7">
+                        <div class="empty-state">
+                            <div class="empty-icon">📁</div>
+                            <p>Danh sách tất cả hợp đồng hệ thống (Đang cập nhật hàm get all từ Service).</p>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>

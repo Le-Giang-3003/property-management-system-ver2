@@ -1,0 +1,103 @@
+@page
+@model PropertyManagementSystemVer2.Web.Pages.Landlord.LeasesModel
+@{
+    ViewData["Title"] = "Quản lý Hợp đồng";
+}
+
+<div class="mb-20" style="display: flex; align-items: center; justify-content: space-between;">
+    <div>
+        <div class="page-title">Hợp đồng thuê nhà</div>
+        <div class="page-desc">Quản lý các hợp đồng với người thuê</div>
+    </div>
+    <button class="btn btn-primary" onclick="alert('Tính năng Tạo hợp đồng mới')">
+        <i data-feather="plus" style="width: 16px;"></i> Tạo HĐ mới
+    </button>
+</div>
+
+<div class="card mb-20">
+    <div class="filter-bar" style="margin-bottom: 0;">
+        <div class="header-search" style="flex: 1; min-width: 200px;">
+            <i data-feather="search" style="color: var(--text-muted); width: 14px;"></i>
+            <input placeholder="Tìm mã HĐ, tên người thuê..." style="width: 100%;" />
+        </div>
+        <button class="btn btn-primary btn-sm">Tất cả</button>
+        <button class="btn btn-ghost btn-sm">Hiệu lực</button>
+        <button class="btn btn-ghost btn-sm">Chờ ký</button>
+        <button class="btn btn-ghost btn-sm">Đã kết thúc</button>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Mã HĐ</th>
+                    <th>Bất động sản</th>
+                    <th>Người thuê</th>
+                    <th>Thời hạn</th>
+                    <th>Tiền thuê</th>
+                    <th>Trạng thái</th>
+                    <th>Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Leases != null && Model.Leases.Any())
+                {
+                    foreach (var lease in Model.Leases)
+                    {
+                        <tr>
+                            <td class="fw-700">@lease.LeaseNumber</td>
+                            <td>
+                                <div class="fw-600" style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                    @lease.PropertyTitle
+                                </div>
+                                <div style="font-size: 11px; color: var(--text-muted);">ID: @lease.PropertyId</div>
+                            </td>
+                            <td>
+                                <div>@lease.TenantName</div>
+                            </td>
+                            <td>
+                                <div><i data-feather="calendar" style="width: 12px; color: var(--text-muted);"></i> @lease.StartDate.ToString("dd/MM/yyyy")</div>
+                                <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">đến @lease.EndDate.ToString("dd/MM/yyyy")</div>
+                            </td>
+                            <td class="text-green fw-600">@lease.MonthlyRent.ToString("N0") đ</td>
+                            <td>
+                                @if (lease.Status.ToString() == "Active")
+                                {
+                                    <span class="badge badge-success">Hiệu lực</span>
+                                }
+                                else if (lease.Status.ToString() == "PendingSignature")
+                                {
+                                    <span class="badge badge-warning">Chờ ký</span>
+                                }
+                                else if (lease.Status.ToString() == "Expired" || lease.Status.ToString() == "Terminated")
+                                {
+                                    <span class="badge badge-gray">K.thúc</span>
+                                }
+                                else
+                                {
+                                    <span class="badge">@lease.Status</span>
+                                }
+                            </td>
+                            <td>
+                                <button class="btn btn-ghost btn-sm btn-icon" title="Xem chi tiết"><i data-feather="eye" style="width: 14px;"></i></button>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="7">
+                            <div class="empty-state">
+                                <div class="empty-icon">📄</div>
+                                <p>Không có dữ liệu hợp đồng.</p>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

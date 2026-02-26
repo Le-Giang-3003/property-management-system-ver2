@@ -1,0 +1,82 @@
+SET QUOTED_IDENTIFIER ON;
+SET ANSI_NULLS ON;
+-- Xóa dữ liệu cũ (tuỳ chọn)
+DELETE FROM Payments;
+DELETE FROM MaintenanceRequests;
+DELETE FROM Leases;
+DELETE FROM RentalApplications;
+DELETE FROM Bookings;
+DELETE FROM PropertyImages;
+DELETE FROM Properties;
+DELETE FROM Users;
+-- Reset Identity
+DBCC CHECKIDENT ('Users', RESEED, 0);
+DBCC CHECKIDENT ('Properties', RESEED, 0);
+DBCC CHECKIDENT ('Leases', RESEED, 0);
+DBCC CHECKIDENT ('Payments', RESEED, 0);
+
+-- 1. Insert Users
+-- Role: 1 = Admin, 2 = Member
+-- PasswordHash tạm là một chuỗi giả, hoặc thay bằng Hash thật nếu cần đăng nhập đúng mật khẩu.
+INSERT INTO Users (Email, PasswordHash, FullName, PhoneNumber, Role, Address, IsActive, IsTenant, IsLandlord, IsEmailVerified, IsPhoneVerified, IsIdentityVerified, CreatedAt)
+VALUES 
+('admin@propertyms.vn', '$2a$11$Na8fEezgblEV2Cl3FY6VLO.X.GrilVsmhxABR6DLUaIg9pHX1iI.2', N'Admin System', '0901234567', 1, N'123 Admin St', 1, 0, 0, 1, 1, 1, GETDATE()),
+('landlord@example.com', '$2a$11$Na8fEezgblEV2Cl3FY6VLO.X.GrilVsmhxABR6DLUaIg9pHX1iI.2', N'Lê Văn Chủ', '0912345678', 2, N'456 Le Lai', 1, 0, 1, 1, 1, 1, GETDATE()),
+('tenant@example.com', '$2a$11$Na8fEezgblEV2Cl3FY6VLO.X.GrilVsmhxABR6DLUaIg9pHX1iI.2', N'Trần Khách Thuê', '0987654321', 2, N'123 Nguyen Trai', 1, 1, 0, 1, 1, 1, GETDATE());
+
+-- Lấy IDs giả định (Thường Admin=1, Landlord=2, Tenant=3)
+DECLARE @LandlordId INT = 2;
+DECLARE @TenantId INT = 3;
+
+-- 2. Insert Properties
+-- PropertyType: 1=Apartment, 5=Room, etc.
+-- PropertyStatus: 3=Approved, 5=Rented
+INSERT INTO Properties (Title, Description, PropertyType, Status, Address, City, District, Area, Bedrooms, Bathrooms, MonthlyRent, DepositAmount, Currency, AllowPets, AllowSmoking, LandlordId, IsAvailable, CreatedAt)
+VALUES 
+(N'Căn hộ Studio cao cấp Q3', N'Căn hộ đầy đủ nội thất, dọn vào ngay', 4, 3, N'123 CMT8', N'Hồ Chí Minh', N'Quận 3', 35.5, 1, 1, 7500000, 15000000, 'VND', 0, 0, @LandlordId, 1, GETDATE()),
+(N'Nhà nguyên căn Gò Vấp', N'Thích hợp làm văn phòng hoặc gia đình ở', 2, 5, N'456 Quang Trung', N'Hồ Chí Minh', N'Gò Vấp', 80.0, 3, 2, 12000000, 24000000, 'VND', 1, 0, @LandlordId, 0, GETDATE()),
+(N'Phòng trọ sinh viên tiện nghi Quận 10', N'Gần các trường đại học lớn', 5, 2, N'789 Sư Vạn Hạnh', N'Hồ Chí Minh', N'Quận 10', 20.0, 1, 1, 3500000, 3500000, 'VND', 0, 0, @LandlordId, 1, GETDATE());
+
+-- IDs: Prop1=1 (Available), Prop2=2 (Rented), Prop3=3 (Pending)
+
+-- 3. Insert PropertyImages
+INSERT INTO PropertyImages (PropertyId, ImageUrl, IsPrimary, DisplayOrder, CreatedAt)
+VALUES 
+(1, 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=400', 1, 1, GETDATE()),
+(2, 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=400', 1, 1, GETDATE()),
+(3, 'https://images.unsplash.com/photo-1502672260266-1c1e39b4962c?auto=format&fit=crop&w=400', 1, 1, GETDATE());
+
+-- 4. Insert RentalApplications
+-- Status: 1=Pending, 2=Approved, 3=Rejected (Giả sử vậy)
+INSERT INTO RentalApplications (PropertyId, TenantId, Status, MoveInDate, LeaseDurationMonths, NumberOfOccupants, Message, MonthlyIncome, CreatedAt)
+VALUES 
+(1, @TenantId, 1, GETDATE(), 12, 1, N'Tôi muốn thuê vào ở ngay', 20000000, GETDATE());
+
+-- 5. Insert Leases
+-- Thuê cho property 2 (Nhà nguyên căn Gò Vấp). Status: 1=Active
+INSERT INTO Leases (PropertyId, LandlordId, TenantId, Status, LeaseNumber, StartDate, EndDate, MonthlyRent, DepositAmount, Currency, PaymentDueDay, LandlordSigned, TenantSigned, CreatedAt)
+VALUES 
+(2, @LandlordId, @TenantId, 1, 'LSE-2026-001', '2026-01-01', '2026-12-31', 12000000, 24000000, 'VND', 5, 1, 1, GETDATE());
+
+-- LeaseId = 1
+-- 6. Insert Payments
+-- PaymentType: 1=Rent? 
+-- Status: 1=Pending, 2=Completed, 5=Overdue
+INSERT INTO Payments (LeaseId, PaymentType, Status, Amount, Currency, DueDate, PaidDate, BillingMonth, BillingYear, Description, CreatedAt)
+VALUES 
+(1, 1, 2, 12000000, 'VND', '2026-01-05', '2026-01-04', 1, 2026, N'Tiền thuê Tháng 1', GETDATE()),
+(1, 1, 1, 12000000, 'VND', '2026-02-05', NULL, 2, 2026, N'Tiền thuê Tháng 2', GETDATE()),
+(1, 1, 5, 12000000, 'VND', '2025-12-05', NULL, 12, 2025, N'Khoản nợ cũ (Demo Quá hạn)', GETDATE());
+
+-- 7. Insert MaintenanceRequests
+-- Priority: 1=Low, 2=Medium, 3=High
+-- Status: 1=Open, 2=InProgress, 3=Resolved
+INSERT INTO MaintenanceRequests (PropertyId, LeaseId, RequestedBy, Status, Priority, Category, Title, Description, CreatedAt)
+VALUES 
+(2, 1, @TenantId, 1, 3, 1, N'Hỏng ống nước phòng tắm', N'Nước rò rỉ mạnh, ngập sàn nhà.', GETDATE()),
+(2, 1, @TenantId, 3, 2, 2, N'Hư bóng đèn bếp', N'Thay bóng mới', DATEADD(day, -10, GETDATE()));
+
+-- 8. Insert Bookings
+INSERT INTO Bookings (PropertyId, TenantId, Status, ScheduledDate, StartTime, EndTime, Message, CreatedAt)
+VALUES 
+(1, @TenantId, 1, DATEADD(day, 2, GETDATE()), '14:00:00', '14:30:00', N'Tôi muốn xem nhà vào cuối tuần', GETDATE());

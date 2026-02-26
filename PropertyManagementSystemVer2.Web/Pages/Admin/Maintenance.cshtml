@@ -1,0 +1,49 @@
+@page
+@model PropertyManagementSystemVer2.Web.Pages.Admin.MaintenanceModel
+@{
+    ViewData["Title"] = "Bảo trì Hệ thống (Admin)";
+}
+
+<div class="mb-20">
+    <div class="page-title">Quản lý Yêu cầu Bảo trì (Admin)</div>
+    <div class="page-desc">Giám sát mức độ phản hồi và tình trạng bảo trì toàn diện</div>
+</div>
+
+<div class="card mb-20">
+    <div class="filter-bar" style="margin-bottom: 0;">
+        <div class="header-search" style="flex: 1; min-width: 200px;">
+            <i data-feather="search" style="color: var(--text-muted); width: 14px;"></i>
+            <input placeholder="Tìm mã yêu cầu..." style="width: 100%;" />
+        </div>
+        <button class="btn btn-primary btn-sm">Tất cả</button>
+        <button class="btn btn-ghost btn-sm text-yellow" style="border-color: var(--warning);">Mở</button>
+        <button class="btn btn-ghost btn-sm text-green" style="border-color: var(--success);">Giải quyết</button>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Tiêu đề / Bất động sản</th>
+                    <th>Chủ cho thuê</th>
+                    <th>Người yêu cầu</th>
+                    <th>Mức độ</th>
+                    <th>Trạng thái</th>
+                    <th>Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td colspan="6">
+                        <div class="empty-state">
+                            <div class="empty-icon">tool</div>
+                            <p>Admin Maintenance monitoring data will be listed here.</p>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>

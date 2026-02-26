@@ -1,0 +1,75 @@
+@page
+@model PropertyManagementSystemVer2.Web.Pages.Admin.PaymentsModel
+@{
+    ViewData["Title"] = "Giao dịch toàn hệ thống";
+}
+
+<div class="mb-20">
+    <div class="page-title">Quản lý Giao dịch (Admin)</div>
+    <div class="page-desc">Giám sát các khoản thanh toán của toàn bộ thành viên</div>
+</div>
+
+<div class="stat-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 24px;">
+    <div class="stat-card">
+        <div class="stat-icon green"><i data-feather="check-circle"></i></div>
+        <div class="stat-info">
+            <div class="stat-label">Tổng thu</div>
+            <div class="stat-value">Đang tải...</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon yellow"><i data-feather="clock"></i></div>
+        <div class="stat-info">
+            <div class="stat-label">Trì hoãn (Đang xử lý)</div>
+            <div class="stat-value">Đang tải...</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon red"><i data-feather="alert-circle"></i></div>
+        <div class="stat-info">
+            <div class="stat-label">Quá hạn</div>
+            <div class="stat-value">Đang tải...</div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-20">
+    <div class="filter-bar" style="margin-bottom: 0;">
+        <div class="header-search" style="flex: 1; min-width: 200px;">
+            <i data-feather="search" style="color: var(--text-muted); width: 14px;"></i>
+            <input placeholder="Tra cứu mã giao dịch, số hợp đồng..." style="width: 100%;" />
+        </div>
+        <button class="btn btn-primary btn-sm">Tất cả</button>
+        <button class="btn btn-ghost btn-sm text-yellow" style="border-color: var(--warning);">Đang xử lý</button>
+        <button class="btn btn-ghost btn-sm text-green" style="border-color: var(--success);">Chấp nhận</button>
+        <button class="btn btn-ghost btn-sm text-red" style="border-color: var(--danger);">Từ chối</button>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Giao dịch</th>
+                    <th>Chủ cho thuê</th>
+                    <th>Người thuê</th>
+                    <th>Cách thức</th>
+                    <th>Số tiền (VND)</th>
+                    <th>Trạng thái</th>
+                    <th>Thời gian</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td colspan="7">
+                        <div class="empty-state">
+                            <div class="empty-icon">💸</div>
+                            <p>Không có danh sách thanh toán. Việc lấy lịch sử thanh toán toàn hệ thống sẽ sớm được bổ sung.</p>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>

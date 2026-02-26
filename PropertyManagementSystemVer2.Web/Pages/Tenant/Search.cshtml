@@ -1,0 +1,111 @@
+@page
+@model PropertyManagementSystemVer2.Web.Pages.Tenant.SearchModel
+@{
+    ViewData["Title"] = "Tìm kiếm Bất động sản";
+}
+
+<div class="mb-20">
+    <div class="page-title">Tìm kiếm Bất động sản</div>
+    <div class="page-desc">Tìm thuê nhà phù hợp với nhu cầu của bạn</div>
+</div>
+
+<form method="get" class="card mb-20">
+    <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px;">
+        <div class="header-search" style="flex: 2; min-width: 200px;">
+            <i data-feather="search" style="color: var(--text-muted); width: 14px;"></i>
+            <input asp-for="SearchKeyword" placeholder="Tìm kiếm tên, quận, thành phố..." style="width: 100%;" />
+        </div>
+        <input class="form-control" asp-for="City" placeholder="Thành phố" style="flex: 1; min-width: 120px;" />
+    </div>
+    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <select class="form-control" asp-for="PropertyType" style="width: auto; flex: 1; min-width: 120px;">
+            <option value="">Loại BDS (Tất cả)</option>
+            <option value="Apartment">Căn hộ</option>
+            <option value="House">Nhà phố</option>
+            <option value="Room">Phòng trọ</option>
+            <option value="Villa">Biệt thự</option>
+            <option value="Commercial">Mặt bằng</option>
+        </select>
+        <input class="form-control" type="number" asp-for="MinPrice" placeholder="Giá từ (VND)" style="flex: 1; min-width: 140px;" />
+        <input class="form-control" type="number" asp-for="MaxPrice" placeholder="Giá đến (VND)" style="flex: 1; min-width: 140px;" />
+        <select class="form-control" asp-for="MinBedrooms" style="width: auto; flex: 1; min-width: 120px;">
+            <option value="">Phòng ngủ</option>
+            <option value="1">≥ 1 phòng ngủ</option>
+            <option value="2">≥ 2 phòng ngủ</option>
+            <option value="3">≥ 3 phòng ngủ</option>
+            <option value="4">≥ 4 phòng ngủ</option>
+            <option value="5">≥ 5 phòng ngủ</option>
+        </select>
+        <button type="submit" class="btn btn-primary btn-sm">
+            <i data-feather="filter" style="width: 13px;"></i> Lọc
+        </button>
+        <a href="Search" class="btn btn-ghost btn-sm">
+            <i data-feather="x" style="width: 13px;"></i> Xoá lọc
+        </a>
+    </div>
+    <div class="mt-8 text-muted text-sm">Tìm thấy @Model.Properties.Count bất động sản phù hợp</div>
+</form>
+
+<div class="property-grid">
+    @if (Model.Properties != null && Model.Properties.Any())
+    {
+        foreach (var p in Model.Properties)
+        {
+            <div class="property-card" style="position: relative;">
+                <button style="position: absolute; top: 10px; right: 10px; z-index: 1; background: rgba(0,0,0,0.5); border: none; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #fff;">
+                    <i data-feather="heart" style="width: 14px; height: 14px;"></i>
+                </button>
+                @if (!string.IsNullOrEmpty(p.ThumbnailUrl))
+                {
+                    <img class="property-image" src="@p.ThumbnailUrl" alt="@p.Title" />
+                }
+                else
+                {
+                    <div class="property-image-placeholder">🏠</div>
+                }
+                <div class="property-body">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                        <span class="property-type-badge">@p.PropertyType</span>
+                        @if (p.Status.ToString() == "Available")
+                        {
+                            <span class="badge badge-success">Còn trống</span>
+                        }
+                        else
+                        {
+                            <span class="badge badge-info">@p.Status</span>
+                        }
+                    </div>
+                    <div class="property-title">@p.Title</div>
+                    <div class="property-address"><i data-feather="map-pin" style="width: 12px; height: 12px;"></i> @p.City</div>
+                    <div class="property-specs">
+                        <span class="spec-item"><i data-feather="home" style="width: 13px; height: 13px;"></i> ID: @p.Id</span>
+                    </div>
+                    <div style="border-top: 1px solid var(--border); padding-top: 12px; display: flex; align-items: center; justify-content: space-between;">
+                        <div>
+                            <div class="property-price">@p.MonthlyRent.ToString("N0")</div>
+                            <div class="property-price-sub">/tháng</div>
+                        </div>
+                        <div style="display: flex; gap: 6px;">
+                            @if (p.Status.ToString() == "Available")
+                            {
+                                <button class="btn btn-ghost btn-sm" onclick="alert('Xem nhà!')">📅 Xem nhà</button>
+                                <button class="btn btn-primary btn-sm" onclick="alert('Nộp đơn!')">Nộp đơn</button>
+                            }
+                            else if (p.Status.ToString() == "Rented")
+                            {
+                                <button class="btn btn-secondary btn-sm" disabled>Đã thuê</button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="empty-state" style="grid-column: 1 / -1;">
+            <div class="empty-icon">🔍</div>
+            <p>Không tìm thấy bất động sản nào phù hợp với bộ lọc hiện tại.</p>
+        </div>
+    }
+</div>

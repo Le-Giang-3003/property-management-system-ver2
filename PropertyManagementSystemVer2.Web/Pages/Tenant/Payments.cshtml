@@ -1,0 +1,110 @@
+@page
+@model PropertyManagementSystemVer2.Web.Pages.Tenant.PaymentsModel
+@{
+    ViewData["Title"] = "Thanh toán của bạn";
+}
+
+<div class="mb-20">
+    <div class="page-title">Thanh toán</div>
+    <div class="page-desc">Lịch sử thanh toán và các hoá đơn chưa thanh toán</div>
+</div>
+
+<div class="card mb-20">
+    <div class="filter-bar" style="margin-bottom: 0;">
+        <div class="header-search" style="flex: 1; min-width: 200px;">
+            <i data-feather="search" style="color: var(--text-muted); width: 14px;"></i>
+            <input placeholder="Tìm mã tham chiếu, nội dung..." style="width: 100%;" />
+        </div>
+        <button class="btn btn-primary btn-sm">Tất cả</button>
+        <button class="btn btn-ghost btn-sm text-yellow" style="border-color: var(--warning);">Chưa thanh toán</button>
+        <button class="btn btn-ghost btn-sm text-green" style="border-color: var(--success);">Đã thanh toán</button>
+        <button class="btn btn-ghost btn-sm text-red" style="border-color: var(--danger);">Quá hạn</button>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Mã tham chiếu</th>
+                    <th>Nội dung</th>
+                    <th>Chủ cho thuê</th>
+                    <th>Hạn chót</th>
+                    <th>Số tiền (VND)</th>
+                    <th>Trạng thái</th>
+                    <th>Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Payments != null && Model.Payments.Any())
+                {
+                    foreach (var payment in Model.Payments)
+                    {
+                        <tr>
+                            <td>
+                                <div class="fw-700">#@payment.Id</div>
+                                <div style="font-size: 11px; color: var(--text-muted);">HĐ: @payment.LeaseNumber</div>
+                            </td>
+                            <td>
+                                <div class="fw-600">@payment.Description</div>
+                                <div style="font-size: 11px; color: var(--text-muted);">Kỳ: @payment.BillingMonth/@payment.BillingYear</div>
+                            </td>
+                            <td>
+                                <div>@payment.LandlordName</div>
+                            </td>
+                            <td>
+                                <div class="@(payment.DueDate < DateTime.Now && payment.Status.ToString() != "Paid" ? "text-red fw-600" : "")">
+                                    @payment.DueDate.ToString("dd/MM/yyyy")
+                                </div>
+                            </td>
+                            <td class="text-green fw-700">@payment.Amount.ToString("N0")</td>
+                            <td>
+                                @if (payment.Status.ToString() == "Pending")
+                                {
+                                    <span class="badge badge-warning">Chưa thanh toán</span>
+                                }
+                                else if (payment.Status.ToString() == "Processing")
+                                {
+                                    <span class="badge badge-info">Đang xử lý</span>
+                                }
+                                else if (payment.Status.ToString() == "Paid")
+                                {
+                                    <span class="badge badge-success">Thành công</span>
+                                }
+                                else if (payment.Status.ToString() == "Overdue")
+                                {
+                                    <span class="badge badge-danger">Quá hạn</span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-gray">@payment.Status</span>
+                                }
+                            </td>
+                            <td>
+                                <div style="display: flex; gap: 6px;">
+                                    <button class="btn btn-ghost btn-sm btn-icon" title="Hóa đơn (Invoice)"><i data-feather="file-text" style="width: 14px;"></i></button>
+                                    @if (payment.Status.ToString() == "Pending" || payment.Status.ToString() == "Overdue")
+                                    {
+                                        <button class="btn btn-primary btn-sm btn-icon" title="Thanh toán ngay"><i data-feather="dollar-sign" style="width: 14px;"></i></button>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="7">
+                            <div class="empty-state">
+                                <div class="empty-icon">credit-card</div>
+                                <p>Bạn không có khoản thanh toán nào.</p>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

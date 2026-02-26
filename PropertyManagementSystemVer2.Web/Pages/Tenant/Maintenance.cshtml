@@ -1,0 +1,107 @@
+@page
+@model PropertyManagementSystemVer2.Web.Pages.Tenant.MaintenanceModel
+@{
+    ViewData["Title"] = "Yêu cầu bảo trì";
+}
+
+<div class="mb-20" style="display: flex; align-items: center; justify-content: space-between;">
+    <div>
+        <div class="page-title">Yêu cầu bảo trì</div>
+        <div class="page-desc">Báo cáo sư cố và theo dõi tiến độ sửa chữa</div>
+    </div>
+    <button class="btn btn-primary" onclick="alert('Tính năng Tạo yêu cầu mới')">
+        <i data-feather="plus" style="width: 16px;"></i> Tạo yêu cầu mới
+    </button>
+</div>
+
+<div class="card mb-20">
+    <div class="filter-bar" style="margin-bottom: 0;">
+        <div class="header-search" style="flex: 1; min-width: 200px;">
+            <i data-feather="search" style="color: var(--text-muted); width: 14px;"></i>
+            <input placeholder="Tìm tiêu đề, mô tả..." style="width: 100%;" />
+        </div>
+        <button class="btn btn-primary btn-sm">Tất cả</button>
+        <button class="btn btn-ghost btn-sm text-yellow" style="border-color: var(--warning);">Đang mở</button>
+        <button class="btn btn-ghost btn-sm text-blue" style="border-color: var(--info);">Đang sửa</button>
+        <button class="btn btn-ghost btn-sm text-green" style="border-color: var(--success);">Đã xong</button>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Tiêu đề / Bất động sản</th>
+                    <th>Ngày yêu cầu</th>
+                    <th>Mức độ</th>
+                    <th>Danh mục</th>
+                    <th>Trạng thái</th>
+                    <th>Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.MaintenanceRequests != null && Model.MaintenanceRequests.Any())
+                {
+                    foreach (var req in Model.MaintenanceRequests)
+                    {
+                        <tr>
+                            <td>
+                                <div class="fw-700">@req.Title</div>
+                                <div style="font-size: 11px; color: var(--text-muted);">HĐ: @req.PropertyTitle</div>
+                            </td>
+                            <td>@req.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                            <td>
+                                @if (req.Priority.ToString() == "High")
+                                {
+                                    <span class="badge" style="background: rgba(239, 68, 68, 0.1); color: var(--danger);"><i data-feather="arrow-up" style="width: 10px;"></i> Cao</span>
+                                }
+                                else if (req.Priority.ToString() == "Low")
+                                {
+                                    <span class="badge" style="background: rgba(16, 185, 129, 0.1); color: var(--success);"><i data-feather="arrow-down" style="width: 10px;"></i> Thấp</span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-warning">Trung bình</span>
+                                }
+                            </td>
+                            <td><span class="badge badge-purple">@req.Category</span></td>
+                            <td>
+                                @if (req.Status.ToString() == "Open")
+                                {
+                                    <span class="badge badge-warning">Đang mở</span>
+                                }
+                                else if (req.Status.ToString() == "InProgress")
+                                {
+                                    <span class="badge badge-info">Đang sửa</span>
+                                }
+                                else if (req.Status.ToString() == "Resolved")
+                                {
+                                    <span class="badge badge-success">Đã xong</span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-gray">@req.Status</span>
+                                }
+                            </td>
+                            <td>
+                                <button class="btn btn-ghost btn-sm btn-icon" title="Xem chi tiết"><i data-feather="eye" style="width: 14px;"></i></button>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="6">
+                            <div class="empty-state">
+                                <div class="empty-icon">tool</div>
+                                <p>Bạn chưa có yêu cầu bảo trì nào.</p>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

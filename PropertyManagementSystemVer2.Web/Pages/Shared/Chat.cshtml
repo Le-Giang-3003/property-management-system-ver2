@@ -1,0 +1,241 @@
+@page
+@model PropertyManagementSystemVer2.Web.Pages.Shared.ChatModel
+@{
+    ViewData["Title"] = "Tin nhắn";
+}
+
+<div class="mb-20">
+    <div class="page-title">Tin nhắn & Trao đổi</div>
+    <div class="page-desc">Kết nối giữa chủ nhà, người thuê và hệ thống</div>
+</div>
+
+<div class="chat-container">
+    <div class="chat-sidebar">
+        <div class="chat-search">
+            <i data-feather="search" style="color: var(--text-muted); width: 14px;"></i>
+            <input type="text" placeholder="Tìm kiếm người liên hệ..." style="border: none; background: transparent; width: 100%; color: var(--text-primary); font-size: 14px; outline: none; margin-left: 8px;" />
+        </div>
+        <div class="chat-list">
+            <!-- Example contact -->
+            <div class="chat-contact active">
+                <div class="contact-avatar">L</div>
+                <div class="contact-info">
+                    <div class="contact-name">Lê Văn Chủ (CSKH)</div>
+                    <div class="contact-last-msg">Dạ anh/chị xem nhà lúc mấy giờ ạ?</div>
+                </div>
+                <div class="contact-time">10:45</div>
+            </div>
+            <!-- Empty state for others -->
+            <div style="padding: 16px; text-align: center; color: var(--text-muted); font-size: 13px;">
+                Đang phát triển tính năng Real-time SignalR
+            </div>
+        </div>
+    </div>
+    
+    <div class="chat-main">
+        <div class="chat-header">
+            <div class="contact-avatar">L</div>
+            <div class="contact-info">
+                <div class="contact-name">Lê Văn Chủ</div>
+                <div style="font-size: 12px; color: var(--success); display: flex; align-items: center; gap: 4px;">
+                    <span style="width: 8px; height: 8px; background: var(--success); border-radius: 50%; display: inline-block;"></span> Đang hoạt động
+                </div>
+            </div>
+        </div>
+        
+        <div class="chat-messages">
+            <div class="message received">
+                Chào bạn, mình thấy bạn vừa đặt lịch xem nhà "Căn hộ dịch vụ cao cấp Quận 3"
+            </div>
+            <div class="message sent">
+                Vâng chào bạn, mình muốn xem vào khoảng 2h chiều thứ 7 này được không ạ?
+            </div>
+            <div class="message received">
+                Được ạ, mình đã chốt lịch hẹn. Cảm ơn bạn.
+            </div>
+        </div>
+        
+        <div class="chat-input-area">
+            <button class="chat-attach-btn"><i data-feather="paperclip" style="width: 18px;"></i></button>
+            <input type="text" class="chat-input" placeholder="Nhập tin nhắn..." disabled />
+            <button class="chat-send-btn" disabled><i data-feather="send" style="width: 16px;"></i></button>
+        </div>
+    </div>
+</div>
+
+<style>
+    .chat-container {
+        display: flex;
+        height: min(700px, calc(100vh - 200px));
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    .chat-sidebar {
+        width: 300px;
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+    }
+    .chat-search {
+        padding: 16px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        background: var(--bg-body);
+        margin: 12px;
+        border-radius: 8px;
+    }
+    .chat-list {
+        flex: 1;
+        overflow-y: auto;
+    }
+    .chat-contact {
+        padding: 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        cursor: pointer;
+        transition: background 0.2s;
+        border-bottom: 1px solid var(--border);
+    }
+    .chat-contact:hover {
+        background: var(--bg-body);
+    }
+    .chat-contact.active {
+        background: rgba(99, 102, 241, 0.1);
+        border-left: 3px solid var(--primary);
+    }
+    .contact-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--primary);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 16px;
+    }
+    .contact-info {
+        flex: 1;
+        min-width: 0;
+    }
+    .contact-name {
+        font-weight: 600;
+        color: var(--text-primary);
+        font-size: 14px;
+        margin-bottom: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .contact-last-msg {
+        font-size: 12px;
+        color: var(--text-muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .contact-time {
+        font-size: 11px;
+        color: var(--text-muted);
+    }
+    
+    .chat-main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+    .chat-header {
+        padding: 16px 24px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+    .chat-messages {
+        flex: 1;
+        padding: 24px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        background: var(--bg-body);
+    }
+    .message {
+        max-width: 60%;
+        padding: 12px 16px;
+        border-radius: 12px;
+        font-size: 14px;
+        line-height: 1.5;
+    }
+    .message.received {
+        background: var(--bg-card);
+        color: var(--text-primary);
+        border: 1px solid var(--border);
+        align-self: flex-start;
+        border-bottom-left-radius: 4px;
+    }
+    .message.sent {
+        background: var(--primary);
+        color: white;
+        align-self: flex-end;
+        border-bottom-right-radius: 4px;
+    }
+    
+    .chat-input-area {
+        padding: 16px 24px;
+        background: var(--bg-card);
+        border-top: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .chat-attach-btn {
+        background: none;
+        border: none;
+        color: var(--text-muted);
+        cursor: pointer;
+        padding: 8px;
+        border-radius: 50%;
+        transition: 0.2s;
+    }
+    .chat-attach-btn:hover {
+        background: var(--bg-body);
+        color: var(--text-primary);
+    }
+    .chat-input {
+        flex: 1;
+        background: var(--bg-body);
+        border: 1px solid var(--border);
+        padding: 12px 16px;
+        border-radius: 20px;
+        color: var(--text-primary);
+        font-size: 14px;
+        outline: none;
+        transition: 0.2s;
+    }
+    .chat-input:focus {
+        border-color: var(--primary);
+    }
+    .chat-send-btn {
+        background: var(--primary);
+        color: white;
+        border: none;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+    .chat-send-btn:hover {
+        background: var(--primary-hover);
+        transform: scale(1.05);
+    }
+</style>

@@ -1,49 +1,122 @@
-﻿<!DOCTYPE html>
+﻿@using System.Security.Claims
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - PropertyManagementSystemVer2.Web</title>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <title>@ViewData["Title"] - PropertyMS</title>
+    <!-- Use site.css which now contains our React UI CSS -->
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/PropertyManagementSystemVer2.Web.styles.css" asp-append-version="true" />
+    <script src="https://unpkg.com/feather-icons"></script>
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container">
-                <a class="navbar-brand" asp-area="" asp-page="/Index">PropertyManagementSystemVer2.Web</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Privacy">Privacy</a>
-                        </li>
-                    </ul>
+    <div class="app-layout">
+        @{
+            var isAuthenticated = User.Identity?.IsAuthenticated ?? false;
+            var userRole = User.FindFirst(ClaimTypes.Role)?.Value ?? "Tenant"; // Fallback
+            var userName = User.Identity?.Name ?? "Người dùng";
+            var userEmail = User.FindFirst(ClaimTypes.Email)?.Value ?? "";
+        }
+
+        <aside class="sidebar">
+            <a href="/" class="sidebar-logo">
+                <div class="sidebar-logo-icon"><i data-feather="box"></i></div>
+                <div>
+                    <div class="sidebar-logo-text">PropertyMS</div>
+                    <div class="sidebar-logo-sub">Property Management</div>
                 </div>
+            </a>
+            <div class="sidebar-nav">
+                @if (userRole == "Admin")
+                {
+                    <div class="nav-group">
+                        <div class="nav-group-label">Quản trị</div>
+                        <a href="/Admin/Dashboard" class="nav-item"><i data-feather="grid"></i> Dashboard</a>
+                        <a href="/Admin/Properties" class="nav-item"><i data-feather="home"></i> Quản lý BDS</a>
+                        <a href="/Admin/Users" class="nav-item"><i data-feather="users"></i> Quản lý Users</a>
+                        <a href="/Admin/Leases" class="nav-item"><i data-feather="file-text"></i> Hợp đồng</a>
+                        <a href="/Admin/Payments" class="nav-item"><i data-feather="credit-card"></i> Thanh toán</a>
+                        <a href="/Admin/Maintenance" class="nav-item"><i data-feather="tool"></i> Bảo trì</a>
+                        <a href="/Admin/Reports" class="nav-item"><i data-feather="bar-chart-2"></i> Báo cáo</a>
+                        <a href="/Admin/Config" class="nav-item"><i data-feather="settings"></i> Cấu hình hệ thống</a>
+                    </div>
+                }
+                else if (userRole == "Landlord")
+                {
+                    <div class="nav-group">
+                        <div class="nav-group-label">Chủ nhà</div>
+                        <a href="/Landlord/Dashboard" class="nav-item"><i data-feather="grid"></i> Dashboard</a>
+                        <a href="/Landlord/Properties" class="nav-item"><i data-feather="home"></i> Bất động sản</a>
+                        <a href="/Landlord/Applications" class="nav-item"><i data-feather="inbox"></i> Đơn xin thuê</a>
+                        <a href="/Landlord/Leases" class="nav-item"><i data-feather="file-text"></i> Hợp đồng</a>
+                        <a href="/Landlord/Payments" class="nav-item"><i data-feather="credit-card"></i> Thanh toán</a>
+                        <a href="/Landlord/Maintenance" class="nav-item"><i data-feather="tool"></i> Bảo trì</a>
+                        <a href="/Landlord/Bookings" class="nav-item"><i data-feather="calendar"></i> Lịch xem nhà</a>
+                        <a href="/Shared/Chat" class="nav-item"><i data-feather="message-square"></i> Chat</a>
+                    </div>
+                }
+                else // Tenant
+                {
+                    <div class="nav-group">
+                        <div class="nav-group-label">Người thuê</div>
+                        <a href="/Tenant/Dashboard" class="nav-item"><i data-feather="grid"></i> Dashboard</a>
+                        <a href="/Tenant/Search" class="nav-item"><i data-feather="search"></i> Tìm Thuê Nhà</a>
+                        <a href="/Tenant/Applications" class="nav-item"><i data-feather="inbox"></i> Đơn của tôi</a>
+                        <a href="/Tenant/Leases" class="nav-item"><i data-feather="file-text"></i> Hợp đồng</a>
+                        <a href="/Tenant/Payments" class="nav-item"><i data-feather="credit-card"></i> Thanh toán</a>
+                        <a href="/Tenant/Maintenance" class="nav-item"><i data-feather="tool"></i> Yêu cầu bảo trì</a>
+                        <a href="/Tenant/Bookings" class="nav-item"><i data-feather="calendar"></i> Lịch xem nhà</a>
+                        <a href="/Shared/Chat" class="nav-item"><i data-feather="message-square"></i> Chat</a>
+                    </div>
+                }
             </div>
-        </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
+            <div class="sidebar-footer" style="display: flex; align-items: center;">
+                <a href="/Account/Profile" class="sidebar-user" style="flex: 1; min-width: 0; text-decoration: none; display: flex; align-items: center; gap: 12px; overflow: hidden;">
+                    <div class="user-avatar" style="flex-shrink: 0;">@userName.FirstOrDefault()</div>
+                    <div class="user-info" style="flex: 1; min-width: 0;">
+                        <div class="user-name" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">@userName</div>
+                        <div class="user-role">@userRole</div>
+                    </div>
+                </a>
+                <a href="/Account/Logout" title="Đăng xuất" style="flex-shrink: 0; display: flex; align-items: center; justify-content: center; padding: 8px; color: var(--danger); z-index: 10; margin-left: auto; border-radius: 8px; transition: 0.2s;" onmouseover="this.style.backgroundColor='rgba(239,68,68,0.1)'" onmouseout="this.style.backgroundColor='transparent'">
+                    <i data-feather="log-out" style="width: 18px;"></i>
+                </a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="page-header">
+                <div class="header-title">@ViewData["Title"]</div>
+                <div class="header-actions">
+                    <button class="icon-btn"><i data-feather="bell"></i><span class="notification-dot"></span></button>
+                    <a href="/Account/Profile" class="user-avatar" style="width: 32px; height: 32px; font-size: 13px; text-decoration: none;">@userName.FirstOrDefault()</a>
+                </div>
+            </header>
+            <div class="page-body">
+                @RenderBody()
+            </div>
         </main>
     </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - PropertyManagementSystemVer2.Web - <a asp-area="" asp-page="/Privacy">Privacy</a>
-        </div>
-    </footer>
-
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Active Nav Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            feather.replace();
+            
+            // Set active nav item
+            const currentPath = window.location.pathname.toLowerCase();
+            const navItems = document.querySelectorAll('.nav-item');
+            
+            navItems.forEach(item => {
+                const href = item.getAttribute('href').toLowerCase();
+                if (currentPath.includes(href) && href !== '/') {
+                    item.classList.add('active');
+                } else if (currentPath === '/' && href === '/') {
+                    item.classList.add('active');
+                }
+            });
+        });
+    </script>
     <script src="~/js/site.js" asp-append-version="true"></script>
 
     @await RenderSectionAsync("Scripts", required: false)

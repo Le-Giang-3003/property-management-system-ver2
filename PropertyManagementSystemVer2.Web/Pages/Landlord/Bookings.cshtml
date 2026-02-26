@@ -1,0 +1,107 @@
+@page
+@model PropertyManagementSystemVer2.Web.Pages.Landlord.BookingsModel
+@{
+    ViewData["Title"] = "Quản lý Lịch Xem Nhà";
+}
+
+<div class="mb-20">
+    <div class="page-title">Lịch Hẹn Khách Hàng</div>
+    <div class="page-desc">Xác nhận lịch xem nhà từ các người thuê tiềm năng</div>
+</div>
+
+<div class="card mb-20">
+    <div class="filter-bar" style="margin-bottom: 0;">
+        <div class="header-search" style="flex: 1; min-width: 200px;">
+            <i data-feather="search" style="color: var(--text-muted); width: 14px;"></i>
+            <input placeholder="Tìm người thuê, tên BDS..." style="width: 100%;" />
+        </div>
+        <button class="btn btn-primary btn-sm">Tất cả</button>
+        <button class="btn btn-ghost btn-sm text-yellow" style="border-color: var(--warning);">Cần xác nhận</button>
+        <button class="btn btn-ghost btn-sm text-green" style="border-color: var(--success);">Đã chốt</button>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Khách hàng</th>
+                    <th>Bất động sản</th>
+                    <th>Ngày xem</th>
+                    <th>Khung giờ</th>
+                    <th>Lời nhắn</th>
+                    <th>Trạng thái</th>
+                    <th>Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Bookings != null && Model.Bookings.Any())
+                {
+                    foreach (var booking in Model.Bookings)
+                    {
+                        <tr>
+                            <td>
+                                <div>@booking.TenantName</div>
+                            </td>
+                            <td>
+                                <div class="fw-600" style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                    @booking.PropertyTitle
+                                </div>
+                            </td>
+                            <td class="text-purple fw-600">@booking.ScheduledDate.ToString("dd/MM/yyyy")</td>
+                            <td>@booking.StartTime.ToString(@"hh\:mm") - @booking.EndTime.ToString(@"hh\:mm")</td>
+                            <td>
+                                <div style="max-width: 150px; font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-muted);" title="@booking.Message">
+                                    @(booking.Message ?? "Không có")
+                                </div>
+                            </td>
+                            <td>
+                                @if (booking.Status.ToString() == "Pending")
+                                {
+                                    <span class="badge badge-warning">Cần xác nhận</span>
+                                }
+                                else if (booking.Status.ToString() == "Confirmed")
+                                {
+                                    <span class="badge badge-success">Đã chốt</span>
+                                }
+                                else if (booking.Status.ToString() == "Rejected" || booking.Status.ToString() == "Cancelled")
+                                {
+                                    <span class="badge badge-danger">Từ chối/Hủy</span>
+                                }
+                                else if (booking.Status.ToString() == "Completed")
+                                {
+                                    <span class="badge badge-info">Hoàn thành</span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-gray">@booking.Status</span>
+                                }
+                            </td>
+                            <td>
+                                <div style="display: flex; gap: 6px;">
+                                    @if (booking.Status.ToString() == "Pending")
+                                    {
+                                        <button class="btn btn-success btn-sm btn-icon" title="Chấp nhận"><i data-feather="check" style="width: 14px;"></i></button>
+                                        <button class="btn btn-danger btn-sm btn-icon" title="Từ chối"><i data-feather="x" style="width: 14px;"></i></button>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="7">
+                            <div class="empty-state">
+                                <div class="empty-icon">calendar</div>
+                                <p>Chưa có lịch hẹn xem nhà nào từ khách.</p>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
