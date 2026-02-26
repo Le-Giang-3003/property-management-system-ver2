@@ -21,6 +21,7 @@ namespace PropertyManagementSystemVer2.BLL
             services.AddScoped<IReviewService, ReviewService>();
             services.AddScoped<IAdminService, AdminService>();
             services.AddScoped<IDashboardService, DashboardService>();
+            services.AddScoped<IPhotoService, PhotoService>();
 
             return services;
         }
