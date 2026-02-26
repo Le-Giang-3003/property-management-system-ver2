@@ -10,6 +10,8 @@
 *.userosscache
 *.sln.docstates
 *.env
+appsettings.Development.json
+appsettings.Local.json
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
@@ -34,6 +36,9 @@ bld/
 [Ll]og/
 [Ll]ogs/
 
+#migration
+
+Migrations/
 # Build results on 'Bin' directories
 **/[Bb]in/*
 # Uncomment if you have tasks that rely on *.refresh files to move binaries
