@@ -37,6 +37,61 @@ namespace PropertyManagementSystemVer2.Web.Pages.Admin
             return Page();
         }
 
-        // Additional POST handlers for Approve/Reject could be added here
+        public async Task<IActionResult> OnPostApproveAsync(int id)
+        {
+            var userIdString = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(userIdString, out int adminId))
+            {
+                return Unauthorized();
+            }
+
+            var dto = new ApproveRejectPropertyDto
+            {
+                PropertyId = id,
+                IsApproved = true
+            };
+
+            var result = await _propertyService.ApproveRejectPropertyAsync(adminId, dto);
+            
+            if (result.IsSuccess)
+            {
+                TempData["SuccessMessage"] = "Đã duyệt bất động sản thành công.";
+            }
+            else
+            {
+                TempData["ErrorMessage"] = result.Message ?? "Có lỗi xảy ra khi duyệt.";
+            }
+
+            return RedirectToPage();
+        }
+
+        public async Task<IActionResult> OnPostRejectAsync(int id, string reason)
+        {
+            var userIdString = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(userIdString, out int adminId))
+            {
+                return Unauthorized();
+            }
+
+            var dto = new ApproveRejectPropertyDto
+            {
+                PropertyId = id,
+                IsApproved = false,
+                RejectionReason = reason
+            };
+
+            var result = await _propertyService.ApproveRejectPropertyAsync(adminId, dto);
+            
+            if (result.IsSuccess)
+            {
+                TempData["SuccessMessage"] = "Đã từ chối bất động sản thành công.";
+            }
+            else
+            {
+                TempData["ErrorMessage"] = result.Message ?? "Có lỗi xảy ra khi từ chối.";
+            }
+
+            return RedirectToPage();
+        }
     }
 }

@@ -4,12 +4,26 @@
     ViewData["Title"] = "Quản lý Bất động sản";
 }
 
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="mb-20" style="padding: 12px 16px; background: var(--success-bg); color: var(--success); border-radius: var(--radius-sm); border: 1px solid var(--success);">
+        @TempData["SuccessMessage"]
+    </div>
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="mb-20" style="padding: 12px 16px; background: var(--danger-bg); color: var(--danger); border-radius: var(--radius-sm); border: 1px solid var(--danger);">
+        @TempData["ErrorMessage"]
+    </div>
+}
+
 <div class="mb-20" style="display: flex; align-items: center; justify-content: space-between;">
     <div>
         <div class="page-title">Bất động sản của bạn</div>
         <div class="page-desc">Quản lý các phòng trọ/căn hộ bạn đang cho thuê</div>
     </div>
-    <button class="btn btn-primary" onclick="alert('Tính năng thêm mới (Form modal) sẽ chạy ở đây!')">
+    <button class="btn btn-primary" onclick="openCreateModal()">
         <i data-feather="plus" style="width: 16px; height: 16px;"></i> Thêm BDS mới
     </button>
 </div>
@@ -20,9 +34,9 @@
         <input placeholder="Tìm kiếm tên, địa chỉ..." style="width: 100%;" />
     </div>
     <button class="btn btn-primary btn-sm">Tất cả (@Model.Properties.Count)</button>
-    <button class="btn btn-ghost btn-sm">Còn trống (@Model.Properties.Count(p => p.Status.ToString() == "Available"))</button>
+    <button class="btn btn-ghost btn-sm">Còn trống (@Model.Properties.Count(p => p.Status.ToString() == "Approved"))</button>
     <button class="btn btn-ghost btn-sm">Đã thuê (@Model.Properties.Count(p => p.Status.ToString() == "Rented"))</button>
-    <button class="btn btn-ghost btn-sm">Chờ duyệt (@Model.Properties.Count(p => p.Status.ToString() == "PendingApproval"))</button>
+    <button class="btn btn-ghost btn-sm">Chờ duyệt (@Model.Properties.Count(p => p.Status.ToString() == "Pending"))</button>
 </div>
 
 <div class="property-grid">
@@ -42,11 +56,11 @@
                 <div class="property-body">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
                         <span class="property-type-badge">@prop.PropertyType</span>
-                        @if (prop.Status.ToString() == "Available")
+                        @if (prop.Status.ToString() == "Approved")
                         {
                             <span class="badge badge-success">Còn trống</span>
                         }
-                        else if (prop.Status.ToString() == "PendingApproval")
+                        else if (prop.Status.ToString() == "Pending")
                         {
                             <span class="badge badge-warning">Chờ duyệt</span>
                         }
@@ -64,6 +78,7 @@
                     
                     <div class="property-specs">
                         <span class="spec-item"><i data-feather="grid" style="width: 13px; height: 13px;"></i> ID: @prop.Id</span>
+                        <span class="spec-item"><i data-feather="layout" style="width: 13px; height: 13px;"></i> @prop.Area m²</span>
                     </div>
 
                     <div style="border-top: 1px solid var(--border); padding-top: 12px; display: flex; align-items: center; justify-content: space-between;">
@@ -72,7 +87,11 @@
                             <div class="property-price-sub">/tháng</div>
                         </div>
                         <div style="display: flex; gap: 6px;">
-                            <button class="btn btn-secondary btn-sm btn-icon" title="Chỉnh sửa"><i data-feather="edit-2" style="width: 14px; height: 14px;"></i></button>
+                            @{
+                                var propJson = System.Text.Json.JsonSerializer.Serialize(prop);
+                            }
+                            <button class="btn btn-ghost btn-sm btn-icon" title="Xem chi tiết" onclick="openDetailModal(@propJson)"><i data-feather="eye" style="width: 14px; height: 14px;"></i></button>
+                            <button class="btn btn-secondary btn-sm btn-icon" title="Chỉnh sửa" onclick="openEditModal(@propJson)"><i data-feather="edit-2" style="width: 14px; height: 14px;"></i></button>
                             <button class="btn btn-primary btn-sm btn-icon" title="Hình ảnh"><i data-feather="image" style="width: 14px; height: 14px;"></i></button>
                         </div>
                     </div>
@@ -88,3 +107,257 @@
         </div>
     }
 </div>
+
+<!-- Create Property Modal -->
+<div class="modal-overlay" id="createModal" style="display: none;" onclick="closeModals()">
+    <div class="modal" style="max-width: 700px;" onclick="event.stopPropagation()">
+        <form method="post" asp-page-handler="Create">
+            <div class="modal-header">
+                <span class="modal-title">Đăng tin BDS mới</span>
+                <button type="button" class="modal-close" onclick="closeModals()"><i data-feather="x"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Tiêu đề *</label>
+                        <input type="text" asp-for="CreateForm.Title" class="form-control" required placeholder="VD: Căn hộ 2PN Vinhomes..." />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Loại BDS *</label>
+                        <select asp-for="CreateForm.PropertyType" class="form-control" required>
+                            <option value="Apartment">Apartment</option>
+                            <option value="House">House</option>
+                            <option value="Room">Room</option>
+                            <option value="Villa">Villa</option>
+                            <option value="Commercial">Commercial</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Mô tả</label>
+                    <textarea asp-for="CreateForm.Description" class="form-control" rows="3" placeholder="Mô tả chi tiết về BDS..."></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Địa chỉ *</label>
+                        <input type="text" asp-for="CreateForm.Address" class="form-control" required placeholder="Số nhà, tên đường..." />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Thành phố *</label>
+                        <input type="text" asp-for="CreateForm.City" class="form-control" required />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Quận/Huyện *</label>
+                        <input type="text" asp-for="CreateForm.District" class="form-control" required />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Phường/Xã</label>
+                        <input type="text" asp-for="CreateForm.Ward" class="form-control" />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Diện tích (m²) *</label>
+                        <input type="number" step="0.01" asp-for="CreateForm.Area" class="form-control" required />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Số tầng</label>
+                        <input type="number" asp-for="CreateForm.Floors" class="form-control" />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Phòng ngủ *</label>
+                        <input type="number" asp-for="CreateForm.Bedrooms" class="form-control" required />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Phòng tắm *</label>
+                        <input type="number" asp-for="CreateForm.Bathrooms" class="form-control" required />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Tiền thuê/tháng (VND) *</label>
+                        <input type="number" asp-for="CreateForm.MonthlyRent" class="form-control" required />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Tiền đặt cọc (VND) *</label>
+                        <input type="number" asp-for="CreateForm.DepositAmount" class="form-control" required />
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Tiện ích (phân cách bởi dấu phẩy)</label>
+                    <input type="text" asp-for="CreateForm.Amenities" class="form-control" placeholder="VD: Wifi, Điều hoà, Thang máy, Bãi xe..." />
+                </div>
+                <div style="display: flex; gap: 20px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px;">
+                        <input type="checkbox" asp-for="CreateForm.AllowPets" value="true" />
+                        <span>Được nuôi thú cưng</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px;">
+                        <input type="checkbox" asp-for="CreateForm.AllowSmoking" value="true" />
+                        <span>Được hút thuốc</span>
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModals()">Huỷ</button>
+                <button type="submit" class="btn btn-primary">Đăng tin</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Property Modal -->
+<div class="modal-overlay" id="editModal" style="display: none;" onclick="closeModals()">
+    <div class="modal" style="max-width: 700px;" onclick="event.stopPropagation()">
+        <form method="post" asp-page-handler="Edit" id="editForm">
+            <div class="modal-header">
+                <span class="modal-title">Chỉnh sửa BDS</span>
+                <button type="button" class="modal-close" onclick="closeModals()"><i data-feather="x"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Tiêu đề *</label>
+                        <input type="text" asp-for="EditForm.Title" id="editTitle" class="form-control" required />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Thành phố *</label>
+                        <input type="text" asp-for="EditForm.City" id="editCity" class="form-control" required />
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Mô tả (tuỳ chọn)</label>
+                    <textarea asp-for="EditForm.Description" id="editDesc" class="form-control" rows="3"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Địa chỉ *</label>
+                        <input type="text" asp-for="EditForm.Address" id="editAddress" class="form-control" required />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Quận/Huyện *</label>
+                        <input type="text" asp-for="EditForm.District" id="editDistrict" class="form-control" required />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Tiền thuê/tháng (VND) *</label>
+                        <input type="number" asp-for="EditForm.MonthlyRent" id="editRent" class="form-control" required />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Tiền đặt cọc (VND) (tuỳ chọn)</label>
+                        <input type="number" asp-for="EditForm.DepositAmount" id="editDeposit" class="form-control" />
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Tiện ích (phân cách bởi dấu phẩy)</label>
+                    <input type="text" asp-for="EditForm.Amenities" id="editAmenities" class="form-control" />
+                </div>
+                <div style="font-size: 12px; color: var(--text-muted);">
+                    * Form này chỉ sửa các trường cơ bản. Một số trường khác không có trong danh sách sẽ bị bỏ qua.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModals()">Huỷ</button>
+                <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- View Details Modal -->
+<div class="modal-overlay" id="detailModal" style="display: none;" onclick="closeModals()">
+    <div class="modal" style="max-width: 680px;" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <span class="modal-title" id="detailTitle">Chi tiết BDS</span>
+            <button type="button" class="modal-close" onclick="closeModals()"><i data-feather="x"></i></button>
+        </div>
+        <div class="modal-body">
+            <img id="detailImage" src="" alt="" style="width: 100%; height: 200px; object-fit: cover; border-radius: 8px; margin-bottom: 16px; display: none;" />
+            <div class="grid-2">
+                <div>
+                    <div class="info-row"><span class="info-label">Trạng thái</span><span class="info-value"><span id="detailStatus" class="badge badge-gray"></span></span></div>
+                    <div class="info-row"><span class="info-label">Diện tích</span><span class="info-value" id="detailArea"></span></div>
+                    <div class="info-row"><span class="info-label">Phòng ngủ</span><span class="info-value" id="detailBedrooms"></span></div>
+                    <div class="info-row"><span class="info-label">Phòng tắm</span><span class="info-value" id="detailBathrooms"></span></div>
+                    <div class="info-row"><span class="info-label">Ngày tạo</span><span class="info-value" id="detailCreatedAt"></span></div>
+                </div>
+                <div>
+                    <div class="info-row"><span class="info-label">Địa chỉ</span><span class="info-value" id="detailAddressFull"></span></div>
+                    <div class="info-row"><span class="info-label">Tiền thuê</span><span class="info-value text-green fw-700" id="detailRent"></span></div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeModals()">Đóng</button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function closeModals() {
+            document.getElementById('createModal').style.display = 'none';
+            document.getElementById('editModal').style.display = 'none';
+            document.getElementById('detailModal').style.display = 'none';
+        }
+
+        function openCreateModal() {
+            closeModals();
+            document.getElementById('createModal').style.display = 'flex';
+        }
+
+        function openEditModal(prop) {
+            closeModals();
+            
+            // Set form action target to include the ID
+            document.getElementById('editForm').action = `?handler=Edit&id=${prop.Id}`;
+            
+            // Populate form fields
+            document.getElementById('editTitle').value = prop.Title || '';
+            document.getElementById('editCity').value = prop.City || '';
+            document.getElementById('editAddress').value = prop.Address || '';
+            document.getElementById('editDistrict').value = prop.District || '';
+            document.getElementById('editRent').value = prop.MonthlyRent || 0;
+            
+            document.getElementById('editModal').style.display = 'flex';
+        }
+
+        function openDetailModal(prop) {
+            closeModals();
+            document.getElementById('detailTitle').textContent = prop.Title;
+            
+            if (prop.ThumbnailUrl) {
+                document.getElementById('detailImage').src = prop.ThumbnailUrl;
+                document.getElementById('detailImage').style.display = 'block';
+            } else {
+                document.getElementById('detailImage').style.display = 'none';
+            }
+
+            let statusText = prop.Status === 3 ? 'Còn trống' :
+                             prop.Status === 5 ? 'Đã thuê' :
+                             prop.Status === 2 ? 'Chờ duyệt' : String(prop.Status);
+            
+            let statusClass = prop.Status === 3 ? 'badge-success' :
+                              prop.Status === 5 ? 'badge-info' :
+                              prop.Status === 2 ? 'badge-warning' : 'badge-gray';
+
+            const statusEl = document.getElementById('detailStatus');
+            statusEl.textContent = statusText;
+            statusEl.className = `badge ${statusClass}`;
+
+            document.getElementById('detailArea').textContent = `${prop.Area} m²`;
+            document.getElementById('detailBedrooms').textContent = prop.Bedrooms;
+            document.getElementById('detailBathrooms').textContent = prop.Bathrooms;
+            document.getElementById('detailCreatedAt').textContent = new Date(prop.CreatedAt).toLocaleDateString('vi-VN');
+            document.getElementById('detailAddressFull').textContent = `${prop.Address}, ${prop.District}, ${prop.City}`;
+            document.getElementById('detailRent').textContent = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(prop.MonthlyRent);
+
+            document.getElementById('detailModal').style.display = 'flex';
+        }
+    </script>
+}
