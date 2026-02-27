@@ -14,11 +14,13 @@ namespace PropertyManagementSystemVer2.Web.Pages.Tenant
     {
         private readonly IMaintenanceService _maintenanceService;
         private readonly ILeaseService _leaseService;
+        private readonly IPhotoService _photoService;
 
-        public MaintenanceModel(IMaintenanceService maintenanceService, ILeaseService leaseService)
+        public MaintenanceModel(IMaintenanceService maintenanceService, ILeaseService leaseService, IPhotoService photoService)
         {
             _maintenanceService = maintenanceService;
             _leaseService = leaseService;
+            _photoService = photoService;
         }
 
         public List<MaintenanceRequestDto> MaintenanceRequests { get; set; } = new List<MaintenanceRequestDto>();
@@ -53,18 +55,16 @@ namespace PropertyManagementSystemVer2.Web.Pages.Tenant
                 var uploadedUrls = new List<string>();
                 if (files != null && files.Any())
                 {
-                    var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "maintenance");
-                    if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
-                    
                     foreach (var file in files)
                     {
-                        var uniqueFileName = Guid.NewGuid().ToString() + "_" + file.FileName;
-                        var filePath = Path.Combine(uploadsFolder, uniqueFileName);
-                        using (var fileStream = new FileStream(filePath, FileMode.Create))
+                        using (var stream = file.OpenReadStream())
                         {
-                            await file.CopyToAsync(fileStream);
+                            var uploadResult = await _photoService.AddPhotoAsync(stream, file.FileName);
+                            if (uploadResult != null)
+                            {
+                                uploadedUrls.Add(uploadResult);
+                            }
                         }
-                        uploadedUrls.Add("/uploads/maintenance/" + uniqueFileName);
                     }
                 }
 

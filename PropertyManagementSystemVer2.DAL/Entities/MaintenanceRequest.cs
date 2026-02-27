@@ -31,24 +31,11 @@ namespace PropertyManagementSystemVer2.DAL.Entities
         public string? ImageUrls { get; set; } // JSON array của URLs hình ảnh
 
         // Thông tin xử lý
-        public int? AssignedTo { get; set; } // ID của người xử lý (có thể là Landlord hoặc thợ)
-
-        public DateTime? AssignedAt { get; set; }
-
-        public decimal? EstimatedCost { get; set; }
-
-        public decimal? ActualCost { get; set; }
-
         public string? Resolution { get; set; } // Mô tả cách giải quyết
 
         public DateTime? ResolvedAt { get; set; }
 
         public DateTime? ScheduledDate { get; set; } // Ngày hẹn xử lý
-
-        // Đánh giá
-        public int? Rating { get; set; } // 1-5 sao
-
-        public string? Feedback { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
