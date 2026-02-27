@@ -9,6 +9,7 @@ namespace PropertyManagementSystemVer2.BLL.Services.Interfaces
         Task<ServiceResultDto<RentalApplicationDto>> GetByIdAsync(int applicationId);
         Task<ServiceResultDto<List<RentalApplicationDto>>> GetByPropertyIdAsync(int propertyId, ApplicationStatus? status = null);
         Task<ServiceResultDto<List<RentalApplicationDto>>> GetByTenantIdAsync(int tenantId, ApplicationStatus? status = null);
+        Task<ServiceResultDto<List<RentalApplicationDto>>> GetByLandlordIdAsync(int landlordId, ApplicationStatus? status = null);
         Task<ServiceResultDto> ApproveRejectApplicationAsync(int landlordId, ApproveRejectApplicationDto dto);
         Task<ServiceResultDto> WithdrawApplicationAsync(int tenantId, int applicationId);
     }

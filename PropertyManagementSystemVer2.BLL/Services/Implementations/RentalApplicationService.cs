@@ -27,7 +27,7 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
             if (property == null)
                 return ServiceResultDto<RentalApplicationDto>.Failure("Không tìm thấy property.");
 
-            if (property.Status != PropertyStatus.Approved)
+            if (property.Status != PropertyStatus.Available)
                 return ServiceResultDto<RentalApplicationDto>.Failure("Property không khả dụng để nộp đơn.");
 
             // BR19.3: Max 1 application active/tenant/property
@@ -83,6 +83,12 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
         public async Task<ServiceResultDto<List<RentalApplicationDto>>> GetByTenantIdAsync(int tenantId, ApplicationStatus? status = null)
         {
             var apps = await _unitOfWork.RentalApplications.GetByTenantIdAsync(tenantId, status);
+            return ServiceResultDto<List<RentalApplicationDto>>.Success(apps.Select(MapToDto).ToList());
+        }
+
+        public async Task<ServiceResultDto<List<RentalApplicationDto>>> GetByLandlordIdAsync(int landlordId, ApplicationStatus? status = null)
+        {
+            var apps = await _unitOfWork.RentalApplications.GetByLandlordIdAsync(landlordId, status);
             return ServiceResultDto<List<RentalApplicationDto>>.Success(apps.Select(MapToDto).ToList());
         }
 

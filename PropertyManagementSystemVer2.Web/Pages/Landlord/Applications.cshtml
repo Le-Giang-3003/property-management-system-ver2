@@ -1,8 +1,39 @@
 @page
+@using PropertyManagementSystemVer2.DAL.Enums
 @model PropertyManagementSystemVer2.Web.Pages.Landlord.ApplicationsModel
 @{
     ViewData["Title"] = "Đơn xin thuê hiện có";
 }
+
+<style>
+    .applicant-header {
+        display: flex; align-items: center; gap: 16px; padding: 16px;
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(99, 102, 241, 0.1) 100%);
+        border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 8px; margin-bottom: 20px;
+    }
+    .applicant-avatar { width: 56px; height: 56px; border-radius: 8px; object-fit: cover; border: 2px solid rgba(99, 102, 241, 0.3); }
+    .applicant-info { flex: 1; }
+    .applicant-name { font-size: 15px; font-weight: 600; color: #e5e7eb; margin-bottom: 8px; }
+    .applicant-status { display: inline-block; }
+    
+    .detail-section { margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+    .detail-section-title { font-size: 12px; font-weight: 600; color: #9ca3af; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .detail-section-content { font-size: 14px; color: #e5e7eb; font-weight: 500; }
+
+    /* Contract styles */
+    .contract-info-section { margin-bottom: 20px; padding: 16px; background: rgba(99,102,241,0.05); border: 1px solid var(--border); border-radius: 8px; }
+    .contract-info-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 14px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .contract-info-item { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--bg-card); border-radius: 6px; font-size: 13px; }
+    
+    .form-control-with-icon {
+        width: 100%; padding: 0.75rem 1rem 0.75rem 2.75rem;
+        background: var(--bg-input); border: 1px solid var(--border);
+        border-radius: 8px; color: var(--text-primary); font-size: 0.875rem; transition: all 0.2s;
+    }
+    .form-control-with-icon:focus { outline: none; border-color: var(--accent-light); box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1); }
+    .input-icon-wrapper { position: relative; }
+    .input-icon { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #6b7280; pointer-events: none; z-index: 1; }
+</style>
 
 <div class="mb-20">
     <div class="page-title">Đơn xin thuê</div>
@@ -10,16 +41,17 @@
 </div>
 
 <div class="card mb-20">
-    <div class="filter-bar" style="margin-bottom: 0;">
+    <form method="get" id="filterForm" class="filter-bar" style="margin-bottom: 0;">
         <div class="header-search" style="flex: 1; min-width: 200px;">
             <i data-feather="search" style="color: var(--text-muted); width: 14px;"></i>
-            <input placeholder="Tìm tên người thuê, SĐT..." style="width: 100%;" />
+            <input type="text" name="SearchTerm" value="@Model.SearchTerm" placeholder="Tìm tên người thuê, SĐT, Bất động sản..." style="width: 100%; border: none; outline: none; background: transparent; padding-left: 8px;" />
         </div>
-        <button class="btn btn-primary btn-sm">Tất cả</button>
-        <button class="btn btn-ghost btn-sm text-yellow" style="border-color: var(--warning);">Chờ duyệt</button>
-        <button class="btn btn-ghost btn-sm text-green" style="border-color: var(--success);">Chấp nhận</button>
-        <button class="btn btn-ghost btn-sm text-red" style="border-color: var(--danger);">Từ chối</button>
-    </div>
+        <input type="hidden" name="StatusFilter" id="statusFilter" value="@Model.StatusFilter" />
+        <button type="button" class="btn btn-sm @(!Model.StatusFilter.HasValue ? "btn-primary" : "btn-ghost")" onclick="setFilter('')">Tất cả (@Model.AllApplications.Count)</button>
+        <button type="button" class="btn btn-sm @(Model.StatusFilter == ApplicationStatus.Pending ? "btn-primary text-yellow" : "btn-ghost text-yellow")" style="border-color: var(--warning);" onclick="setFilter('Pending')">Chờ duyệt (@Model.AllApplications.Count(a => a.Status == ApplicationStatus.Pending))</button>
+        <button type="button" class="btn btn-sm @(Model.StatusFilter == ApplicationStatus.Approved ? "btn-primary text-green" : "btn-ghost text-green")" style="border-color: var(--success);" onclick="setFilter('Approved')">Chấp nhận (@Model.AllApplications.Count(a => a.Status == ApplicationStatus.Approved))</button>
+        <button type="button" class="btn btn-sm @(Model.StatusFilter == ApplicationStatus.Rejected ? "btn-primary text-red" : "btn-ghost text-red")" style="border-color: var(--danger);" onclick="setFilter('Rejected')">Từ chối (@Model.AllApplications.Count(a => a.Status == ApplicationStatus.Rejected))</button>
+    </form>
 </div>
 
 <div class="card">
@@ -41,6 +73,7 @@
                 {
                     foreach (var app in Model.Applications)
                     {
+                        var appJson = System.Text.Json.JsonSerializer.Serialize(app);
                         <tr>
                             <td>
                                 <div class="fw-700">@app.TenantName</div>
@@ -49,8 +82,14 @@
                                 </div>
                             </td>
                             <td>
-                                <div class="fw-600" style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                    @app.PropertyTitle
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    @if (!string.IsNullOrEmpty(app.PropertyThumbnail))
+                                    {
+                                        <img src="@app.PropertyThumbnail" alt="" style="width: 36px; height: 36px; border-radius: 4px; object-fit: cover;" />
+                                    }
+                                    <div class="fw-600" style="max-width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                        @app.PropertyTitle
+                                    </div>
                                 </div>
                             </td>
                             <td>@app.MoveInDate.ToString("dd/MM/yyyy")</td>
@@ -60,15 +99,15 @@
                                 <div class="text-green fw-600" style="font-size: 11px;">@(app.MonthlyIncome?.ToString("N0") ?? "N/A") đ/tháng</div>
                             </td>
                             <td>
-                                @if (app.Status.ToString() == "Pending")
+                                @if (app.Status == ApplicationStatus.Pending)
                                 {
                                     <span class="badge badge-warning">Chờ duyệt</span>
                                 }
-                                else if (app.Status.ToString() == "Approved")
+                                else if (app.Status == ApplicationStatus.Approved)
                                 {
                                     <span class="badge badge-success">Chấp nhận</span>
                                 }
-                                else if (app.Status.ToString() == "Rejected")
+                                else if (app.Status == ApplicationStatus.Rejected)
                                 {
                                     <span class="badge badge-danger">Từ chối</span>
                                 }
@@ -79,11 +118,11 @@
                             </td>
                             <td>
                                 <div style="display: flex; gap: 6px;">
-                                    <button class="btn btn-ghost btn-sm btn-icon" title="Xem chi tiết"><i data-feather="eye" style="width: 14px;"></i></button>
-                                    @if (app.Status.ToString() == "Pending")
+                                    <button class="btn btn-ghost btn-sm btn-icon" title="Xem chi tiết" onclick="openDetailModal(@appJson)"><i data-feather="eye" style="width: 14px;"></i></button>
+                                    @if (app.Status == ApplicationStatus.Pending)
                                     {
-                                        <button class="btn btn-success btn-sm btn-icon" title="Chấp nhận"><i data-feather="check" style="width: 14px;"></i></button>
-                                        <button class="btn btn-danger btn-sm btn-icon" title="Từ chối"><i data-feather="x" style="width: 14px;"></i></button>
+                                        <button class="btn btn-success btn-sm btn-icon" title="Chấp nhận và Tạo hợp đồng" onclick="openCreateLeaseModal(@appJson)"><i data-feather="check" style="width: 14px;"></i></button>
+                                        <button class="btn btn-danger btn-sm btn-icon" title="Từ chối" onclick="openRejectModal(@app.Id, '@Html.Raw(app.TenantName?.Replace("'", "\\'") ?? "")')"><i data-feather="x" style="width: 14px;"></i></button>
                                     }
                                 </div>
                             </td>
@@ -105,3 +144,354 @@
         </table>
     </div>
 </div>
+
+<!-- Reject Modal -->
+<div class="modal-overlay" id="rejectModal" style="display: none;" onclick="closeModals()">
+    <div class="modal" style="max-width: 440px;" onclick="event.stopPropagation()">
+        <form method="post" asp-page-handler="Reject" id="rejectForm">
+            <div class="modal-header">
+                <span class="modal-title">Từ chối Đơn xin thuê</span>
+                <button type="button" class="modal-close btn btn-ghost btn-sm btn-icon" onclick="closeModals()">✕</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 12px; font-size: 13px; color: var(--text-secondary);">
+                    Vui lòng nhập lý do từ chối đơn thuê của khách hàng <strong id="rejectTenantName"></strong>:
+                </p>
+                <div class="form-group">
+                    <label class="form-label">Lý do từ chối *</label>
+                    <textarea name="reason" class="form-control" rows="4" placeholder="Ví dụ: Đã có người thuê khác phù hợp hơn..." required></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModals()">Huỷ</button>
+                <button type="submit" class="btn btn-danger">Từ chối đơn</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Create Lease Modal -->
+<div class="modal-overlay" id="createLeaseModal" style="display: none;" onclick="closeModals()">
+    <div class="modal" style="max-width: 720px;" onclick="event.stopPropagation()">
+        <form method="post" asp-page-handler="ApproveAndCreateLease" id="createLeaseForm">
+            <input type="hidden" asp-for="CreateLeaseForm.RentalApplicationId" id="clApplicationId" />
+            <input type="hidden" asp-for="CreateLeaseForm.PropertyId" id="clPropertyId" />
+            <input type="hidden" asp-for="CreateLeaseForm.TenantId" id="clTenantId" />
+            
+            <div class="modal-header">
+                <span class="modal-title" style="display: flex; align-items: center; gap: 8px;"><i data-feather="file-text" style="width: 20px;"></i> Tạo hợp đồng thuê</span>
+                <button type="button" class="modal-close btn btn-ghost btn-sm btn-icon" style="border: none;" onclick="closeModals()"><i data-feather="x"></i></button>
+            </div>
+            <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                
+                <!-- Property Information -->
+                <div class="contract-info-section">
+                    <div class="contract-info-header">
+                        <i data-feather="home" style="width: 18px;"></i>
+                        <span>Thông tin bất động sản</span>
+                    </div>
+                    <div class="contract-info-content">
+                        <div style="display: flex; alignItems: center; gap: 12px;">
+                            <i data-feather="map-pin" style="width: 40px; height: 40px; border-radius: 8px; padding: 8px; background: rgba(99,102,241,0.2); color: var(--accent-light);"></i>
+                            <div>
+                                <div class="fw-600" id="clPropertyTitle"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tenant Information -->
+                <div class="contract-info-section">
+                    <div class="contract-info-header">
+                        <i data-feather="user" style="width: 18px;"></i>
+                        <span>Thông tin người thuê (Bên B)</span>
+                    </div>
+                    <div class="contract-info-content">
+                        <div class="grid-2" style="gap: 8px;">
+                            <div class="contract-info-item">
+                                <i data-feather="user" style="width: 14px; color: var(--text-muted);"></i>
+                                <span id="clTenantName"></span>
+                            </div>
+                            <div class="contract-info-item">
+                                <i data-feather="phone" style="width: 14px; color: var(--text-muted);"></i>
+                                <span id="clTenantPhone"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="detail-section" style="margin-top: 24px;">
+                    <div class="fw-600" style="font-size: 14px; color: var(--text-primary); margin-bottom: 12px;">CHI TIẾT HỢP ĐỒNG</div>
+                </div>
+
+                <!-- Fields -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" style="text-transform: uppercase;">Bắt đầu thuê từ <span class="text-red">*</span></label>
+                        <div class="input-icon-wrapper">
+                            <i data-feather="calendar" class="input-icon" style="width: 16px;"></i>
+                            <input type="date" asp-for="CreateLeaseForm.StartDate" class="form-control-with-icon" id="clStartDate" required />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" style="text-transform: uppercase;">Ngày kết thúc <span class="text-red">*</span></label>
+                        <div class="input-icon-wrapper">
+                            <i data-feather="calendar" class="input-icon" style="width: 16px;"></i>
+                            <input type="date" asp-for="CreateLeaseForm.EndDate" class="form-control-with-icon" id="clEndDate" required />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" style="text-transform: uppercase;">Tiền thuê hàng tháng (VNĐ) <span class="text-red">*</span></label>
+                        <div class="input-icon-wrapper">
+                            <i data-feather="dollar-sign" class="input-icon" style="width: 16px;"></i>
+                            <input type="number" asp-for="CreateLeaseForm.MonthlyRent" class="form-control-with-icon" id="clRent" placeholder="0" required />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" style="text-transform: uppercase;">Tiền cọc (VNĐ) <span class="text-red">*</span></label>
+                        <div class="input-icon-wrapper">
+                            <i data-feather="credit-card" class="input-icon" style="width: 16px;"></i>
+                            <input type="number" asp-for="CreateLeaseForm.DepositAmount" class="form-control-with-icon" placeholder="0" required />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" style="text-transform: uppercase;">Ngày thanh toán hàng tháng (vd: mùng 5) <span class="text-red">*</span></label>
+                        <div class="input-icon-wrapper">
+                            <i data-feather="clock" class="input-icon" style="width: 16px;"></i>
+                            <input type="number" asp-for="CreateLeaseForm.PaymentDueDay" class="form-control-with-icon" min="1" max="28" value="5" placeholder="5" required />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" style="text-transform: uppercase;">Phí phạt trả chậm (%)</label>
+                        <div class="input-icon-wrapper">
+                            <i data-feather="percent" class="input-icon" style="width: 16px;"></i>
+                            <input type="number" step="0.1" asp-for="CreateLeaseForm.LateFeePercentage" class="form-control-with-icon" placeholder="1" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" style="text-transform: uppercase;">Điều khoản hợp đồng <span class="text-red">*</span></label>
+                    <textarea asp-for="CreateLeaseForm.Terms" class="form-control" rows="4" required placeholder="Nội dung điều khoản..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" style="text-transform: uppercase;">Lưu ý / Điều kiện đặc biệt</label>
+                    <textarea asp-for="CreateLeaseForm.SpecialConditions" class="form-control" rows="3" placeholder="Nội dung lưu ý..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModals()">Huỷ</button>
+                <button type="submit" class="btn btn-success"><i data-feather="check-circle" style="width: 16px; margin-right: 6px;"></i> Tạo hợp đồng</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Application Detail Modal -->
+<div class="modal-overlay" id="detailModal" style="display: none;" onclick="closeModals()">
+    <div class="modal" style="max-width: 660px;" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <span class="modal-title" id="dtAppIdTitle">Chi tiết đơn xin thuê</span>
+            <button type="button" class="modal-close btn btn-ghost btn-sm btn-icon" style="border: none;" onclick="closeModals()"><i data-feather="x"></i></button>
+        </div>
+        <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+            <!-- Applicant Header -->
+            <div class="applicant-header">
+                <div>
+                    <i id="dtPropertyIcon" data-feather="user" style="width: 40px; height: 40px; border-radius: 8px; padding: 8px; background: rgba(99,102,241,0.2); color: var(--accent-light);"></i>
+                    <img id="dtPropertyImage" src="" alt="Property" style="display: none; width: 56px; height: 56px; border-radius: 8px; object-fit: cover; border: 2px solid rgba(99, 102, 241, 0.3);" />
+                </div>
+                <div class="applicant-info">
+                    <div class="applicant-name" id="dtTenantName">Người nộp:</div>
+                    <div class="applicant-status">
+                        <span class="badge" id="dtStatus"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Property Info -->
+            <div class="detail-section">
+                <div class="detail-section-title">Thông tin bất động sản:</div>
+                <div class="detail-section-content" id="dtProperty"></div>
+            </div>
+
+            <div class="grid-2">
+                <div>
+                    <div class="info-row">
+                        <span class="info-label">Email</span>
+                        <span class="info-value" id="dtEmail"></span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Điện thoại</span>
+                        <span class="info-value" id="dtPhone"></span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Nghề nghiệp</span>
+                        <span class="info-value" id="dtOccupation"></span>
+                    </div>
+                    <div class="info-row" id="dtEmployerGroup" style="display: none;">
+                        <span class="info-label">Nơi làm việc</span>
+                        <span class="info-value" id="dtEmployer"></span>
+                    </div>
+                </div>
+                <div>
+                    <div class="info-row">
+                        <span class="info-label">Thu nhập/tháng</span>
+                        <span class="info-value text-green fw-700" id="dtIncome"></span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Ngày dọn vào</span>
+                        <span class="info-value" id="dtMoveIn"></span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Thời hạn thuê</span>
+                        <span class="info-value" id="dtDuration"></span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Số người ở</span>
+                        <span class="info-value" id="dtOccupants"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-row" id="dtMessageGroup" style="display: none; border-bottom: none;">
+                <span class="info-label" style="align-self: flex-start;">Lời nhắn</span>
+                <span class="info-value" style="white-space: pre-wrap;" id="dtMessage"></span>
+            </div>
+
+            <div id="dtRejectReasonGroup" style="display: none; background: var(--danger-bg); border: 1px solid var(--danger); border-radius: 8px; padding: 12px; margin-top: 12px;">
+                <div class="fw-600 text-red mb-4">Lý do từ chối:</div>
+                <div class="text-sm" id="dtRejectReason"></div>
+            </div>
+        </div>
+        <div class="modal-footer" id="dtFooterBtns" style="justify-content: space-between;">
+            <button type="button" class="btn btn-secondary" onclick="closeModals()">Đóng</button>
+            <div id="dtPendingActions" style="display: none; gap: 8px;">
+                <button class="btn btn-success" id="btnApproveCreateLease"><i data-feather="check" style="width: 16px;"></i> Duyệt</button>
+                <button class="btn btn-danger" id="btnRejectApp"><i data-feather="x" style="width: 16px;"></i> Từ chối</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function setFilter(status) {
+            document.getElementById('statusFilter').value = status;
+            document.getElementById('filterForm').submit();
+        }
+
+        function closeModals() {
+            document.getElementById('rejectModal').style.display = 'none';
+            document.getElementById('createLeaseModal').style.display = 'none';
+            document.getElementById('detailModal').style.display = 'none';
+        }
+
+        function openRejectModal(id, tenantName) {
+            closeModals();
+            document.getElementById('rejectTenantName').textContent = tenantName;
+            document.getElementById('rejectForm').action = `?handler=Reject&applicationId=${id}`;
+            document.getElementById('rejectModal').style.display = 'flex';
+        }
+
+        function openCreateLeaseModal(app) {
+            closeModals();
+            document.getElementById('clApplicationId').value = app.Id;
+            document.getElementById('clPropertyId').value = app.PropertyId;
+            document.getElementById('clTenantId').value = app.TenantId;
+            
+            document.getElementById('clPropertyTitle').textContent = app.PropertyTitle || 'Không xác định';
+            document.getElementById('clTenantName').textContent = app.TenantName || 'Không xác định';
+            document.getElementById('clTenantPhone').textContent = app.TenantPhone || 'Không xác định';
+
+            const startDate = new Date(app.MoveInDate);
+            document.getElementById('clStartDate').value = startDate.toISOString().split('T')[0];
+            
+            const endDate = new Date(startDate);
+            endDate.setMonth(endDate.getMonth() + app.LeaseDurationMonths);
+            document.getElementById('clEndDate').value = endDate.toISOString().split('T')[0];
+
+            document.getElementById('createLeaseModal').style.display = 'flex';
+            if(window.feather) feather.replace();
+        }
+
+        function openDetailModal(app) {
+            closeModals();
+            
+            document.getElementById('dtAppIdTitle').textContent = `Đơn xin thuê #${app.Id}`;
+            const dateStr = app.CreatedAt ? new Date(app.CreatedAt).toLocaleDateString('vi-VN') : '';
+            document.getElementById('dtTenantName').textContent = `Người nộp: ${app.TenantName}` + (dateStr ? ` • ${dateStr}` : '');
+            
+            if (app.PropertyThumbnail && app.PropertyThumbnail !== 'null' && app.PropertyThumbnail !== '') {
+                document.getElementById('dtPropertyImage').src = app.PropertyThumbnail;
+                document.getElementById('dtPropertyImage').style.display = 'block';
+                document.getElementById('dtPropertyIcon').style.display = 'none';
+            } else {
+                document.getElementById('dtPropertyImage').style.display = 'none';
+                document.getElementById('dtPropertyIcon').style.display = 'block';
+            }
+            
+            let statusText = app.Status === 1 ? 'Chờ duyệt' :
+                             app.Status === 2 ? 'Chấp nhận' :
+                             app.Status === 3 ? 'Từ chối' :
+                             app.Status === 4 ? 'Đã hủy' : 'Khác';
+            let statusClass = app.Status === 1 ? 'badge-warning' :
+                              app.Status === 2 ? 'badge-success' :
+                              app.Status === 3 ? 'badge-danger' : 'badge-gray';
+
+            const statusEl = document.getElementById('dtStatus');
+            statusEl.textContent = statusText;
+            statusEl.className = `badge ${statusClass}`;
+
+            document.getElementById('dtProperty').textContent = app.PropertyTitle || '';
+            document.getElementById('dtEmail').textContent = app.TenantEmail || '—';
+            document.getElementById('dtPhone').textContent = app.TenantPhone || '—';
+            document.getElementById('dtOccupation').textContent = app.Occupation || '—';
+            
+            document.getElementById('dtMoveIn').textContent = new Date(app.MoveInDate).toLocaleDateString('vi-VN');
+            document.getElementById('dtDuration').textContent = `${app.LeaseDurationMonths} tháng`;
+            document.getElementById('dtIncome').textContent = app.MonthlyIncome ? new Intl.NumberFormat('vi-VN').format(app.MonthlyIncome) + ' VNĐ' : '—';
+            document.getElementById('dtOccupants').textContent = `${app.NumberOfOccupants} người`;
+            
+            if(app.EmployerName) {
+                document.getElementById('dtEmployerGroup').style.display = 'flex';
+                document.getElementById('dtEmployer').textContent = app.EmployerName;
+            } else {
+                document.getElementById('dtEmployerGroup').style.display = 'none';
+            }
+
+            if(app.Message) {
+                document.getElementById('dtMessageGroup').style.display = 'flex';
+                document.getElementById('dtMessage').textContent = app.Message;
+            } else {
+                document.getElementById('dtMessageGroup').style.display = 'none';
+            }
+
+            if(app.Status === 3 && app.RejectionReason) {
+                document.getElementById('dtRejectReasonGroup').style.display = 'block';
+                document.getElementById('dtRejectReason').textContent = app.RejectionReason;
+            } else {
+                document.getElementById('dtRejectReasonGroup').style.display = 'none';
+            }
+            
+            // Buttons
+            if (app.Status === 1) {
+                document.getElementById('dtPendingActions').style.display = 'flex';
+                document.getElementById('btnApproveCreateLease').onclick = () => { closeModals(); openCreateLeaseModal(app); };
+                document.getElementById('btnRejectApp').onclick = () => { closeModals(); openRejectModal(app.Id, app.TenantName); };
+            } else {
+                document.getElementById('dtPendingActions').style.display = 'none';
+            }
+
+            document.getElementById('detailModal').style.display = 'flex';
+            if(window.feather) feather.replace();
+        }
+    </script>
+}

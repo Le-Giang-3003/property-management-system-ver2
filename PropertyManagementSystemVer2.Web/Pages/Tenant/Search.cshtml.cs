@@ -90,6 +90,29 @@ namespace PropertyManagementSystemVer2.Web.Pages.Tenant
                 return Unauthorized();
             }
 
+            // Clean up ModelState for things we don't submit directly or are optional
+            ModelState.ClearValidationState(nameof(SearchKeyword));
+            ModelState.ClearValidationState(nameof(PropertyType));
+            ModelState.ClearValidationState(nameof(MinPrice));
+            ModelState.ClearValidationState(nameof(MaxPrice));
+            ModelState.ClearValidationState(nameof(MinBedrooms));
+            ModelState.ClearValidationState(nameof(City));
+
+            // Clear validation for ApplicationForm optional fields missing from form
+            ModelState.ClearValidationState($"{nameof(ApplicationForm)}.{nameof(ApplicationForm.EmployerName)}");
+            ModelState.ClearValidationState($"{nameof(ApplicationForm)}.{nameof(ApplicationForm.EmployerContact)}");
+            ModelState.ClearValidationState($"{nameof(ApplicationForm)}.{nameof(ApplicationForm.ReferenceName)}");
+            ModelState.ClearValidationState($"{nameof(ApplicationForm)}.{nameof(ApplicationForm.ReferenceContact)}");
+            ModelState.ClearValidationState($"{nameof(ApplicationForm)}.{nameof(ApplicationForm.ReferenceRelationship)}");
+            ModelState.ClearValidationState($"{nameof(ApplicationForm)}.{nameof(ApplicationForm.PropertyId)}");
+            
+            if(!ModelState.IsValid)
+            {
+                var errors = string.Join(", ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
+                TempData["ErrorMessage"] = $"Vui lòng điền đầy đủ thông tin: {errors}";
+                return RedirectToPage();
+            }
+
             // Set the PropertyId to the form
             ApplicationForm.PropertyId = propertyId;
 

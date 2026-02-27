@@ -1,4 +1,4 @@
-@page
+﻿@page
 @model PropertyManagementSystemVer2.Web.Pages.Admin.PropertiesModel
 @using PropertyManagementSystemVer2.DAL.Enums
 @{
@@ -36,13 +36,55 @@
         position: absolute;
         top: 10px;
         left: 10px;
-        background: var(--primary);
+        background: var(--accent-light);
         color: white;
         font-size: 11px;
         font-weight: 600;
         padding: 4px 8px;
         border-radius: 4px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    /* Modal Detail Styles */
+    .dt-header { margin-bottom: 24px; }
+    .dt-title { font-size: 24px; font-weight: 700; margin-bottom: 8px; color: var(--text-primary); }
+    .dt-address { display: flex; align-items: center; gap: 6px; color: var(--text-muted); font-size: 14px; margin-bottom: 16px; }
+    
+    .dt-price-box {
+        display: flex; align-items: baseline; gap: 8px; margin-bottom: 24px;
+    }
+    .dt-price-main { font-size: 28px; font-weight: 700; color: var(--accent-light); }
+    .dt-price-label { color: var(--text-muted); font-size: 14px; }
+
+    .dt-specs {
+        display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px;
+    }
+    .spec-box {
+        background: var(--bg-card); border: 1px solid var(--border);
+        border-radius: 12px; padding: 16px; text-align: center;
+    }
+    .spec-icon { color: var(--accent-light); margin-bottom: 8px; display: flex; justify-content: center; }
+    .spec-label { font-size: 13px; color: var(--text-muted); margin-bottom: 4px; }
+    .spec-value { font-size: 16px; font-weight: 600; color: var(--text-primary); }
+
+    .dt-section { margin-bottom: 32px; }
+    .section-title { font-size: 18px; font-weight: 600; margin-bottom: 16px; color: var(--text-primary); }
+    .section-content { color: var(--text-secondary); line-height: 1.6; font-size: 15px; white-space: pre-wrap; }
+
+    .detail-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .detail-item {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 12px; background: var(--bg-card); border-radius: 8px; border: 1px solid var(--border);
+    }
+    .detail-label { display: flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 14px; }
+    .detail-value { font-weight: 600; color: var(--text-primary); font-size: 14px; }
+    .detail-value-primary { color: var(--accent-light); font-size: 16px; }
+
+    .amenities-list { display: flex; flex-wrap: wrap; gap: 10px; }
+    .amenity-badge {
+        background: var(--accent-glow); color: var(--accent-light);
+        padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: 500;
+        display: inline-flex; align-items: center; gap: 6px;
     }
 </style>
 
@@ -199,48 +241,102 @@
 
 <!-- Detail Modal -->
 <div class="modal-overlay" id="detailModal" style="display: none;" onclick="closeModals()">
-    <div class="modal" style="max-width: 680px;" onclick="event.stopPropagation()">
-        <div class="modal-header">
-            <span class="modal-title" id="detailTitle">Chi tiết BDS</span>
-            <button class="modal-close btn btn-ghost btn-sm btn-icon" onclick="closeModals()">✕</button>
-        </div>
-        <div class="modal-body">
-            <div class="image-slider" id="detailImageSlider" style="display: none;">
-                <!-- Images will be injected here via JS -->
-            </div>
-            
+    <div class="modal" style="max-width: 800px; padding: 0;" onclick="event.stopPropagation()">
+        <button type="button" class="btn btn-ghost btn-icon" style="position: absolute; top: 16px; right: 16px; z-index: 10; background: white; border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" onclick="closeModals()"><i data-feather="x"></i></button>
+
+        <div class="modal-body" style="max-height: 90vh; overflow-y: auto; padding: 24px;">
             <div id="detailRejectionMsg" style="display: none; background: rgba(255,59,48,0.1); border: 1px solid var(--danger); color: var(--danger); padding: 12px; border-radius: 6px; margin-bottom: 16px; font-size: 13px;">
                 <strong>Lý do từ chối:</strong> <span id="detailRejectionReasonText"></span>
             </div>
-            <div class="grid-2">
-                <div>
-                    <div class="info-row"><span class="info-label">Loại BDS</span><span class="info-value" id="detailType"></span></div>
-                    <div class="info-row"><span class="info-label">Trạng thái</span><span class="info-value"><span id="detailStatus" class="badge badge-gray"></span></span></div>
-                    <div class="info-row"><span class="info-label">Diện tích</span><span class="info-value" id="detailArea"></span></div>
-                    <div class="info-row"><span class="info-label">Phòng ngủ</span><span class="info-value" id="detailBedrooms"></span></div>
-                    <div class="info-row"><span class="info-label">Phòng tắm</span><span class="info-value" id="detailBathrooms"></span></div>
-                    <div class="info-row"><span class="info-label">Số tầng</span><span class="info-value" id="detailFloors"></span></div>
+
+            <div class="image-slider" id="detailImageSlider" style="display: none; margin-top: 10px;">
+                <!-- Images will be injected here via JS -->
+            </div>
+
+            <div class="dt-header">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <h2 class="dt-title" id="detailTitle"></h2>
+                        <div class="dt-address">
+                            <i data-feather="map-pin" style="width: 16px;"></i>
+                            <span id="dtFullAddress"></span>
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <span class="badge badge-gray" id="detailStatus" style="font-size: 14px; padding: 6px 12px; margin-bottom: 8px; display: inline-block;"></span>
+                        <div style="font-size: 12px; color: var(--text-muted);" id="detailCreatedAt"></div>
+                    </div>
                 </div>
-                <div>
-                    <div class="info-row"><span class="info-label">Địa chỉ</span><span class="info-value" id="detailAddressFull"></span></div>
-                    <div class="info-row"><span class="info-label">Tiền thuê/tháng</span><span class="info-value text-green fw-700" id="detailRent"></span></div>
-                    <div class="info-row"><span class="info-label">Tiền cọc</span><span class="info-value" id="detailDeposit"></span></div>
-                    <div class="info-row"><span class="info-label">Nuôi thú cưng</span><span class="info-value" id="detailPets"></span></div>
-                    <div class="info-row"><span class="info-label">Hút thuốc</span><span class="info-value" id="detailSmoking"></span></div>
-                    <div class="info-row"><span class="info-label">Chủ nhà</span><span class="info-value" id="detailLandlord"></span></div>
+            </div>
+
+            <div class="dt-price-box">
+                <div class="dt-price-main" id="dtRentMain"></div>
+                <div class="dt-price-label">/ tháng</div>
+            </div>
+
+            <div class="dt-specs">
+                <div class="spec-box">
+                    <div class="spec-icon"><i data-feather="maximize-2" style="width: 24px; height: 24px;"></i></div>
+                    <div class="spec-label">Diện tích</div>
+                    <div class="spec-value" id="dtArea"></div>
+                </div>
+                <div class="spec-box">
+                    <div class="spec-icon"><i data-feather="home" style="width: 24px; height: 24px;"></i></div>
+                    <div class="spec-label">Phòng ngủ</div>
+                    <div class="spec-value" id="dtBedrooms"></div>
+                </div>
+                <div class="spec-box">
+                    <div class="spec-icon"><i data-feather="droplet" style="width: 24px; height: 24px;"></i></div>
+                    <div class="spec-label">Phòng tắm</div>
+                    <div class="spec-value" id="dtBathrooms"></div>
                 </div>
             </div>
-            <div style="margin-top: 16px;">
-                <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">Tiện ích</div>
-                <div style="font-size: 14px; font-weight: 500;" id="detailAmenities"></div>
+
+            <div class="dt-section">
+                <h3 class="section-title">Mô tả</h3>
+                <div class="section-content" id="dtDesc"></div>
             </div>
-            <div style="margin-top: 16px;">
-                <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">Mô tả chi tiết</div>
-                <div style="font-size: 14px; line-height: 1.5;" id="detailDesc"></div>
+
+            <div class="dt-section">
+                <h3 class="section-title">Thông tin chi tiết</h3>
+                <div class="detail-grid">
+                    <div class="detail-item">
+                        <span class="detail-label"><i data-feather="tag" style="width: 16px;"></i> Loại BDS:</span>
+                        <span class="detail-value" id="dtPropertyType"></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label"><i data-feather="user" style="width: 16px;"></i> Chủ nhà:</span>
+                        <span class="detail-value" id="dtLandlord"></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label"><i data-feather="layers" style="width: 16px;"></i> Số tầng:</span>
+                        <span class="detail-value" id="dtFloors"></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label"><i data-feather="dollar-sign" style="width: 16px;"></i> Tiền cọc:</span>
+                        <span class="detail-value" id="dtDeposit"></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label"><i data-feather="smile" style="width: 16px;"></i> Thú cưng:</span>
+                        <span class="detail-value" id="dtAllowPets"></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label"><i data-feather="wind" style="width: 16px;"></i> Hút thuốc:</span>
+                        <span class="detail-value" id="dtAllowSmoking"></span>
+                    </div>
+                </div>
             </div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-secondary" onclick="closeModals()">Đóng</button>
+
+            <div class="dt-section" id="dtAmenitiesSection" style="display: none;">
+                <h3 class="section-title">Tiện ích</h3>
+                <div class="amenities-list" id="dtAmenitiesList">
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                <button type="button" class="btn btn-danger" id="btnRejectFromDetail" style="display: none;" onclick="openRejectFromDetail()">Từ chối</button>
+                <button type="button" class="btn btn-secondary" onclick="closeModals()">Đóng</button>
+            </div>
         </div>
     </div>
 </div>
@@ -312,38 +408,32 @@
             currentPropTitle = title;
             document.getElementById('detailTitle').textContent = title;
             
-            document.getElementById('detailType').textContent = 'Đang tải...';
-            document.getElementById('detailImageSlider').style.display = 'none';
-            document.getElementById('detailImageSlider').innerHTML = '';
+            const slider = document.getElementById('detailImageSlider');
+            slider.style.display = 'flex';
+            slider.innerHTML = '<div style="padding: 20px; text-align: center; width: 100%; font-size: 14px;">Đang tải ảnh...</div>';
             document.getElementById('detailRejectionMsg').style.display = 'none';
 
             fetch(`?handler=PropertyDetails&id=${id}`)
                 .then(res => res.json())
                 .then(prop => {
-                    const slider = document.getElementById('detailImageSlider');
                     if (prop.Images && prop.Images.length > 0) {
-                        slider.innerHTML = prop.Images.map(img => `
+                        const sortedImages = [...prop.Images].sort((a,b) => (b.IsPrimary === true ? 1 : 0) - (a.IsPrimary === true ? 1 : 0));
+                        slider.innerHTML = sortedImages.map(img => `
                             <div class="slide">
                                 <img src="${img.ImageUrl}" alt="Property Image" />
                                 ${img.IsPrimary ? '<span class="primary-badge">Ảnh chính</span>' : ''}
                             </div>
                         `).join('');
-                        slider.style.display = 'flex';
                     } else if (prop.ThumbnailUrl) {
                         slider.innerHTML = `<div class="slide"><img src="${prop.ThumbnailUrl}" alt="Thumbnail" /></div>`;
-                        slider.style.display = 'flex';
+                    } else {
+                        slider.innerHTML = '<div style="padding: 20px; text-align: center; width: 100%; color: var(--text-muted); background: var(--bg-card); border: 1px dashed var(--border); border-radius: 12px; height: 150px; display: flex; align-items: center; justify-content: center;">Chưa có hình ảnh nào.</div>';
                     }
 
-                    if (prop.Status === 4 && prop.RejectionReason) {
+                    if (prop.Status === 4 && prop.RejectionReason) { // 4 is Rejected
                         document.getElementById('detailRejectionReasonText').textContent = prop.RejectionReason;
                         document.getElementById('detailRejectionMsg').style.display = 'block';
                     }
-
-                    let typeText = prop.PropertyType === 1 ? 'Căn hộ' :
-                                   prop.PropertyType === 2 ? 'Nhà phố' :
-                                   prop.PropertyType === 3 ? 'Căn hộ studio' :
-                                   prop.PropertyType === 4 ? 'Phòng trọ' : String(prop.PropertyType);
-                    document.getElementById('detailType').textContent = typeText;
 
                     let statusText = prop.Status === 7 ? 'Còn trống' :
                                      prop.Status === 5 ? 'Đã thuê' :
@@ -356,7 +446,7 @@
                     let statusClass = prop.Status === 7 ? 'badge-success' :
                                       prop.Status === 5 ? 'badge-info' :
                                       prop.Status === 2 ? 'badge-warning' :
-                                      prop.Status === 3 ? 'badge-warning' :
+                                      prop.Status === 3 ? 'badge-info' :
                                       prop.Status === 4 ? 'badge-danger' : 
                                       prop.Status === 8 ? '' : 'badge-gray';
 
@@ -373,26 +463,49 @@
                         statusEl.style.border = '';
                     }
 
-                    document.getElementById('detailArea').textContent = `${prop.Area} m²`;
-                    document.getElementById('detailBedrooms').textContent = prop.Bedrooms;
-                    document.getElementById('detailBathrooms').textContent = prop.Bathrooms;
-                    document.getElementById('detailFloors').textContent = prop.Floors || 'Không rõ';
-                    
-                    let addr = [prop.Address, prop.Ward, prop.District, prop.City].filter(Boolean).join(', ');
-                    document.getElementById('detailAddressFull').textContent = addr;
+                    document.getElementById('detailCreatedAt').textContent = 'Ngày đăng: ' + new Date(prop.CreatedAt).toLocaleDateString('vi-VN');
 
-                    document.getElementById('detailRent').textContent = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(prop.MonthlyRent);
-                    document.getElementById('detailDeposit').textContent = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(prop.DepositAmount);
-                    
-                    document.getElementById('detailPets').textContent = prop.AllowPets ? 'Có' : 'Không';
-                    document.getElementById('detailSmoking').textContent = prop.AllowSmoking ? 'Có' : 'Không';
-                    document.getElementById('detailAmenities').textContent = prop.Amenities || 'Không có';
-                    document.getElementById('detailDesc').textContent = prop.Description || 'Không có mô tả';
+                    document.getElementById('dtFullAddress').textContent = [prop.Address, prop.Ward, prop.District, prop.City].filter(Boolean).join(', ');
+                    document.getElementById('dtRentMain').textContent = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(prop.MonthlyRent);
+
+                    let typeText = prop.PropertyType === 1 ? 'Căn hộ' :
+                                   prop.PropertyType === 2 ? 'Nhà phố' :
+                                   prop.PropertyType === 3 ? 'Căn hộ studio' :
+                                   prop.PropertyType === 4 ? 'Phòng trọ' : String(prop.PropertyType);
+                                   
+                    document.getElementById('dtPropertyType').textContent = prop.PropertyTypeText || typeText;
+                    document.getElementById('dtArea').textContent = `${prop.Area} m²`;
+                    document.getElementById('dtBedrooms').textContent = prop.Bedrooms || 0;
+                    document.getElementById('dtBathrooms').textContent = prop.Bathrooms || 0;
+                    document.getElementById('dtFloors').textContent = prop.Floors || 'N/A';
+                    document.getElementById('dtDeposit').textContent = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(prop.DepositAmount);
+                    document.getElementById('dtAllowPets').textContent = prop.AllowPets ? "✅ Cho phép" : "❌ Không";
+                    document.getElementById('dtAllowSmoking').textContent = prop.AllowSmoking ? "✅ Cho phép" : "❌ Không";
+                    document.getElementById('dtDesc').textContent = prop.Description || 'Không có mô tả';
                     
                     if (prop.Landlord) {
-                        document.getElementById('detailLandlord').textContent = prop.Landlord.FullName;
+                        document.getElementById('dtLandlord').textContent = prop.Landlord.FullName;
                     } else {
-                        document.getElementById('detailLandlord').textContent = 'N/A';
+                        document.getElementById('dtLandlord').textContent = 'N/A';
+                    }
+
+                    const amenitiesSection = document.getElementById('dtAmenitiesSection');
+                    const amenitiesList = document.getElementById('dtAmenitiesList');
+                    if (prop.Amenities) {
+                        amenitiesSection.style.display = 'block';
+                        const list = prop.Amenities.split(',').map(a => a.trim()).filter(a => a);
+                        amenitiesList.innerHTML = list.map(a => `<span class="amenity-badge"><i data-feather="check" style="width: 14px;"></i> ${a}</span>`).join('');
+                        if(window.feather) feather.replace();
+                    } else {
+                        amenitiesSection.style.display = 'none';
+                    }
+
+                    // Show reject button inside modal if pending (Status === 2 is Pending)
+                    const btnReject = document.getElementById('btnRejectFromDetail');
+                    if (prop.Status === 2) {
+                        btnReject.style.display = 'inline-block';
+                    } else {
+                        btnReject.style.display = 'none';
                     }
 
                     document.getElementById('detailModal').style.display = 'flex';

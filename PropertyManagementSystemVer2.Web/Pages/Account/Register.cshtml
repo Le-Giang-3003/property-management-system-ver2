@@ -1,0 +1,241 @@
+@page
+@model PropertyManagementSystemVer2.Web.Pages.Account.RegisterModel
+@{
+    Layout = null;
+    ViewData["Title"] = "Đăng ký tài khoản";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PropertyMS - @ViewData["Title"]</title>
+    <!-- CSS từ UI -->
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <style>
+        .register-wrapper {
+            min-height: 100vh;
+            background: var(--bg-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+        .orb-left {
+            position: fixed; top: 10%; left: 15%; width: 300px; height: 300px;
+            background: radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .orb-right {
+            position: fixed; bottom: 20%; right: 10%; width: 400px; height: 400px;
+            background: radial-gradient(circle, rgba(16,185,129,0.1) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .register-content {
+            width: 100%; max-width: 520px; position: relative; z-index: 1;
+        }
+        .back-btn {
+            display: flex; align-items: center; gap: 8px; background: transparent; border: none;
+            color: var(--text-muted); font-size: 14px; cursor: pointer; margin-bottom: 20px;
+            padding: 8px 12px; border-radius: 8px; transition: all 0.2s; text-decoration: none;
+        }
+        .back-btn:hover {
+            background: var(--bg-hover); color: var(--text-primary);
+        }
+        .logo-box { text-align: center; margin-bottom: 32px; }
+        .logo-icon {
+            width: 60px; height: 60px; background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            border-radius: 16px; display: flex; align-items: center; justify-content: center;
+            font-size: 28px; margin: 0 auto 12px; box-shadow: 0 8px 32px rgba(99,102,241,0.4);
+        }
+        .logo-text {
+            font-size: 28px; font-weight: 800; background: linear-gradient(135deg, #6366f1, #818cf8);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 6px;
+        }
+        .logo-desc { color: var(--text-muted); font-size: 14px; }
+        .form-card {
+            background: var(--bg-secondary); border: 1px solid var(--border);
+            border-radius: 16px; padding: 24px;
+        }
+        
+        .role-card {
+            flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; 
+            padding: 16px; border: 2px solid var(--border); border-radius: 12px; cursor: pointer; 
+            transition: all 0.2s; background: var(--bg-card);
+        }
+        .role-card.active[data-role="Tenant"] {
+            border-color: #3b82f6; background: rgba(59, 130, 246, 0.15);
+        }
+        .role-card.active[data-role="Landlord"] {
+            border-color: #10b981; background: rgba(16, 185, 129, 0.15);
+        }
+        
+        .validation-message {
+            color: var(--danger); font-size: 12px; margin-top: 6px; display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="register-wrapper">
+        <div class="orb-left"></div>
+        <div class="orb-right"></div>
+        <div class="register-content">
+            <a href="/Account/Login" class="back-btn">
+                ← Quay lại đăng nhập
+            </a>
+
+            <div class="logo-box">
+                <div class="logo-icon">🏢</div>
+                <h1 class="logo-text">Tạo tài khoản</h1>
+                <p class="logo-desc">Đăng ký để sử dụng PropertyMS</p>
+            </div>
+
+            @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+            {
+                <div style="background: var(--danger-bg); border: 1px solid var(--danger); color: var(--danger); padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 13px;">
+                    @Model.ErrorMessage
+                </div>
+            }
+            @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+            {
+                <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid var(--success); color: var(--success); padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 13px;">
+                    @Model.SuccessMessage
+                </div>
+            }
+
+            <div class="form-card">
+                @if (Model.ActionType == "Success")
+                {
+                    <div style="text-align: center; padding: 20px 0;">
+                        <div style="font-size: 48px; margin-bottom: 16px;">🎉</div>
+                        <h3 style="color: var(--text-primary); margin-bottom: 8px;">Tạo tài khoản thành công!</h3>
+                        <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 24px;">Bạn đã có thể đăng nhập và trải nghiệm các tính năng của PropertyMS.</p>
+                        <a href="/Account/Login" class="btn btn-primary" style="text-decoration: none; padding: 12px 24px;">Đến trang đăng nhập</a>
+                    </div>
+                }
+                else
+                {
+                    <form method="post">
+                        <input type="hidden" asp-for="ActionType" />
+                        
+                        @if (Model.ActionType == "Verify")
+                        {
+                            <!-- Hidden fields to persist user info -->
+                            <input type="hidden" asp-for="RegisterForm.Role" />
+                            <input type="hidden" asp-for="RegisterForm.FullName" />
+                            <input type="hidden" asp-for="RegisterForm.Email" />
+                            <input type="hidden" asp-for="RegisterForm.PhoneNumber" />
+                            <input type="hidden" asp-for="RegisterForm.Password" />
+                            <input type="hidden" asp-for="RegisterForm.ConfirmPassword" />
+
+                            <div style="text-align: center; margin-bottom: 24px;">
+                                <div style="font-size: 40px; margin-bottom: 12px;">✉️</div>
+                                <h4 style="color: var(--text-primary); margin-bottom: 8px;">Xác thực Email</h4>
+                                <p style="color: var(--text-muted); font-size: 14px; line-height: 1.5;">Vui lòng nhập mã OTP 6 số đã được gửi đến <br><b style="color: var(--accent);">@Model.RegisterForm.Email</b></p>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" asp-for="RegisterForm.OtpCode">Mã OTP *</label>
+                                <input class="form-control" asp-for="RegisterForm.OtpCode" type="text" placeholder="Ví dụ: 123456" maxlength="6" style="text-align: center; letter-spacing: 4px; font-size: 20px;" />
+                            </div>
+
+                            <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 12px; font-size: 14px; margin-top: 8px;">
+                                Hoàn tất đăng ký
+                            </button>
+                            
+                            <div style="text-align: center; margin-top: 16px;">
+                                <button type="button" onclick="document.getElementById('ActionType').value='Edit'; document.forms[0].submit();" style="background: none; border: none; color: var(--text-muted); text-decoration: underline; cursor: pointer; font-size: 13px;">
+                                    Đổi thông tin / Chưa nhận được mã
+                                </button>
+                            </div>
+                        }
+                        else
+                        {
+                            <!-- Role Selection -->
+                            <div class="form-group">
+                                <label class="form-label">Bạn là *</label>
+                                <div style="display: flex; gap: 12px;">
+                                    <!-- Tenant -->
+                                    <label class="role-card @(Model.RegisterForm.Role == "Tenant" ? "active" : "")" data-role="Tenant">
+                                        <input type="radio" asp-for="RegisterForm.Role" value="Tenant" style="display:none;" />
+                                        <div style="font-size: 32px; margin-bottom: 4px;">👤</div>
+                                        <div style="font-weight: 600; font-size: 14px; color: var(--text-primary);">Người thuê</div>
+                                        <div style="font-size: 11px; color: var(--text-muted); text-align: center; line-height: 1.4;">Tìm kiếm tài sản</div>
+                                    </label>
+                                    <!-- Landlord -->
+                                    <label class="role-card @(Model.RegisterForm.Role == "Landlord" ? "active" : "")" data-role="Landlord">
+                                        <input type="radio" asp-for="RegisterForm.Role" value="Landlord" style="display:none;" />
+                                        <div style="font-size: 32px; margin-bottom: 4px;">🏠</div>
+                                        <div style="font-weight: 600; font-size: 14px; color: var(--text-primary);">Chủ nhà</div>
+                                        <div style="font-size: 11px; color: var(--text-muted); text-align: center; line-height: 1.4;">Đăng cho thuê tài sản</div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" asp-for="RegisterForm.FullName">Họ và tên *</label>
+                                <input class="form-control" asp-for="RegisterForm.FullName" type="text" placeholder="Nguyễn Văn A" />
+                                <span asp-validation-for="RegisterForm.FullName" class="validation-message"></span>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" asp-for="RegisterForm.Email">Email *</label>
+                                <input class="form-control" asp-for="RegisterForm.Email" type="email" placeholder="email@example.com" />
+                                <span asp-validation-for="RegisterForm.Email" class="validation-message"></span>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" asp-for="RegisterForm.PhoneNumber">Số điện thoại *</label>
+                                <input class="form-control" asp-for="RegisterForm.PhoneNumber" type="tel" placeholder="0912345678" />
+                                <span asp-validation-for="RegisterForm.PhoneNumber" class="validation-message"></span>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" asp-for="RegisterForm.Password">Mật khẩu *</label>
+                                <input class="form-control" asp-for="RegisterForm.Password" type="password" placeholder="••••••••" />
+                                <span asp-validation-for="RegisterForm.Password" class="validation-message"></span>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" asp-for="RegisterForm.ConfirmPassword">Xác nhận mật khẩu *</label>
+                                <input class="form-control" asp-for="RegisterForm.ConfirmPassword" type="password" placeholder="••••••••" />
+                                <span asp-validation-for="RegisterForm.ConfirmPassword" class="validation-message"></span>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 12px; font-size: 14px; margin-top: 8px;">
+                                Đăng ký
+                            </button>
+
+                            <div style="text-align: center; margin-top: 16px; font-size: 13px; color: var(--text-muted);">
+                                Đã có tài khoản? <a href="/Account/Login" style="color: var(--accent); font-weight: 600; text-decoration: none;">Đăng nhập ngay</a>
+                            </div>
+                        }
+                    </form>
+                }
+            </div>
+            
+            <div style="text-align: center; margin-top: 16px; font-size: 12px; color: var(--text-muted);">
+                &copy; 2026 PropertyMS - PRN222 Application
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+    <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var roleCards = document.querySelectorAll('.role-card');
+            roleCards.forEach(function(card) {
+                card.addEventListener('click', function() {
+                    roleCards.forEach(function(c) { c.classList.remove('active'); });
+                    this.classList.add('active');
+                });
+            });
+        });
+    </script>
+</body>
+</html>

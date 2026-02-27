@@ -1,4 +1,4 @@
-@page
+﻿@page
 @model PropertyManagementSystemVer2.Web.Pages.Tenant.SearchModel
 @{
     ViewData["Title"] = "Tìm kiếm Bất động sản";
@@ -10,7 +10,7 @@
         overflow-x: auto;
         scroll-snap-type: x mandatory;
         gap: 12px;
-        margin-bottom: 16px;
+        margin-bottom: 24px;
         padding-bottom: 8px;
     }
     .image-slider::-webkit-scrollbar { height: 6px; }
@@ -18,10 +18,83 @@
     .image-slider img {
         scroll-snap-align: start;
         flex: 0 0 100%;
-        height: 250px;
+        height: 350px;
         object-fit: cover;
-        border-radius: 8px;
+        border-radius: 12px;
         border: 1px solid var(--border);
+    }
+    
+    /* Form Additions */
+    .form-group-with-icon { margin-bottom: 1rem; }
+    .input-icon-wrapper { position: relative; }
+    .input-icon {
+        position: absolute; left: 1rem; top: 50%; transform: translateY(-50%);
+        color: #6b7280; pointer-events: none; z-index: 1;
+    }
+    .input-icon.textarea-icon { top: 1rem; transform: none; }
+    .form-control-with-icon {
+        width: 100%; padding: 0.75rem 1rem 0.75rem 2.75rem;
+        background: var(--bg-input); border: 1px solid var(--border);
+        border-radius: 8px; color: var(--text-primary); font-size: 0.875rem; transition: all 0.2s;
+    }
+    .form-control-with-icon:focus {
+        outline: none; border-color: var(--accent-light); box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+    textarea.form-control-with-icon { padding-left: 2.75rem; resize: vertical; }
+
+    /* Apply Modal Styles */
+    .apply-property-info {
+        display: flex; align-items: center; gap: 12px; padding: 16px;
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+        border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 8px; margin-bottom: 20px;
+    }
+    .apply-property-icon {
+        width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
+        background: rgba(99, 102, 241, 0.2); border-radius: 8px; color: #818cf8; flex-shrink: 0;
+    }
+    .apply-property-title { font-size: 15px; font-weight: 600; color: #e5e7eb; margin-bottom: 4px; }
+    .apply-property-price { font-size: 14px; font-weight: 700; color: #10b981; }
+    
+    /* Modal Detail Styles */
+    .dt-header { margin-bottom: 24px; }
+    .dt-title { font-size: 24px; font-weight: 700; margin-bottom: 8px; color: var(--text-primary); }
+    .dt-address { display: flex; align-items: center; gap: 6px; color: var(--text-muted); font-size: 14px; margin-bottom: 16px; }
+    
+    .dt-price-box {
+        display: flex; align-items: baseline; gap: 8px; margin-bottom: 24px;
+    }
+    .dt-price-main { font-size: 28px; font-weight: 700; color: var(--accent-light); }
+    .dt-price-label { color: var(--text-muted); font-size: 14px; }
+
+    .dt-specs {
+        display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px;
+    }
+    .spec-box {
+        background: var(--bg-card); border: 1px solid var(--border);
+        border-radius: 12px; padding: 16px; text-align: center;
+    }
+    .spec-icon { color: var(--accent-light); margin-bottom: 8px; display: flex; justify-content: center; }
+    .spec-label { font-size: 13px; color: var(--text-muted); margin-bottom: 4px; }
+    .spec-value { font-size: 16px; font-weight: 600; color: var(--text-primary); }
+
+    .dt-section { margin-bottom: 32px; }
+    .section-title { font-size: 18px; font-weight: 600; margin-bottom: 16px; color: var(--text-primary); }
+    .section-content { color: var(--text-secondary); line-height: 1.6; font-size: 15px; white-space: pre-wrap; }
+
+    .detail-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .detail-item {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 12px; background: var(--bg-card); border-radius: 8px; border: 1px solid var(--border);
+    }
+    .detail-label { display: flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 14px; }
+    .detail-value { font-weight: 600; color: var(--text-primary); font-size: 14px; }
+    .detail-value-primary { color: var(--accent-light); font-size: 16px; }
+
+    .amenities-list { display: flex; flex-wrap: wrap; gap: 10px; }
+    .amenity-badge {
+        background: var(--accent-glow); color: var(--accent-light);
+        padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: 500;
+        display: inline-flex; align-items: center; gap: 6px;
     }
 </style>
 
@@ -131,7 +204,7 @@
                             {
                                 var propJson = System.Text.Json.JsonSerializer.Serialize(p);
                                 <button type="button" class="btn btn-ghost btn-sm" onclick="openDetailModal(@propJson)">📅 Xem nhà</button>
-                                <button type="button" class="btn btn-primary btn-sm" onclick="openApplicationModal(@p.Id, '@p.Title.Replace("'", "\\'")')">Nộp đơn</button>
+                                <button type="button" class="btn btn-primary btn-sm" onclick="openApplicationModal(@p.Id, '@p.Title.Replace("'", "\\'")', @p.MonthlyRent, '@Html.Raw(p.ThumbnailUrl?.Replace("'", "\\'") ?? "")')">Nộp đơn</button>
                             }
                             else if (p.Status.ToString() == "Rented")
                             {
@@ -154,146 +227,172 @@
 
 <!-- View Details Modal -->
 <div class="modal-overlay" id="detailModal" style="display: none;" onclick="closeModals()">
-    <div class="modal" style="max-width: 680px;" onclick="event.stopPropagation()">
-        <div class="modal-header">
-            <span class="modal-title" id="detailTitle">Chi tiết BDS</span>
-            <button type="button" class="modal-close" onclick="closeModals()"><i data-feather="x"></i></button>
-        </div>
-        <div class="modal-body">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <span class="badge badge-gray" id="detailStatus" style="font-size: 14px; padding: 6px 12px;"></span>
-                <span style="font-size: 12px; color: var(--text-muted);" id="detailCreatedAt"></span>
-            </div>
-            
-            <div class="image-slider" id="detailImageSlider" style="display: none;">
+    <div class="modal" style="max-width: 800px; padding: 0;" onclick="event.stopPropagation()">
+        <button type="button" class="btn btn-ghost btn-icon" style="position: absolute; top: 16px; right: 16px; z-index: 10; background: white; border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" onclick="closeModals()"><i data-feather="x"></i></button>
+
+        <div class="modal-body" style="max-height: 90vh; overflow-y: auto; padding: 24px;">
+            <div class="image-slider" id="detailImageSlider" style="display: none; margin-top: 10px;">
                 <!-- Images will be injected here via JS -->
             </div>
+
+            <div class="dt-header">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <h2 class="dt-title" id="dtTitle"></h2>
+                        <div class="dt-address">
+                            <i data-feather="map-pin" style="width: 16px;"></i>
+                            <span id="dtFullAddress"></span>
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <span class="badge badge-gray" id="detailStatus" style="font-size: 14px; padding: 6px 12px; margin-bottom: 8px; display: inline-block;"></span>
+                        <div style="font-size: 12px; color: var(--text-muted);" id="detailCreatedAt"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dt-price-box">
+                <div class="dt-price-main" id="dtRentMain"></div>
+                <div class="dt-price-label">/ tháng</div>
+            </div>
+
+            <div class="dt-specs">
+                <div class="spec-box">
+                    <div class="spec-icon"><i data-feather="maximize-2" style="width: 24px; height: 24px;"></i></div>
+                    <div class="spec-label">Diện tích</div>
+                    <div class="spec-value" id="dtArea"></div>
+                </div>
+                <div class="spec-box">
+                    <div class="spec-icon"><i data-feather="home" style="width: 24px; height: 24px;"></i></div>
+                    <div class="spec-label">Phòng ngủ</div>
+                    <div class="spec-value" id="dtBedrooms"></div>
+                </div>
+                <div class="spec-box">
+                    <div class="spec-icon"><i data-feather="droplet" style="width: 24px; height: 24px;"></i></div>
+                    <div class="spec-label">Phòng tắm</div>
+                    <div class="spec-value" id="dtBathrooms"></div>
+                </div>
+            </div>
+
+            <div class="dt-section">
+                <h3 class="section-title">Mô tả</h3>
+                <div class="section-content" id="dtDesc"></div>
+            </div>
+
+            <div class="dt-section">
+                <h3 class="section-title">Thông tin chi tiết</h3>
+                <div class="detail-grid">
+                    <div class="detail-item">
+                        <span class="detail-label"><i data-feather="tag" style="width: 16px;"></i> Loại BDS:</span>
+                        <span class="detail-value" id="dtPropertyType"></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label"><i data-feather="layers" style="width: 16px;"></i> Số tầng:</span>
+                        <span class="detail-value" id="dtFloors"></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label"><i data-feather="dollar-sign" style="width: 16px;"></i> Tiền cọc:</span>
+                        <span class="detail-value" id="dtDeposit"></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label"><i data-feather="smile" style="width: 16px;"></i> Thú cưng:</span>
+                        <span class="detail-value" id="dtAllowPets"></span>
+                    </div>
+                    <div class="detail-item" style="grid-column: 1 / -1;">
+                        <span class="detail-label"><i data-feather="wind" style="width: 16px;"></i> Hút thuốc:</span>
+                        <span class="detail-value" id="dtAllowSmoking"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dt-section" id="dtAmenitiesSection" style="display: none;">
+                <h3 class="section-title">Tiện ích</h3>
+                <div class="amenities-list" id="dtAmenitiesList">
+                </div>
+            </div>
             
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">Loại BDS</label>
-                    <input type="text" id="dtPropertyType" class="form-control" disabled />
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Thành phố</label>
-                    <input type="text" id="dtCity" class="form-control" disabled />
-                </div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                 <button type="button" class="btn btn-secondary" onclick="closeModals()">Đóng</button>
             </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">Quận/Huyện</label>
-                    <input type="text" id="dtDistrict" class="form-control" disabled />
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Phường/Xã</label>
-                    <input type="text" id="dtWard" class="form-control" disabled />
-                </div>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Địa chỉ</label>
-                <input type="text" id="dtAddress" class="form-control" disabled />
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">Diện tích (m²)</label>
-                    <input type="text" id="dtArea" class="form-control" disabled />
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Số tầng</label>
-                    <input type="text" id="dtFloors" class="form-control" disabled />
-                </div>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">Phòng ngủ</label>
-                    <input type="text" id="dtBedrooms" class="form-control" disabled />
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Phòng tắm</label>
-                    <input type="text" id="dtBathrooms" class="form-control" disabled />
-                </div>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">Tiền thuê/tháng (VND)</label>
-                    <input type="text" id="dtRent" class="form-control text-green fw-700" disabled />
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Tiền đặt cọc (VND)</label>
-                    <input type="text" id="dtDeposit" class="form-control" disabled />
-                </div>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Tiện ích</label>
-                <input type="text" id="dtAmenities" class="form-control" disabled />
-            </div>
-            <div style="display: flex; gap: 20px; margin-bottom: 20px;">
-                <label style="display: flex; align-items: center; gap: 8px; font-size: 13px;">
-                    <input type="checkbox" id="dtAllowPets" disabled />
-                    <span>Được nuôi thú cưng</span>
-                </label>
-                <label style="display: flex; align-items: center; gap: 8px; font-size: 13px;">
-                    <input type="checkbox" id="dtAllowSmoking" disabled />
-                    <span>Được hút thuốc</span>
-                </label>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Mô tả chi tiết</label>
-                <textarea id="dtDesc" class="form-control" rows="4" disabled></textarea>
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" onclick="closeModals()">Đóng</button>
         </div>
     </div>
 </div>
 
 <!-- Application Modal -->
 <div class="modal-overlay" id="applicationModal" style="display: none;" onclick="closeModals()">
-    <div class="modal" style="max-width: 600px;" onclick="event.stopPropagation()">
+    <div class="modal" style="max-width: 620px;" onclick="event.stopPropagation()">
         <form method="post" asp-page-handler="Apply" id="applicationForm">
             <div class="modal-header">
-                <span class="modal-title">Nộp đơn Thuê nhà</span>
-                <button type="button" class="modal-close" onclick="closeModals()"><i data-feather="x"></i></button>
+                <span class="modal-title">Nộp đơn xin thuê</span>
+                <button type="button" class="modal-close btn btn-ghost btn-sm btn-icon" style="border: none;" onclick="closeModals()"><i data-feather="x"></i></button>
             </div>
             <div class="modal-body">
-                <div style="margin-bottom: 16px; font-weight: 500; font-size: 16px; color: var(--primary);" id="appPropertyTitle"></div>
-                
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">Ngày dọn vào dự kiến *</label>
-                        <input type="date" asp-for="ApplicationForm.MoveInDate" class="form-control" required min="@DateTime.Now.ToString("yyyy-MM-dd")" />
+                <!-- Property Info Box -->
+                <div class="apply-property-info">
+                    <div class="apply-property-icon" id="appPropertyIcon">
+                        <i data-feather="home" style="width: 20px;"></i>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">Thời gian thuê (Tháng) *</label>
-                        <input type="number" asp-for="ApplicationForm.LeaseDurationMonths" class="form-control" min="1" required />
-                    </div>
-                </div>
-                
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">Số người ở *</label>
-                        <input type="number" asp-for="ApplicationForm.NumberOfOccupants" class="form-control" min="1" required />
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Thu nhập hàng tháng (VND)*</label>
-                        <input type="number" asp-for="ApplicationForm.MonthlyIncome" class="form-control" required />
+                    <img id="appPropertyImage" src="" alt="Property" style="display: none; width: 44px; height: 44px; border-radius: 8px; object-fit: cover;" />
+                    <div>
+                        <div class="apply-property-title" id="appPropertyTitle"></div>
+                        <div class="apply-property-price" id="appPropertyPrice"></div>
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label class="form-label">Nghề nghiệp</label>
-                    <input type="text" asp-for="ApplicationForm.Occupation" class="form-control" />
+                <!-- Form Fields with Icons -->
+                <div class="form-row">
+                    <div class="form-group-with-icon">
+                        <label class="form-label">Ngày dọn vào dự kiến <span class="text-red">*</span></label>
+                        <div class="input-icon-wrapper">
+                            <i data-feather="calendar" class="input-icon" style="width: 16px;"></i>
+                            <input type="date" asp-for="ApplicationForm.MoveInDate" class="form-control-with-icon" required min="@DateTime.Now.ToString("yyyy-MM-dd")" />
+                        </div>
+                    </div>
+                    <div class="form-group-with-icon">
+                        <label class="form-label">Thời hạn thuê (Tháng) <span class="text-red">*</span></label>
+                        <div class="input-icon-wrapper">
+                            <i data-feather="clock" class="input-icon" style="width: 16px;"></i>
+                            <input type="number" asp-for="ApplicationForm.LeaseDurationMonths" class="form-control-with-icon" min="1" placeholder="12" required />
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group-with-icon">
+                        <label class="form-label">Số người ở <span class="text-red">*</span></label>
+                        <div class="input-icon-wrapper">
+                            <i data-feather="users" class="input-icon" style="width: 16px;"></i>
+                            <input type="number" asp-for="ApplicationForm.NumberOfOccupants" class="form-control-with-icon" min="1" placeholder="1" required />
+                        </div>
+                    </div>
+                    <div class="form-group-with-icon">
+                        <label class="form-label">Nghề nghiệp</label>
+                        <div class="input-icon-wrapper">
+                            <i data-feather="briefcase" class="input-icon" style="width: 16px;"></i>
+                            <input type="text" asp-for="ApplicationForm.Occupation" class="form-control-with-icon" placeholder="VD: Kỹ sư, Giáo viên..." />
+                        </div>
+                    </div>
                 </div>
 
-                <div class="form-group">
-                    <label class="form-label">Lời nhắn gửi chủ nhà</label>
-                    <textarea asp-for="ApplicationForm.Message" class="form-control" rows="3" placeholder="Giới thiệu bản thân và lý do muốn thuê..."></textarea>
+                <div class="form-group-with-icon">
+                    <label class="form-label">Thu nhập hàng tháng (VND)</label>
+                    <div class="input-icon-wrapper">
+                        <i data-feather="dollar-sign" class="input-icon" style="width: 16px;"></i>
+                        <input type="number" asp-for="ApplicationForm.MonthlyIncome" class="form-control-with-icon" placeholder="15000000" />
+                    </div>
+                </div>
+
+                <div class="form-group-with-icon">
+                    <label class="form-label">Lời nhắn cho chủ nhà</label>
+                    <div class="input-icon-wrapper">
+                        <i data-feather="message-square" class="input-icon textarea-icon" style="width: 16px;"></i>
+                        <textarea asp-for="ApplicationForm.Message" class="form-control-with-icon" rows="3" placeholder="Giới thiệu bản thân, lý do thuê..."></textarea>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeModals()">Huỷ</button>
-                <button type="submit" class="btn btn-primary">Gửi Đơn</button>
+                <button type="submit" class="btn btn-primary">Gửi đơn xin thuê</button>
             </div>
         </form>
     </div>
@@ -306,16 +405,28 @@
             document.getElementById('applicationModal').style.display = 'none';
         }
 
-        function openApplicationModal(propertyId, propertyTitle) {
+        function openApplicationModal(propertyId, propertyTitle, propertyRent, propertyThumbnailUrl) {
             closeModals();
             document.getElementById('applicationForm').action = `?handler=Apply&propertyId=${propertyId}`;
             document.getElementById('appPropertyTitle').textContent = propertyTitle;
+            if (propertyRent) {
+                document.getElementById('appPropertyPrice').textContent = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(propertyRent) + '/tháng';
+            } else {
+                document.getElementById('appPropertyPrice').textContent = '';
+            }
+            if (propertyThumbnailUrl && propertyThumbnailUrl !== 'null' && propertyThumbnailUrl !== '') {
+                document.getElementById('appPropertyImage').src = propertyThumbnailUrl;
+                document.getElementById('appPropertyImage').style.display = 'block';
+                document.getElementById('appPropertyIcon').style.display = 'none';
+            } else {
+                document.getElementById('appPropertyImage').style.display = 'none';
+                document.getElementById('appPropertyIcon').style.display = 'flex';
+            }
             document.getElementById('applicationModal').style.display = 'flex';
         }
 
         function openDetailModal(prop) {
             closeModals();
-            document.getElementById('detailTitle').textContent = prop.Title;
             
             const slider = document.getElementById('detailImageSlider');
             slider.style.display = 'flex';
@@ -330,7 +441,8 @@
                     } else if (prop.ThumbnailUrl) {
                         slider.innerHTML = `<img src="${prop.ThumbnailUrl}" alt="Thumbnail" />`;
                     } else {
-                        slider.innerHTML = '<div style="padding: 20px; text-align: center; width: 100%; color: var(--text-muted);">Chưa có hình ảnh nào.</div>';
+                        slider.innerHTML = '<div style="padding: 20px; text-align: center; width: 100%; color: var(--text-muted); background: var(--bg-card); border: 1px dashed var(--border); border-radius: 12px; height: 150px; display: flex; align-items: center; justify-content: center;">Chưa có hình ảnh nào.</div>';
+                        slider.style.height = '150px';
                     }
                 })
                 .catch(err => {
@@ -352,26 +464,38 @@
             statusEl.className = `badge ${statusClass}`;
             document.getElementById('detailCreatedAt').textContent = 'Ngày đăng: ' + new Date(prop.CreatedAt).toLocaleDateString('vi-VN');
             
+            // Text Content assignments
+            document.getElementById('dtTitle').textContent = prop.Title || 'Chưa có tiêu đề';
+            document.getElementById('dtFullAddress').textContent = `${prop.Address}, ${prop.Ward}, ${prop.District}, ${prop.City}`;
+            document.getElementById('dtRentMain').textContent = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(prop.MonthlyRent);
+            
             let typeText = prop.PropertyType === 1 ? 'Căn hộ' : 
                            prop.PropertyType === 2 ? 'Nhà phố' : 
                            prop.PropertyType === 3 ? 'Căn hộ studio' : 
                            prop.PropertyType === 4 ? 'Phòng trọ' : String(prop.PropertyType);
-            document.getElementById('dtPropertyType').value = prop.PropertyTypeText || typeText;
-            document.getElementById('dtCity').value = prop.City || '';
-            document.getElementById('dtDistrict').value = prop.District || '';
-            document.getElementById('dtWard').value = prop.Ward || '';
-            document.getElementById('dtAddress').value = prop.Address || '';
-            document.getElementById('dtArea').value = prop.Area || '';
-            document.getElementById('dtFloors').value = prop.Floors || '';
-            document.getElementById('dtBedrooms').value = prop.Bedrooms || '0';
-            document.getElementById('dtBathrooms').value = prop.Bathrooms || '0';
-            document.getElementById('dtAmenities').value = prop.Amenities || '';
-            document.getElementById('dtAllowPets').checked = prop.AllowPets || false;
-            document.getElementById('dtAllowSmoking').checked = prop.AllowSmoking || false;
-            document.getElementById('dtDesc').value = prop.Description || '';
             
-            document.getElementById('dtRent').value = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(prop.MonthlyRent);
-            document.getElementById('dtDeposit').value = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(prop.DepositAmount);
+            document.getElementById('dtArea').textContent = `${prop.Area} m²`;
+            document.getElementById('dtBedrooms').textContent = prop.Bedrooms || 0;
+            document.getElementById('dtBathrooms').textContent = prop.Bathrooms || 0;
+            document.getElementById('dtDesc').textContent = prop.Description || 'Không có mô tả';
+            
+            document.getElementById('dtPropertyType').textContent = prop.PropertyTypeText || typeText;
+            document.getElementById('dtFloors').textContent = prop.Floors || 'N/A';
+            document.getElementById('dtDeposit').textContent = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(prop.DepositAmount);
+            
+            document.getElementById('dtAllowPets').textContent = prop.AllowPets ? "✅ Cho phép" : "❌ Không";
+            document.getElementById('dtAllowSmoking').textContent = prop.AllowSmoking ? "✅ Cho phép" : "❌ Không";
+            
+            const amenitiesSection = document.getElementById('dtAmenitiesSection');
+            const amenitiesList = document.getElementById('dtAmenitiesList');
+            if (prop.Amenities) {
+                amenitiesSection.style.display = 'block';
+                const list = prop.Amenities.split(',').map(a => a.trim()).filter(a => a);
+                amenitiesList.innerHTML = list.map(a => `<span class="amenity-badge"><i data-feather="check" style="width: 14px;"></i> ${a}</span>`).join('');
+                if(window.feather) feather.replace();
+            } else {
+                amenitiesSection.style.display = 'none';
+            }
 
             document.getElementById('detailModal').style.display = 'flex';
         }
