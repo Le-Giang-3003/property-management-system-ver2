@@ -24,13 +24,67 @@ namespace PropertyManagementSystemVer2.Web.Pages.Landlord
             var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (int.TryParse(userIdString, out int userId))
             {
-                // In a real scenario, we might need a GetByLandlordIdAsync method in IMaintenanceService,
-                // or we fetch Landlord's properties, then fetch maintenance for each property.
-                // For demonstration, we leave the list empty or you can implement the property iteration later.
-                MaintenanceRequests = new List<MaintenanceRequestDto>();
+                var result = await _maintenanceService.GetByLandlordIdAsync(userId);
+                if (result.IsSuccess && result.Data != null)
+                {
+                    MaintenanceRequests = result.Data;
+                }
             }
-
             return Page();
+        }
+
+        public async Task<IActionResult> OnPostApproveAsync(int requestId, string technicianName, string technicianPhone)
+        {
+            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (int.TryParse(userIdString, out int userId))
+            {
+                var result = await _maintenanceService.LandlordApproveAsync(userId, requestId, technicianName, technicianPhone);
+                if (!result.IsSuccess)
+                {
+                    TempData["ErrorMessage"] = result.Message;
+                }
+                else
+                {
+                    TempData["SuccessMessage"] = result.Message;
+                }
+            }
+            return RedirectToPage();
+        }
+
+        public async Task<IActionResult> OnPostRejectAsync(int requestId, string reason)
+        {
+            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (int.TryParse(userIdString, out int userId))
+            {
+                var result = await _maintenanceService.LandlordRejectAsync(userId, requestId, reason);
+                if (!result.IsSuccess)
+                {
+                    TempData["ErrorMessage"] = result.Message;
+                }
+                else
+                {
+                    TempData["SuccessMessage"] = result.Message;
+                }
+            }
+            return RedirectToPage();
+        }
+
+        public async Task<IActionResult> OnPostCompleteAsync(int requestId, string resolution, decimal? actualCost)
+        {
+            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (int.TryParse(userIdString, out int userId))
+            {
+                var result = await _maintenanceService.LandlordCompleteAsync(userId, requestId, resolution, actualCost);
+                if (!result.IsSuccess)
+                {
+                    TempData["ErrorMessage"] = result.Message;
+                }
+                else
+                {
+                    TempData["SuccessMessage"] = result.Message;
+                }
+            }
+            return RedirectToPage();
         }
     }
 }

@@ -150,7 +150,7 @@
 
 <!-- Hợp đồng Detail Modal -->
 <div class="modal-overlay" id="detailModal" style="display: none;" onclick="closeModals()">
-    <div class="modal" style="max-width: 680px;" onclick="event.stopPropagation()">
+    <div class="modal" style="max-width: 800px;" onclick="event.stopPropagation()">
         <div class="modal-header">
             <span class="modal-title" id="dtLeaseTitle">Hợp đồng</span>
             <button type="button" class="modal-close btn btn-ghost btn-sm btn-icon" style="border: none;" onclick="closeModals()"><i data-feather="x"></i></button>
@@ -206,15 +206,20 @@
         </div>
         <div class="modal-footer" id="dtFooterBtns" style="justify-content: flex-end; gap: 8px;">
             <button type="button" class="btn btn-secondary" onclick="closeModals()">Đóng</button>
+            <form method="post" asp-page-handler="Terminate" id="terminateForm" style="margin:0; display:none;">
+                <input type="hidden" name="leaseId" id="terminateLeaseId" value="" />
+                <button type="button" class="btn btn-danger" onclick="confirmTerminate()">Chấm dứt Hợp đồng</button>
+            </form>
             <form method="post" asp-page-handler="Sign" id="signForm" style="margin:0; display:none;">
                 <input type="hidden" name="leaseId" id="signLeaseId" value="" />
-                <button type="submit" class="btn btn-primary">Ký Hợp Đồng</button>
+                <button type="button" class="btn btn-primary" onclick="confirmSign()">Ký Hợp Đồng</button>
             </form>
         </div>
     </div>
 </div>
 
 @section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         function setFilter(status) {
             document.getElementById('statusFilter').value = status;
@@ -233,9 +238,9 @@
             
             let statusBadge = '<span class="badge badge-gray">Khác</span>';
             if(lease.Status === 1) statusBadge = '<span class="badge badge-success">Hiệu lực</span>';
-            else if(lease.Status === 2) statusBadge = '<span class="badge badge-warning">Chờ ký</span>';
-            else if(lease.Status === 3) statusBadge = '<span class="badge badge-gray">Hết hạn</span>';
-            else if(lease.Status === 4) statusBadge = '<span class="badge badge-danger">Chấm dứt</span>';
+            else if(lease.Status === 2) statusBadge = '<span class="badge badge-gray">Hết hạn</span>';
+            else if(lease.Status === 3) statusBadge = '<span class="badge badge-danger">Chấm dứt</span>';
+            else if(lease.Status === 4) statusBadge = '<span class="badge badge-warning">Chờ ký</span>';
             document.getElementById('dtStatusBadge').innerHTML = statusBadge;
 
             document.getElementById('dtPropertyTitle').textContent = lease.PropertyTitle;
@@ -284,14 +289,56 @@
             }
 
             const signForm = document.getElementById('signForm');
-            if (lease.Status === 2 /* Pending */ && !lease.LandlordSigned) {
+            if (lease.Status === 4 /* Pending */ && !lease.LandlordSigned) {
                 signForm.style.display = 'block';
                 document.getElementById('signLeaseId').value = lease.Id;
             } else {
                 signForm.style.display = 'none';
             }
 
+            const terminateForm = document.getElementById('terminateForm');
+            if (lease.Status === 1 /* Active */) {
+                terminateForm.style.display = 'block';
+                document.getElementById('terminateLeaseId').value = lease.Id;
+            } else {
+                terminateForm.style.display = 'none';
+            }
+
             document.getElementById('detailModal').style.display = 'flex';
+        }
+
+        function confirmSign() {
+            Swal.fire({
+                title: 'Xác nhận ký hợp đồng',
+                text: "Bạn có chắc chắn muốn ký duyệt hợp đồng này không?",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#10b981',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Có, Ký ngay!',
+                cancelButtonText: 'Hủy'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById('signForm').submit();
+                }
+            });
+        }
+
+        function confirmTerminate() {
+            Swal.fire({
+                title: 'Cảnh báo chấm dứt!',
+                text: "Bạn đang yêu cầu chấm dứt hợp đồng. Thao tác này sẽ cập nhật các trạng thái liên quan. Tiếp tục?",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Chấm dứt Hợp đồng',
+                cancelButtonText: 'Hủy bỏ'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById('terminateForm').submit();
+                }
+            });
         }
     </script>
 }

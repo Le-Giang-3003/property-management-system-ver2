@@ -38,6 +38,7 @@ namespace PropertyManagementSystemVer2.BLL.DTOs
         public string Title { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public string? ImageUrls { get; set; }
+        public DateTime? ScheduledDate { get; set; }
     }
 
     public class UpdateMaintenanceRequestDto

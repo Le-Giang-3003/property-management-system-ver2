@@ -38,6 +38,7 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
                 Title = dto.Title,
                 Description = dto.Description,
                 ImageUrls = dto.ImageUrls,
+                ScheduledDate = dto.ScheduledDate,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -103,6 +104,50 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
 
             // BR39.2: TODO - Notify Technician
             return ServiceResultDto.Success("Đã assign technician cho yêu cầu.");
+        }
+
+        public async Task<ServiceResultDto> LandlordApproveAsync(int landlordId, int requestId, string technicianName, string technicianPhone)
+        {
+            var request = await _unitOfWork.MaintenanceRequests.GetByIdWithDetailsAsync(requestId);
+            if (request == null || request.Property.LandlordId != landlordId) return ServiceResultDto.Failure("Không tìm thấy yêu cầu.");
+            if (request.Status != MaintenanceStatus.Open) return ServiceResultDto.Failure("Chỉ phê duyệt yêu cầu đang mở.");
+
+            request.Status = MaintenanceStatus.InProgress;
+            request.Resolution = (request.Resolution ?? "") + $"\n[ĐÃ KÊU THỢ] {technicianName} - {technicianPhone}";
+            request.UpdatedAt = DateTime.UtcNow;
+            _unitOfWork.MaintenanceRequests.Update(request);
+            await _unitOfWork.SaveChangesAsync();
+            return ServiceResultDto.Success("Đã phê duyệt yêu cầu.");
+        }
+
+        public async Task<ServiceResultDto> LandlordRejectAsync(int landlordId, int requestId, string reason)
+        {
+            var request = await _unitOfWork.MaintenanceRequests.GetByIdWithDetailsAsync(requestId);
+            if (request == null || request.Property.LandlordId != landlordId) return ServiceResultDto.Failure("Không tìm thấy yêu cầu.");
+            if (request.Status != MaintenanceStatus.Open) return ServiceResultDto.Failure("Chỉ được từ chối yêu cầu đang mở.");
+
+            request.Status = MaintenanceStatus.Cancelled;
+            request.Resolution = (request.Resolution ?? "") + $"\n[TỪ CHỐI] {reason}";
+            request.UpdatedAt = DateTime.UtcNow;
+            _unitOfWork.MaintenanceRequests.Update(request);
+            await _unitOfWork.SaveChangesAsync();
+            return ServiceResultDto.Success("Đã từ chối yêu cầu bảo trì.");
+        }
+
+        public async Task<ServiceResultDto> LandlordCompleteAsync(int landlordId, int requestId, string resolution, decimal? actualCost)
+        {
+            var request = await _unitOfWork.MaintenanceRequests.GetByIdWithDetailsAsync(requestId);
+            if (request == null || request.Property.LandlordId != landlordId) return ServiceResultDto.Failure("Không tìm thấy yêu cầu.");
+            if (request.Status != MaintenanceStatus.InProgress) return ServiceResultDto.Failure("Yêu cầu không ở trạng thái đang xử lý.");
+
+            request.Status = MaintenanceStatus.Resolved;
+            request.Resolution = (request.Resolution ?? "") + $"\n[HOÀN THÀNH] {resolution}";
+            request.ActualCost = actualCost;
+            request.ResolvedAt = DateTime.UtcNow;
+            request.UpdatedAt = DateTime.UtcNow;
+            _unitOfWork.MaintenanceRequests.Update(request);
+            await _unitOfWork.SaveChangesAsync();
+            return ServiceResultDto.Success("Đã hoàn thành yêu cầu bảo trì.");
         }
 
         // BR41: Technician accept/decline assignment
@@ -274,6 +319,12 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
         public async Task<ServiceResultDto<List<MaintenanceRequestDto>>> GetByTenantIdAsync(int tenantId, MaintenanceStatus? status = null)
         {
             var requests = await _unitOfWork.MaintenanceRequests.GetByTenantIdAsync(tenantId, status);
+            return ServiceResultDto<List<MaintenanceRequestDto>>.Success(requests.Select(MapToDto).ToList());
+        }
+
+        public async Task<ServiceResultDto<List<MaintenanceRequestDto>>> GetByLandlordIdAsync(int landlordId, MaintenanceStatus? status = null)
+        {
+            var requests = await _unitOfWork.MaintenanceRequests.GetByLandlordIdAsync(landlordId, status);
             return ServiceResultDto<List<MaintenanceRequestDto>>.Success(requests.Select(MapToDto).ToList());
         }
 

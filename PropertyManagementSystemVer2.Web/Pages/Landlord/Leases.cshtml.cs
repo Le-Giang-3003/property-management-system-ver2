@@ -76,5 +76,39 @@ namespace PropertyManagementSystemVer2.Web.Pages.Landlord
 
             return RedirectToPage();
         }
+
+        public async Task<IActionResult> OnPostTerminateAsync(int leaseId)
+        {
+            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(userIdString, out int userId)) return Unauthorized();
+
+            // Lấy thông tin hợp đồng hiện tại (để pass qua logic service)
+            var leaseResult = await _leaseService.GetByIdAsync(leaseId);
+            if (!leaseResult.IsSuccess || leaseResult.Data == null)
+            {
+                TempData["ErrorMessage"] = "Hợp đồng không khả dụng.";
+                return RedirectToPage();
+            }
+
+            var dto = new EarlyTerminationDto
+            {
+                LeaseId = leaseId,
+                Reason = "Chủ nhà yêu cầu chấm dứt."
+            };
+
+            var result = await _leaseService.RequestEarlyTerminationAsync(userId, dto);
+            if (result.IsSuccess)
+            {
+                // Gọi thêm confirm termination luôn nếu logic business cho phép landlord ép chấm dứt đơn phương
+                // Ở đây ta gọi RequestEarlyTerminationAsync, service đã đánh dấu LandlordSigned = true
+                TempData["SuccessMessage"] = result.Message;
+            }
+            else
+            {
+                TempData["ErrorMessage"] = result.Message;
+            }
+
+            return RedirectToPage();
+        }
     }
 }

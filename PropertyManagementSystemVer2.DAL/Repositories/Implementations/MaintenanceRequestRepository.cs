@@ -48,5 +48,12 @@ namespace PropertyManagementSystemVer2.DAL.Repositories.Implementations
         {
             return await _dbSet.CountAsync(m => m.PropertyId == propertyId && m.Status == status, cancellationToken);
         }
+
+        public async Task<IEnumerable<MaintenanceRequest>> GetByLandlordIdAsync(int landlordId, MaintenanceStatus? status = null, CancellationToken cancellationToken = default)
+        {
+            var query = _dbSet.Include(m => m.Property).Include(m => m.Requester).Where(m => m.Property.LandlordId == landlordId);
+            if (status.HasValue) query = query.Where(m => m.Status == status.Value);
+            return await query.OrderByDescending(m => m.CreatedAt).ToListAsync(cancellationToken);
+        }
     }
 }
