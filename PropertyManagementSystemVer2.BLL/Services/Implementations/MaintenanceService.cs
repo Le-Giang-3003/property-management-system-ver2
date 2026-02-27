@@ -81,7 +81,9 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
             if (request.Status != MaintenanceStatus.Open) return ServiceResultDto.Failure("Chỉ phê duyệt yêu cầu đang mở.");
 
             request.Status = MaintenanceStatus.InProgress;
-            request.Resolution = $"[ĐÃ KÊU THỢ] \nTên thợ: {technicianName} \nSĐT: {technicianPhone}";
+            request.TechnicianName = technicianName;
+            request.TechnicianPhone = technicianPhone;
+            request.ScheduledDate = DateTime.UtcNow.AddDays(1); // default: ngày mai
             request.UpdatedAt = DateTime.UtcNow;
             _unitOfWork.MaintenanceRequests.Update(request);
             await _unitOfWork.SaveChangesAsync();
@@ -95,7 +97,7 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
             if (request.Status != MaintenanceStatus.Open) return ServiceResultDto.Failure("Chỉ được từ chối yêu cầu đang mở.");
 
             request.Status = MaintenanceStatus.Cancelled;
-            request.Resolution = $"[TỪ CHỐI] Lý do: {reason}";
+            request.RejectionReason = reason;
             request.UpdatedAt = DateTime.UtcNow;
             _unitOfWork.MaintenanceRequests.Update(request);
             await _unitOfWork.SaveChangesAsync();
@@ -109,6 +111,7 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
             if (request.Status != MaintenanceStatus.InProgress) return ServiceResultDto.Failure("Yêu cầu không ở trạng thái đang xử lý.");
 
             request.Status = MaintenanceStatus.Resolved;
+            request.Resolution = resolution; // Bắt lấy value do landlord nhập
             request.ResolvedAt = DateTime.UtcNow;
             request.UpdatedAt = DateTime.UtcNow;
             _unitOfWork.MaintenanceRequests.Update(request);
@@ -207,21 +210,26 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
         {
             return new MaintenanceRequestDto
             {
-                Id = m.Id,
-                PropertyId = m.PropertyId,
-                PropertyTitle = m.Property?.Title ?? string.Empty,
-                LeaseId = m.LeaseId,
-                RequestedBy = m.RequestedBy,
-                RequesterName = m.Requester?.FullName ?? string.Empty,
-                Status = m.Status,
-                Priority = m.Priority,
-                Category = m.Category,
-                Title = m.Title,
-                Description = m.Description,
-                ImageUrls = m.ImageUrls,
-                Resolution = m.Resolution,
-                ResolvedAt = m.ResolvedAt,
-                CreatedAt = m.CreatedAt
+                Id             = m.Id,
+                PropertyId     = m.PropertyId,
+                PropertyTitle  = m.Property?.Title ?? string.Empty,
+                LeaseId        = m.LeaseId,
+                RequestedBy    = m.RequestedBy,
+                RequesterName  = m.Requester?.FullName ?? string.Empty,
+                RequesterPhone = m.Requester?.PhoneNumber ?? string.Empty,
+                Status         = m.Status,
+                Priority       = m.Priority,
+                Category       = m.Category,
+                Title          = m.Title,
+                Description    = m.Description,
+                ImageUrls      = m.ImageUrls,
+                Resolution     = m.Resolution,
+                TechnicianName = m.TechnicianName,
+                TechnicianPhone = m.TechnicianPhone,
+                RejectionReason = m.RejectionReason,
+                ScheduledDate  = m.ScheduledDate,
+                ResolvedAt     = m.ResolvedAt,
+                CreatedAt      = m.CreatedAt
             };
         }
     }

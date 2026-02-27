@@ -3,9 +3,9 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Caching.Memory;
 using PropertyManagementSystemVer2.BLL.DTOs;
 using PropertyManagementSystemVer2.BLL.Services.Interfaces;
-using PropertyManagementSystemVer2.DAL.Enums;
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace PropertyManagementSystemVer2.Web.Pages.Account
@@ -27,7 +27,7 @@ namespace PropertyManagementSystemVer2.Web.Pages.Account
         public RegisterFormModel RegisterForm { get; set; } = new();
 
         [BindProperty]
-        public string ActionType { get; set; } = "SendOtp"; // "SendOtp" or "Verify"
+        public string ActionType { get; set; } = "SendOtp";
 
         public string? ErrorMessage { get; set; }
         public string? SuccessMessage { get; set; }
@@ -35,14 +35,15 @@ namespace PropertyManagementSystemVer2.Web.Pages.Account
         public class RegisterFormModel
         {
             [Required(ErrorMessage = "Vui lòng nhập họ và tên")]
+            [StringLength(100, MinimumLength = 2, ErrorMessage = "Họ tên phải từ 2 đến 100 ký tự")]
             public string FullName { get; set; } = string.Empty;
 
             [Required(ErrorMessage = "Vui lòng nhập email")]
-            [EmailAddress(ErrorMessage = "Email không hợp lệ")]
+            [EmailAddress(ErrorMessage = "Địa chỉ email không hợp lệ")]
             public string Email { get; set; } = string.Empty;
 
             [Required(ErrorMessage = "Vui lòng nhập mật khẩu")]
-            [MinLength(8, ErrorMessage = "Mật khẩu phải từ 8 ký tự")]
+            [MinLength(8, ErrorMessage = "Mật khẩu phải từ 8 ký tự trở lên")]
             public string Password { get; set; } = string.Empty;
 
             [Required(ErrorMessage = "Vui lòng xác nhận mật khẩu")]
@@ -52,6 +53,7 @@ namespace PropertyManagementSystemVer2.Web.Pages.Account
             [Required(ErrorMessage = "Vui lòng nhập số điện thoại")]
             public string PhoneNumber { get; set; } = string.Empty;
 
+            // "Tenant" or "Landlord" — default Tenant
             public string Role { get; set; } = "Tenant";
 
             public string OtpCode { get; set; } = string.Empty;
@@ -59,98 +61,224 @@ namespace PropertyManagementSystemVer2.Web.Pages.Account
 
         public void OnGet()
         {
+            // Ensure default role
+            RegisterForm.Role = "Tenant";
         }
 
         public async Task<IActionResult> OnPostAsync()
         {
+            // User clicked "Back / change info"
             if (ActionType == "Edit")
             {
-                ActionType = "SendOtp"; // Sets it so next submission will fire SendOtp
+                ActionType = "SendOtp";
                 return Page();
             }
 
+            // ===== BƯỚC 1: Validate và gửi OTP =====
             if (ActionType == "SendOtp")
             {
-                if (string.IsNullOrEmpty(RegisterForm.Email) || string.IsNullOrEmpty(RegisterForm.Password) || string.IsNullOrEmpty(RegisterForm.FullName) || string.IsNullOrEmpty(RegisterForm.PhoneNumber))
+                var validationError = ValidateRegisterForm();
+                if (validationError != null)
                 {
-                    ErrorMessage = "Vui lòng điền đầy đủ các thông tin bắt buộc.";
+                    ErrorMessage = validationError;
+                    ActionType = "SendOtp";
                     return Page();
                 }
 
-                if (RegisterForm.Password != RegisterForm.ConfirmPassword)
+                // Chuẩn hóa email NGAY ở đây để cache key nhất quán
+                var normalizedEmail = RegisterForm.Email.Trim().ToLower();
+                RegisterForm.Email = normalizedEmail;
+
+                // Kiểm tra email chưa tồn tại
+                var existingUser = await _userService.GetByEmailAsync(normalizedEmail);
+                if (existingUser.IsSuccess && existingUser.Data != null)
                 {
-                    ErrorMessage = "Mật khẩu xác nhận không khớp.";
+                    ErrorMessage = "Email này đã được đăng ký. Vui lòng dùng email khác hoặc đăng nhập.";
+                    ActionType = "SendOtp";
                     return Page();
                 }
 
-                // Generate OTP
+                // Tạo OTP 6 số
                 var rnd = new Random();
                 var otp = rnd.Next(100000, 999999).ToString();
-                
-                // Store in cache for 5 minutes
-                _memoryCache.Set($"OTP_{RegisterForm.Email}", otp, TimeSpan.FromMinutes(5));
 
-                // Send email
-                var emailBody = $"Mã xác thực OTP của bạn là: <b>{otp}</b>. Mã này sẽ hết hạn trong 5 phút.";
-                await _emailService.SendEmailAsync(RegisterForm.Email, "Mã xác thực đăng ký tài khoản PropertyMS", emailBody);
+                // Cache key luôn dùng email đã chuẩn hóa (lowercase, trimmed)
+                var cacheKey = $"OTP_{normalizedEmail}";
+                _memoryCache.Set(cacheKey, otp, TimeSpan.FromMinutes(5));
+
+                // Gửi email
+                var emailBody = BuildOtpEmailBody(RegisterForm.FullName.Trim(), otp);
+                try
+                {
+                    await _emailService.SendEmailAsync(
+                        normalizedEmail,
+                        "Mã xác thực đăng ký tài khoản PropertyMS",
+                        emailBody
+                    );
+                }
+                catch
+                {
+                    // Xóa OTP nếu gửi email thất bại
+                    _memoryCache.Remove(cacheKey);
+                    ErrorMessage = "Không thể gửi email xác thực. Vui lòng thử lại.";
+                    ActionType = "SendOtp";
+                    return Page();
+                }
 
                 ActionType = "Verify";
-                SuccessMessage = "Mã OTP đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư đến (và thư rác). Bạn có 5 phút để nhập mã.";
+                SuccessMessage = $"Mã OTP đã được gửi đến {normalizedEmail}. Vui lòng kiểm tra hộp thư (bao gồm thư rác). Mã hết hạn sau 5 phút.";
                 return Page();
             }
 
+            // ===== BƯỚC 2: Xác thực OTP và tạo tài khoản =====
             if (ActionType == "Verify")
             {
-                if (string.IsNullOrEmpty(RegisterForm.OtpCode))
+                // Chuẩn hóa email để cache key khớp với bước SendOtp
+                var normalizedEmail = (RegisterForm.Email ?? "").Trim().ToLower();
+                var cacheKey = $"OTP_{normalizedEmail}";
+                var cleanOtp = (RegisterForm.OtpCode ?? "").Trim();
+
+                // Kiểm tra OTP nhập vào
+                if (string.IsNullOrEmpty(cleanOtp) || cleanOtp.Length != 6)
                 {
-                    ErrorMessage = "Vui lòng nhập mã OTP.";
+                    ErrorMessage = "Vui lòng nhập đủ 6 chữ số của mã OTP.";
                     ActionType = "Verify";
                     return Page();
                 }
 
-                var cachedOtp = _memoryCache.Get<string>($"OTP_{RegisterForm.Email}");
-                if (cachedOtp == null || cachedOtp != RegisterForm.OtpCode)
+                // Lấy OTP từ cache
+                var cachedOtp = _memoryCache.Get<string>(cacheKey);
+
+                if (cachedOtp == null)
                 {
-                    ErrorMessage = "Mã OTP không đúng hoặc đã hết hạn.";
+                    ErrorMessage = "Mã OTP đã hết hạn (5 phút). Vui lòng quay lại và gửi lại mã mới.";
+                    ActionType = "SendOtp";
+                    return Page();
+                }
+
+                if (cachedOtp != cleanOtp)
+                {
+                    ErrorMessage = "Mã OTP không chính xác. Vui lòng kiểm tra lại email.";
                     ActionType = "Verify";
                     return Page();
                 }
 
-                // Remove OTP to prevent reuse
-                _memoryCache.Remove($"OTP_{RegisterForm.Email}");
-
+                // OTP đúng — Tạo tài khoản
                 var registerDto = new RegisterDto
                 {
-                    FullName = RegisterForm.FullName,
-                    Email = RegisterForm.Email,
-                    Password = RegisterForm.Password,
-                    PhoneNumber = RegisterForm.PhoneNumber
+                    FullName    = RegisterForm.FullName.Trim(),
+                    Email       = normalizedEmail,
+                    Password    = RegisterForm.Password,
+                    PhoneNumber = RegisterForm.PhoneNumber.Trim()
                 };
 
                 var result = await _userService.RegisterAsync(registerDto);
                 if (!result.IsSuccess)
                 {
+                    // Tài khoản tạo thất bại (VD: email trùng race condition)
+                    // Xóa OTP vì không còn dùng được
+                    _memoryCache.Remove(cacheKey);
                     ErrorMessage = result.Message;
-                    ActionType = "SendOtp"; // Redirect back to registration if error
+                    ActionType = "SendOtp";
                     return Page();
                 }
 
-                // Default Role is Tenant in backend. If Landlord is selected, update role.
-                if (RegisterForm.Role == "Landlord")
+                // Thành công — xóa OTP khỏi cache
+                _memoryCache.Remove(cacheKey);
+
+                // Gán role Landlord nếu được chọn
+                if (RegisterForm.Role == "Landlord" && result.Data != null)
                 {
-                    await _userService.UpdateUserRoleAsync(new UpdateUserRoleDto {
-                        UserId = result.Data.Id,
-                        IsTenant = false,
+                    await _userService.UpdateUserRoleAsync(new UpdateUserRoleDto
+                    {
+                        UserId     = result.Data.Id,
+                        IsTenant   = false,
                         IsLandlord = true
                     });
                 }
 
-                SuccessMessage = "Đăng ký thành công! Vui lòng đăng nhập.";
                 ActionType = "Success";
                 return Page();
             }
 
             return Page();
+        }
+
+        // ── Helpers ──────────────────────────────────────────────────────────
+
+        private string? ValidateRegisterForm()
+        {
+            if (string.IsNullOrWhiteSpace(RegisterForm.FullName))
+                return "Vui lòng nhập họ và tên.";
+
+            if (RegisterForm.FullName.Trim().Length < 2)
+                return "Họ tên phải có ít nhất 2 ký tự.";
+
+            if (string.IsNullOrWhiteSpace(RegisterForm.Email))
+                return "Vui lòng nhập địa chỉ email.";
+
+            if (!Regex.IsMatch(RegisterForm.Email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
+                return "Địa chỉ email không hợp lệ.";
+
+            if (string.IsNullOrWhiteSpace(RegisterForm.PhoneNumber))
+                return "Vui lòng nhập số điện thoại.";
+
+            var cleanPhone = RegisterForm.PhoneNumber.Replace(" ", "").Replace("-", "");
+            if (!Regex.IsMatch(cleanPhone, @"^(0[3|5|7|8|9])[0-9]{8}$"))
+                return "Số điện thoại không hợp lệ. Vui lòng nhập số 10 chữ số bắt đầu bằng 0 (VD: 0912345678).";
+
+            RegisterForm.PhoneNumber = cleanPhone;
+
+            if (string.IsNullOrWhiteSpace(RegisterForm.Password))
+                return "Vui lòng nhập mật khẩu.";
+
+            if (RegisterForm.Password.Length < 8)
+                return "Mật khẩu phải có ít nhất 8 ký tự.";
+
+            // Kiểm tra độ phức tạp mật khẩu (giống yêu cầu của UserService.IsValidPassword)
+            if (!RegisterForm.Password.Any(char.IsUpper))
+                return "Mật khẩu phải có ít nhất 1 chữ IN HOA (VD: A, B, C...).";
+
+            if (!RegisterForm.Password.Any(char.IsLower))
+                return "Mật khẩu phải có ít nhất 1 chữ thường (VD: a, b, c...).";
+
+            if (!RegisterForm.Password.Any(char.IsDigit))
+                return "Mật khẩu phải có ít nhất 1 chữ số (VD: 1, 2, 3...).";
+
+            if (!RegisterForm.Password.Any(c => !char.IsLetterOrDigit(c)))
+                return "Mật khẩu phải có ít nhất 1 ký tự đặc biệt (VD: @, #, !, *, $...).";
+
+            if (RegisterForm.Password != RegisterForm.ConfirmPassword)
+                return "Mật khẩu xác nhận không khớp.";
+
+            if (RegisterForm.Role != "Tenant" && RegisterForm.Role != "Landlord")
+                RegisterForm.Role = "Tenant";
+
+            return null; // valid
+        }
+
+        private static string BuildOtpEmailBody(string fullName, string otp)
+        {
+            return $@"
+                <div style='font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; background: #0f172a; color: #e2e8f0; border-radius: 16px; overflow: hidden;'>
+                    <div style='background: linear-gradient(135deg, #6366f1, #8b5cf6); padding: 28px; text-align: center;'>
+                        <div style='font-size: 36px; margin-bottom: 8px;'>🏢</div>
+                        <h2 style='margin: 0; color: white; font-size: 20px;'>PropertyMS</h2>
+                    </div>
+                    <div style='padding: 28px;'>
+                        <p style='margin: 0 0 16px; font-size: 15px;'>Xin chào <strong style='color: #818cf8;'>{System.Net.WebUtility.HtmlEncode(fullName)}</strong>,</p>
+                        <p style='margin: 0 0 24px; color: #94a3b8; font-size: 14px;'>Đây là mã xác thực OTP để hoàn tất đăng ký tài khoản:</p>
+                        <div style='background: #1e293b; border: 2px solid #6366f1; border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 24px;'>
+                            <div style='font-size: 36px; font-weight: 800; letter-spacing: 12px; color: #818cf8;'>{otp}</div>
+                        </div>
+                        <p style='margin: 0 0 8px; color: #94a3b8; font-size: 13px;'>⏱ Mã có hiệu lực trong <strong style='color: #f59e0b;'>5 phút</strong>.</p>
+                        <p style='margin: 0; color: #94a3b8; font-size: 13px;'>🔒 Không chia sẻ mã này với bất kỳ ai.</p>
+                    </div>
+                    <div style='background: #0f172a; border-top: 1px solid #1e293b; padding: 16px; text-align: center; font-size: 12px; color: #475569;'>
+                        © 2026 PropertyMS — PRN222 Application
+                    </div>
+                </div>
+            ";
         }
     }
 }
