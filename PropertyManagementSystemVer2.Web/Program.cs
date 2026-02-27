@@ -9,7 +9,7 @@ builder.Services.AddRazorPages();
 
 // Dependency injection (phải đăng ký trước Build())
 builder.Services.AddInfrastructure(builder.Configuration); // DAL Layer
-builder.Services.AddBusinessLogic(); // BLL Layer
+builder.Services.AddBusinessLogic(builder.Configuration); // BLL Layer
 
 // Cloudinary Configuration
 builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection("CloudinarySettings"));

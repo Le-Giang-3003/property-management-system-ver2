@@ -17,6 +17,13 @@ namespace PropertyManagementSystemVer2.BLL.DTOs
         public string Description { get; set; } = string.Empty;
         public string? ImageUrls { get; set; }
         public string? Resolution { get; set; }
+        // Kỹ thuật viên (khi phê duyệt)
+        public string? TechnicianName { get; set; }
+        public string? TechnicianPhone { get; set; }
+        // Lý do từ chối
+        public string? RejectionReason { get; set; }
+        // Lịch sửa
+        public DateTime? ScheduledDate { get; set; }
         public DateTime? ResolvedAt { get; set; }
         public DateTime CreatedAt { get; set; }
     }

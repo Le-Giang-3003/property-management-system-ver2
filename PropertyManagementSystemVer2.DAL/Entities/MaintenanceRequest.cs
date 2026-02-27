@@ -28,9 +28,20 @@ namespace PropertyManagementSystemVer2.DAL.Entities
 
         public string Description { get; set; } = string.Empty;
 
-        public string? ImageUrls { get; set; } // JSON array của URLs hình ảnh
+        public string? ImageUrls { get; set; } // Danh sách URLs ảnh, ngăn cách bằng dấu phẩy
 
-        public string? Resolution { get; set; }
+        public string? Resolution { get; set; } // Kết quả xử lý
+
+        // Thông tin kỹ thuật viên (lưu khi Landlord phê duyệt)
+        public string? TechnicianName { get; set; }
+
+        public string? TechnicianPhone { get; set; }
+
+        // Lý do từ chối (lưu khi Landlord từ chối)
+        public string? RejectionReason { get; set; }
+
+        // Ngày lên lịch sửa chữa
+        public DateTime? ScheduledDate { get; set; }
 
         public DateTime? ResolvedAt { get; set; }
 
@@ -46,3 +57,4 @@ namespace PropertyManagementSystemVer2.DAL.Entities
         public User Requester { get; set; } = null!;
     }
 }
+

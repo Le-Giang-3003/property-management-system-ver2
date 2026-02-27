@@ -133,6 +133,15 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
             return ServiceResultDto<UserDto>.Success(MapToUserDto(user));
         }
 
+        public async Task<ServiceResultDto<UserDto>> GetByEmailAsync(string email)
+        {
+            var user = await _unitOfWork.Users.GetByEmailAsync(email);
+            if (user == null)
+                return ServiceResultDto<UserDto>.Failure("Khong tim thay nguoi dung.");
+
+            return ServiceResultDto<UserDto>.Success(MapToUserDto(user));
+        }
+
         public async Task<ServiceResultDto> ChangePasswordAsync(int userId, ChangePasswordDto dto)
         {
             var user = await _unitOfWork.Users.GetByIdAsync(userId);
