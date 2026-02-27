@@ -208,6 +208,10 @@
                             <div>
                                 <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:4px;">👤 Người yêu cầu</div>
                                 <div style="font-weight:600; font-size:13px;">@req.RequesterName</div>
+                                @if (!string.IsNullOrEmpty(req.RequesterPhone))
+                                {
+                                    <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">📞 @req.RequesterPhone</div>
+                                }
                             </div>
                         </div>
 

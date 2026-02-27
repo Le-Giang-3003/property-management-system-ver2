@@ -10,6 +10,7 @@ namespace PropertyManagementSystemVer2.BLL.DTOs
         public int LeaseId { get; set; }
         public int RequestedBy { get; set; }
         public string RequesterName { get; set; } = string.Empty;
+        public string RequesterPhone { get; set; } = string.Empty;
         public MaintenanceStatus Status { get; set; }
         public MaintenancePriority Priority { get; set; }
         public MaintenanceCategory Category { get; set; }

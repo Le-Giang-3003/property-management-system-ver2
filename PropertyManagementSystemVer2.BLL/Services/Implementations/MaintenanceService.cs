@@ -111,6 +111,7 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
             if (request.Status != MaintenanceStatus.InProgress) return ServiceResultDto.Failure("Yêu cầu không ở trạng thái đang xử lý.");
 
             request.Status = MaintenanceStatus.Resolved;
+            request.Resolution = resolution; // Bắt lấy value do landlord nhập
             request.ResolvedAt = DateTime.UtcNow;
             request.UpdatedAt = DateTime.UtcNow;
             _unitOfWork.MaintenanceRequests.Update(request);
@@ -215,6 +216,7 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
                 LeaseId        = m.LeaseId,
                 RequestedBy    = m.RequestedBy,
                 RequesterName  = m.Requester?.FullName ?? string.Empty,
+                RequesterPhone = m.Requester?.PhoneNumber ?? string.Empty,
                 Status         = m.Status,
                 Priority       = m.Priority,
                 Category       = m.Category,
