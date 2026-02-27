@@ -1,0 +1,7 @@
+- bây giờ bạn hãy đọc database của tôi để hiểu các trường của đơn xin thuê property và bản hợp đồng thuê nhà sau đó hãy làm workflow tenant thuê nhà của landlord theo hướng dẫn của tôi
+1. tenant vào trang tìm thuê nhà và bấm nộp đơn vào property mà họ muốn thuê sau đó phải nhập các field cần thiết vào (hiện tại có nhưng có thể chưa đủ)
+2. sau khi nộp đơn thì landlord sẽ xem và có đồng ý hay không (nếu không thì ghi rõ lý do và phải hiện trên giao diện như thế nào đó để cả 2 thấy được khi xem lại)
+3. nếu landlord đồng ý thì landlord sẽ tạo 1 bản hợp đồng với người thuê nhà sẽ gồm các thông tin cần thiết của 1 bản hợp đồng thuê nhà
+4. sau đó 2 bên sẽ ký tên vào
+5. kết thúc flow thuê nhà
+- Tầng service tôi nhớ có viết logic xử lý cho phần này rồi nhưng có thể chưa phù hợp bạn hãy xem và chỉnh sửa lại cho phù hợp nhé
