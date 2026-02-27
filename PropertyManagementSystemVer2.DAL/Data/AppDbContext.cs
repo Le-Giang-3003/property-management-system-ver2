@@ -234,7 +234,7 @@ namespace PropertyManagementSystemVer2.DAL.Data
                 entity.Property(e => e.Title).HasMaxLength(300).IsRequired();
                 entity.Property(e => e.Description).HasMaxLength(3000).IsRequired();
                 entity.Property(e => e.ImageUrls).HasMaxLength(2000);
-                entity.Property(e => e.Resolution).HasMaxLength(2000);
+
                 entity.Property(e => e.Status).HasConversion<string>();
                 entity.Property(e => e.Priority).HasConversion<string>();
                 entity.Property(e => e.Category).HasConversion<string>();

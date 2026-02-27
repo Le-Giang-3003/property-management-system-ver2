@@ -99,6 +99,10 @@
                                 {
                                     <span class="badge badge-success">Đã xong</span>
                                 }
+                                else if (req.Status.ToString() == "Cancelled")
+                                {
+                                    <span class="badge badge-danger">Đã hủy</span>
+                                }
                                 else
                                 {
                                     <span class="badge badge-gray">@req.Status</span>
@@ -186,11 +190,6 @@
                 <div class="form-group">
                     <label class="form-label" style="display: block; margin-bottom: 8px; font-weight: 500;">Mô tả chi tiết *</label>
                     <textarea name="description" class="form-control" rows="4" placeholder="Mô tả chi tiết sự cố, vị trí, thời gian phát hiện..." required style="width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px;"></textarea>
-                <div class="form-group" style="margin-bottom: 16px;">
-                    <label class="form-label" style="display: block; margin-bottom: 8px; font-weight: 500;">
-                        <i data-feather="calendar" style="width: 14px; margin-right: 4px;"></i>Ngày mong muốn thợ đến sửa
-                    </label>
-                    <input type="date" name="scheduledDate" class="form-control" style="width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px;" min="@DateTime.Now.ToString("yyyy-MM-dd")" />
                 </div>
                 
                 <div class="form-group" style="margin-bottom: 16px;">
@@ -241,6 +240,10 @@
                         {
                             <span class="badge badge-success">Đã xong</span>
                         }
+                        else if (req.Status.ToString() == "Cancelled")
+                        {
+                            <span class="badge badge-danger">Đã hủy</span>
+                        }
                         else
                         {
                             <span class="badge badge-gray">@req.Status</span>
@@ -259,7 +262,7 @@
                         <span class="badge badge-gray">@badgeCategoryLabel</span>
                     </div>
                     
-                    <div style="background-color: #fff; border-radius: 8px; padding: 16px; border: 1px solid var(--border);">
+                    <div style="background-color: var(--bg-card); border-radius: 8px; padding: 16px; border: 1px solid var(--border);">
                         <div class="info-row" style="display: flex; justify-content: space-between; margin-bottom: 12px; border-bottom: 1px dashed var(--border); padding-bottom: 8px;">
                             <span class="info-label" style="color: var(--text-muted); font-size: 13px;">BDS</span>
                             <span class="info-value" style="font-weight: 500;">@req.PropertyTitle</span>
@@ -272,13 +275,15 @@
                             <span class="info-label" style="color: var(--text-muted); font-size: 13px;">Ngày tạo</span>
                             <span class="info-value" style="font-weight: 500;">@req.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
                         </div>
-                        @if (req.ScheduledDate.HasValue)
+
+                        @if (!string.IsNullOrEmpty(req.Resolution))
                         {
-                            <div class="info-row" style="display: flex; justify-content: space-between; margin-bottom: 12px; border-bottom: 1px dashed var(--border); padding-bottom: 8px;">
-                                <span class="info-label" style="color: var(--text-muted); font-size: 13px;">Ngày hẹn xử lý</span>
-                                <span class="info-value" style="font-weight: 500;">@req.ScheduledDate.Value.ToString("dd/MM/yyyy")</span>
+                            <div class="info-row" style="display: flex; flex-direction: column; gap: 4px; border-bottom: 1px dashed var(--border); padding-bottom: 8px; margin-bottom: 12px;">
+                                <span class="info-label" style="color: var(--text-muted); font-size: 13px;">Lịch sử / Phản hồi</span>
+                                <span class="info-value" style="white-space: pre-wrap; font-size: 14px; color: var(--primary);">@req.Resolution</span>
                             </div>
                         }
+
                         @if (!string.IsNullOrEmpty(req.ImageUrls))
                         {
                             var images = req.ImageUrls.Split(',');
@@ -296,13 +301,7 @@
                                 </div>
                             </div>
                         }
-                        @if (!string.IsNullOrEmpty(req.Resolution))
-                        {
-                            <div class="info-row" style="display: flex; flex-direction: column; gap: 4px; border-bottom: 1px dashed var(--border); padding-bottom: 8px; margin-bottom: 12px;">
-                                <span class="info-label" style="color: var(--text-muted); font-size: 13px;">Lịch sử / Phản hồi</span>
-                                <span class="info-value" style="white-space: pre-wrap; font-size: 14px; color: var(--primary);">@req.Resolution</span>
-                            </div>
-                        }
+
                     </div>
                 </div>
                 <div class="modal-footer">

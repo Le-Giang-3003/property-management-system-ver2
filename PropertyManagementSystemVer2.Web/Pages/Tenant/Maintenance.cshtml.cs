@@ -47,7 +47,7 @@ namespace PropertyManagementSystemVer2.Web.Pages.Tenant
             return Page();
         }
 
-        public async Task<IActionResult> OnPostCreateAsync(int leaseId, int propertyId, DAL.Enums.MaintenancePriority priority, DAL.Enums.MaintenanceCategory category, string title, string description, DateTime? scheduledDate, IFormFileCollection files)
+        public async Task<IActionResult> OnPostCreateAsync(int leaseId, int propertyId, DAL.Enums.MaintenancePriority priority, DAL.Enums.MaintenanceCategory category, string title, string description, List<IFormFile> files)
         {
             var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (int.TryParse(userIdString, out int userId))
@@ -76,8 +76,7 @@ namespace PropertyManagementSystemVer2.Web.Pages.Tenant
                     Description = description,
                     Category = category,
                     Priority = priority,
-                    ImageUrls = uploadedUrls.Any() ? string.Join(",", uploadedUrls) : null,
-                    ScheduledDate = scheduledDate
+                    ImageUrls = uploadedUrls.Any() ? string.Join(",", uploadedUrls) : null
                 };
 
                 var result = await _maintenanceService.CreateRequestAsync(userId, dto);

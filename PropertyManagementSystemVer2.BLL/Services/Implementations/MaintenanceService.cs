@@ -38,7 +38,6 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
                 Title = dto.Title,
                 Description = dto.Description,
                 ImageUrls = dto.ImageUrls,
-                ScheduledDate = dto.ScheduledDate,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -66,8 +65,6 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
 
             // BR35.2: Thay đổi priority
             if (dto.Priority.HasValue) request.Priority = dto.Priority.Value;
-            // BR35.3: Set estimated completion date
-            if (dto.ScheduledDate.HasValue) request.ScheduledDate = dto.ScheduledDate.Value;
 
             request.UpdatedAt = DateTime.UtcNow;
             _unitOfWork.MaintenanceRequests.Update(request);
@@ -84,7 +81,7 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
             if (request.Status != MaintenanceStatus.Open) return ServiceResultDto.Failure("Chỉ phê duyệt yêu cầu đang mở.");
 
             request.Status = MaintenanceStatus.InProgress;
-            request.Resolution = (request.Resolution ?? "") + $"\n[ĐÃ KÊU THỢ] {technicianName} - {technicianPhone}";
+            request.Resolution = $"[ĐÃ KÊU THỢ] \nTên thợ: {technicianName} \nSĐT: {technicianPhone}";
             request.UpdatedAt = DateTime.UtcNow;
             _unitOfWork.MaintenanceRequests.Update(request);
             await _unitOfWork.SaveChangesAsync();
@@ -98,7 +95,7 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
             if (request.Status != MaintenanceStatus.Open) return ServiceResultDto.Failure("Chỉ được từ chối yêu cầu đang mở.");
 
             request.Status = MaintenanceStatus.Cancelled;
-            request.Resolution = (request.Resolution ?? "") + $"\n[TỪ CHỐI] {reason}";
+            request.Resolution = $"[TỪ CHỐI] Lý do: {reason}";
             request.UpdatedAt = DateTime.UtcNow;
             _unitOfWork.MaintenanceRequests.Update(request);
             await _unitOfWork.SaveChangesAsync();
@@ -112,7 +109,6 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
             if (request.Status != MaintenanceStatus.InProgress) return ServiceResultDto.Failure("Yêu cầu không ở trạng thái đang xử lý.");
 
             request.Status = MaintenanceStatus.Resolved;
-            request.Resolution = (request.Resolution ?? "") + $"\n[HOÀN THÀNH] {resolution}";
             request.ResolvedAt = DateTime.UtcNow;
             request.UpdatedAt = DateTime.UtcNow;
             _unitOfWork.MaintenanceRequests.Update(request);
@@ -141,7 +137,6 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
                 // BR37.3: Reopen
                 request.Status = MaintenanceStatus.InProgress;
                 request.ResolvedAt = null;
-                request.Resolution = (request.Resolution ?? "") + $"\n[REOPEN - {DateTime.UtcNow:dd/MM/yyyy}] Chưa hài lòng với kết quả";
             }
 
             request.UpdatedAt = DateTime.UtcNow;
@@ -226,7 +221,6 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
                 ImageUrls = m.ImageUrls,
                 Resolution = m.Resolution,
                 ResolvedAt = m.ResolvedAt,
-                ScheduledDate = m.ScheduledDate,
                 CreatedAt = m.CreatedAt
             };
         }

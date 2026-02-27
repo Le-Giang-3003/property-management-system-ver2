@@ -69,12 +69,12 @@ namespace PropertyManagementSystemVer2.Web.Pages.Landlord
             return RedirectToPage();
         }
 
-        public async Task<IActionResult> OnPostCompleteAsync(int requestId, string resolution)
+        public async Task<IActionResult> OnPostCompleteAsync(int requestId)
         {
             var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (int.TryParse(userIdString, out int userId))
             {
-                var result = await _maintenanceService.LandlordCompleteAsync(userId, requestId, resolution);
+                var result = await _maintenanceService.LandlordCompleteAsync(userId, requestId, "");
                 if (!result.IsSuccess)
                 {
                     TempData["ErrorMessage"] = result.Message;

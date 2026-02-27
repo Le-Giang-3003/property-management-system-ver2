@@ -18,7 +18,6 @@ namespace PropertyManagementSystemVer2.BLL.DTOs
         public string? ImageUrls { get; set; }
         public string? Resolution { get; set; }
         public DateTime? ResolvedAt { get; set; }
-        public DateTime? ScheduledDate { get; set; }
         public DateTime CreatedAt { get; set; }
     }
 
@@ -31,14 +30,12 @@ namespace PropertyManagementSystemVer2.BLL.DTOs
         public string Title { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public string? ImageUrls { get; set; }
-        public DateTime? ScheduledDate { get; set; }
     }
 
     public class UpdateMaintenanceRequestDto
     {
         public int RequestId { get; set; }
         public MaintenancePriority? Priority { get; set; }
-        public DateTime? ScheduledDate { get; set; }
     }
 
     public class AssignTechnicianDto
@@ -50,7 +47,6 @@ namespace PropertyManagementSystemVer2.BLL.DTOs
     public class CompleteMaintenanceDto
     {
         public int RequestId { get; set; }
-        public string Resolution { get; set; } = string.Empty;
         public string? ImageUrls { get; set; }
     }
 

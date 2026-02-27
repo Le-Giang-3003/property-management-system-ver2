@@ -30,12 +30,9 @@ namespace PropertyManagementSystemVer2.DAL.Entities
 
         public string? ImageUrls { get; set; } // JSON array của URLs hình ảnh
 
-        // Thông tin xử lý
-        public string? Resolution { get; set; } // Mô tả cách giải quyết
+        public string? Resolution { get; set; }
 
         public DateTime? ResolvedAt { get; set; }
-
-        public DateTime? ScheduledDate { get; set; } // Ngày hẹn xử lý
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
