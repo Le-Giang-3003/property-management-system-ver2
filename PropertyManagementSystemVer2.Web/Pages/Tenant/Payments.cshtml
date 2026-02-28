@@ -90,7 +90,13 @@
                                     @payment.DueDate.ToString("dd/MM/yyyy")
                                 </div>
                             </td>
-                            <td style="color: var(--success); font-weight: 700;">@payment.Amount.ToString("N0")đ</td>
+                            <td>
+                                <div style="color: var(--success); font-weight: 700;">@payment.Amount.ToString("N0")đ</div>
+                                @if (payment.LateFeeAmount.HasValue && payment.LateFeeAmount > 0)
+                                {
+                                    <div style="font-size: 11px; color: var(--danger);">+ Phạt: @payment.LateFeeAmount.Value.ToString("N0")đ</div>
+                                }
+                            </td>
                             <td>
                                 @if (payment.Status.ToString() == "Pending")
                                 {
@@ -108,6 +114,10 @@
                                 {
                                     <span class="badge badge-danger">Thất bại</span>
                                 }
+                                else if (payment.Status.ToString() == "OverduePaid")
+                                {
+                                    <span class="badge" style="background: rgba(234,88,12,0.15); color: #ea580c; border: 1px solid rgba(234,88,12,0.3);">Quá hạn / Đã TP</span>
+                                }
                                 else
                                 {
                                     <span class="badge" style="background: rgba(148,163,184,0.15); color: var(--text-muted);">@payment.Status</span>
@@ -121,6 +131,9 @@
                                             <i data-feather="image" style="width: 14px;"></i>
                                         </a>
                                     }
+                                    <button class="btn btn-secondary btn-sm" onclick="openDetail(@payment.Id)" style="padding: 0 8px;">
+                                        <i data-feather="eye" style="width: 14px; margin-right: 4px;"></i>Chi tiết
+                                    </button>
                                     @if (isPayable)
                                     {
                                         <button class="btn btn-primary btn-sm" onclick="openPayModal(@payment.Id)" data-id="@payment.Id">
@@ -174,11 +187,61 @@
         landlordBankName: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(payment.LandlordBankName ?? "")),
         landlordBankHolder: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(payment.LandlordBankAccountHolder ?? "")),
         hasBank: @(hasBank2 ? "true" : "false"),
-        paymentProof: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(payment.PaymentProof ?? ""))
+        paymentProof: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(payment.PaymentProof ?? "")),
+        paymentMethod: "@(payment.PaymentMethod.ToString() ?? "")",
+        transactionId: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(payment.TransactionId ?? "")),
+        paidDate: "@(payment.PaidDate?.ToString("dd/MM/yyyy HH:mm") ?? "")"
     };
         </text>
     }
 </script>
+
+<!-- ===== Validation and Detail Modal ===== -->
+<div class="modal-overlay" id="detailModal" style="display: none;" onclick="closeDetail()">
+    <div class="modal" style="max-width: 500px; width: 95%; max-height: 90vh; overflow-y: auto;" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <span class="modal-title"><i data-feather="file-text" style="width: 16px; margin-right: 6px;"></i>Chi tiết thanh toán</span>
+            <button class="modal-close btn btn-ghost btn-sm btn-icon" onclick="closeDetail()">✕</button>
+        </div>
+        <div class="modal-body" style="padding: 20px;">
+            <div style="background: var(--bg-primary); border: 1px solid var(--border); border-radius: 12px; padding: 16px;">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 6px;" id="d_desc"></div>
+                    <div style="font-size: 28px; font-weight: 800; color: var(--accent);" id="d_amount"></div>
+                </div>
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--border); padding-bottom: 8px; margin-bottom: 8px;">
+                    <span style="color: var(--text-secondary); font-size: 13px;">Chủ nhà</span>
+                    <span id="d_landlord" style="font-weight: 600; font-size: 13px;"></span>
+                </div>
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--border); padding-bottom: 8px; margin-bottom: 8px;">
+                    <span style="color: var(--text-secondary); font-size: 13px;">Phương thức</span>
+                    <span id="d_method" style="font-weight: 600; font-size: 13px;"></span>
+                </div>
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--border); padding-bottom: 8px; margin-bottom: 8px;">
+                    <span style="color: var(--text-secondary); font-size: 13px;">Mã giao dịch</span>
+                    <span id="d_txid" style="font-weight: 600; font-family: monospace; font-size: 13px;"></span>
+                </div>
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--border); padding-bottom: 8px; margin-bottom: 8px;">
+                    <span style="color: var(--text-secondary); font-size: 13px;">Hạn chót</span>
+                    <span id="d_due" style="font-weight: 600; font-size: 13px;"></span>
+                </div>
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--border); padding-bottom: 8px;">
+                    <span style="color: var(--text-secondary); font-size: 13px;">Ngày xác nhận/thanh toán</span>
+                    <span id="d_paid" style="font-weight: 600; font-size: 13px;"></span>
+                </div>
+            </div>
+            <div id="d_proof_wrap" style="margin-top: 16px; display: none;">
+                <div style="color: var(--text-secondary); font-size: 13px; margin-bottom: 8px;">📎 Biên lai thanh toán đính kèm</div>
+                <a id="d_proof_link" href="#" target="_blank">
+                    <img id="d_proof_img" src="" style="width: 100%; max-height: 200px; object-fit: contain; border-radius: 8px; border: 1px solid var(--border);" />
+                </a>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeDetail()">Đóng</button>
+        </div>
+    </div>
+</div>
 
 <!-- ===== Payment Modal ===== -->
 <div class="modal-overlay" id="payModal" style="display: none;" onclick="closePayModal()">
@@ -364,6 +427,41 @@
                 if (key.includes(name) || name.includes(key)) return bin;
             }
             return null;
+        }
+
+        function openDetail(id) {
+            const p = window._payments[id];
+            if (!p) return;
+            document.getElementById('d_desc').innerText = p.description;
+            
+            let amountHtml = `<div>${p.amountFormatted}đ</div>`;
+            if (p.lateFeeAmount > 0) {
+                amountHtml += `<div style="font-size: 14px; color: var(--danger); margin-top: 4px;">+ Phạt: ${p.lateFeeFormatted}đ</div>`;
+            }
+            document.getElementById('d_amount').innerHTML = amountHtml;
+
+            document.getElementById('d_landlord').innerText = p.landlordName || '—';
+            
+            const methodMap = { BankTransfer: 'Chuyển khoản', Cash: 'Tiền mặt', CreditCard: 'Thẻ tín dụng', EWallet: 'Ví điện tử' };
+            document.getElementById('d_method').innerText = methodMap[p.paymentMethod] || p.paymentMethod || '—';
+            document.getElementById('d_txid').innerText = p.transactionId || '—';
+            document.getElementById('d_due').innerText = p.dueDate;
+            document.getElementById('d_paid').innerText = p.paidDate || 'Chưa thanh toán';
+
+            const proofWrap = document.getElementById('d_proof_wrap');
+            if (p.paymentProof) {
+                document.getElementById('d_proof_img').src = p.paymentProof;
+                document.getElementById('d_proof_link').href = p.paymentProof;
+                proofWrap.style.display = 'block';
+            } else {
+                proofWrap.style.display = 'none';
+            }
+
+            document.getElementById('detailModal').style.display = 'flex';
+        }
+
+        function closeDetail() {
+            document.getElementById('detailModal').style.display = 'none';
         }
 
         function openPayModal(id) {

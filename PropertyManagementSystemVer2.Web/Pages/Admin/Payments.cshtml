@@ -128,12 +128,14 @@
                                 }
                             </td>
                             <td>
-                                @if (p.Status.ToString() == "Pending" && hasProof)
+                                @if ((p.Status.ToString() == "Pending" || p.Status.ToString() == "Overdue") && hasProof)
                                 { <span class="badge badge-warning">Chờ xác nhận</span> }
                                 else if (p.Status.ToString() == "Pending")
                                 { <span class="badge badge-warning">Chờ TT</span> }
                                 else if (p.Status.ToString() == "Completed")
                                 { <span class="badge badge-success">Hoàn thành ✓</span> }
+                                else if (p.Status.ToString() == "OverduePaid")
+                                { <span class="badge" style="background: rgba(234,88,12,0.15); color: #ea580c; border: 1px solid rgba(234,88,12,0.3);">Quá hạn / Đã TP</span> }
                                 else if (p.Status.ToString() == "Overdue")
                                 { <span class="badge badge-danger">Quá hạn</span> }
                                 else if (p.Status.ToString() == "Failed")
@@ -148,7 +150,7 @@
                                     <button class="btn btn-ghost btn-sm btn-icon" title="Chi tiết" onclick="openDetail(@p.Id)">
                                         <i data-feather="eye" style="width: 14px;"></i>
                                     </button>
-                                    @if (p.Status.ToString() == "Pending" && hasProof)
+                                    @if ((p.Status.ToString() == "Pending" || p.Status.ToString() == "Overdue") && hasProof)
                                     {
                                         <button class="btn btn-success btn-sm btn-icon" title="Duyệt" onclick="doConfirm(@p.Id, true, '@p.TenantName')">
                                             <i data-feather="check" style="width: 14px;"></i>

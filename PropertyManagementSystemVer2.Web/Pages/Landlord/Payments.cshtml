@@ -96,7 +96,7 @@
                     {
                         var isOverdue = p.DueDate < DateTime.Now && p.Status.ToString() == "Pending";
                         var hasProof = !string.IsNullOrEmpty(p.PaymentProof);
-                        var canConfirm = p.Status.ToString() == "Pending" && hasProof;
+                        var canConfirm = (p.Status.ToString() == "Pending" || p.Status.ToString() == "Overdue") && hasProof;
 
                         <tr>
                             <td>
@@ -111,7 +111,13 @@
                             <td style="color: @(isOverdue ? "var(--danger)" : "var(--text-secondary)"); font-weight: @(isOverdue ? "700" : "400");">
                                 @p.DueDate.ToString("dd/MM/yyyy")
                             </td>
-                            <td style="color: var(--success); font-weight: 700;">@p.Amount.ToString("N0")đ</td>
+                            <td>
+                                <div style="color: var(--success); font-weight: 700;">@p.Amount.ToString("N0")đ</div>
+                                @if (p.LateFeeAmount.HasValue && p.LateFeeAmount > 0)
+                                {
+                                    <div style="font-size: 11px; color: var(--danger);">+ Phạt: @p.LateFeeAmount.Value.ToString("N0")đ</div>
+                                }
+                            </td>
                             <td>
                                 @if (hasProof)
                                 {
@@ -140,6 +146,10 @@
                                 else if (p.Status.ToString() == "Completed")
                                 {
                                     <span class="badge badge-success">Đã thu ✓</span>
+                                }
+                                else if (p.Status.ToString() == "OverduePaid")
+                                {
+                                    <span class="badge" style="background: rgba(234,88,12,0.15); color: #ea580c; border: 1px solid rgba(234,88,12,0.3);">Quá hạn / Đã TP</span>
                                 }
                                 else if (p.Status.ToString() == "Failed")
                                 {
@@ -201,6 +211,8 @@
         description: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(p.Description ?? "")),
         tenantName: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(p.TenantName ?? "")),
         amount: "@p.Amount.ToString("N0")",
+        lateFeeAmount: @(p.LateFeeAmount.HasValue ? p.LateFeeAmount.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "0"),
+        lateFeeFormatted: "@(p.LateFeeAmount.HasValue ? p.LateFeeAmount.Value.ToString("N0") : "0")",
         dueDate: "@p.DueDate.ToString("dd/MM/yyyy")",
         paidDate: "@(p.PaidDate.HasValue ? p.PaidDate.Value.ToString("dd/MM/yyyy HH:mm") : "")",
         paymentProof: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(p.PaymentProof ?? "")),
@@ -291,7 +303,13 @@
         if (!p) return;
         document.getElementById('d_desc').innerText = p.description;
         document.getElementById('d_tenant').innerText = p.tenantName;
-        document.getElementById('d_amount').innerText = p.amount + 'đ';
+        
+        let amountHtml = `<div>${p.amount}đ</div>`;
+        if (p.lateFeeAmount > 0) {
+            amountHtml += `<div style="font-size: 14px; color: var(--danger); margin-top: 4px;">+ Phạt: ${p.lateFeeFormatted}đ</div>`;
+        }
+        document.getElementById('d_amount').innerHTML = amountHtml;
+        
         const methodMap = { BankTransfer: 'Chuyển khoản ngân hàng', Cash: 'Tiền mặt', CreditCard: 'Thẻ tín dụng', EWallet: 'Ví điện tử' };
         document.getElementById('d_method').innerText = methodMap[p.paymentMethod] || p.paymentMethod || '—';
         document.getElementById('d_txid').innerText = p.transactionId || '—';

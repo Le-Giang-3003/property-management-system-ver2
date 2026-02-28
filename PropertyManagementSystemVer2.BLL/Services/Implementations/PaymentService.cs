@@ -27,7 +27,7 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
             if (lease.Status != LeaseStatus.Active)
                 return ServiceResultDto.Failure("Hợp đồng không active.");
 
-            var now = DateTime.UtcNow.AddHours(7).Date; // Múi giờ Việt Nam (UTC+7)
+            var now = DateTime.UtcNow.Date;
             var billingMonth = now.Month;
             var billingYear = now.Year;
 
@@ -122,7 +122,8 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
             // BR29.3: Nếu có gateway → auto-confirm, manual → chờ Landlord confirm
             if (dto.PaymentMethod == DAL.Enums.PaymentMethod.CreditCard || dto.PaymentMethod == DAL.Enums.PaymentMethod.EWallet)
             {
-                payment.Status = PaymentStatus.Completed;
+                var isOverdue = payment.Status == PaymentStatus.Overdue || payment.DueDate < DateTime.UtcNow;
+                payment.Status = isOverdue ? PaymentStatus.OverduePaid : PaymentStatus.Completed;
             }
             // Nếu chuyển khoản manual → giữ Pending, chờ Landlord confirm
 
@@ -149,7 +150,8 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
 
             if (dto.IsConfirmed)
             {
-                payment.Status = PaymentStatus.Completed;
+                var isOverdue = payment.Status == PaymentStatus.Overdue || payment.DueDate < DateTime.UtcNow;
+                payment.Status = isOverdue ? PaymentStatus.OverduePaid : PaymentStatus.Completed;
                 payment.PaidDate ??= DateTime.UtcNow;
             }
             else
