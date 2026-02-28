@@ -213,6 +213,15 @@
             from { opacity: 0; } to { opacity: 1; }
         }
 
+        /* Validation */
+        .validation-message {
+            color: #f87171; font-size: 11px;
+            margin-top: 5px; display: block;
+        }
+        .input-validation-error {
+            border-color: #ef4444 !important;
+        }
+
         /* Footer */
         .footer {
             text-align: center; margin-top: 18px;
@@ -242,6 +251,15 @@
                 <span>@Model.ErrorMessage</span>
             </div>
         }
+        else if (!ModelState.IsValid)
+        {
+            <div class="alert-error">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                </svg>
+                <span>Vui lòng kiểm tra lại thông tin đăng nhập.</span>
+            </div>
+        }
 
         <!-- Form box -->
         <div class="form-box">
@@ -258,6 +276,7 @@
                         <input class="form-control" asp-for="Input.Email" type="email"
                                placeholder="email@example.com" autocomplete="email" />
                     </div>
+                    <span asp-validation-for="Input.Email" class="validation-message"></span>
                 </div>
 
                 <!-- Password -->
@@ -277,6 +296,7 @@
                             </svg>
                         </button>
                     </div>
+                    <span asp-validation-for="Input.Password" class="validation-message"></span>
                 </div>
 
                 <!-- Login btn -->
@@ -302,6 +322,10 @@
 
         <div class="footer">© 2026 PropertyMS — PRN222 Application</div>
     </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+    <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
 
     <script>
         function togglePw() {
@@ -336,16 +360,19 @@
                 if (e.isDefaultPrevented()) return;
                 var btn = document.getElementById('loginBtn');
                 if (!btn || btn.disabled) return;
-                btn.disabled = true;
-                btn.innerHTML = `
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                         stroke="currentColor" stroke-width="2"
-                         style="width:16px;height:16px;animation:spin 1s linear infinite">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9
-                               m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                    </svg>
-                    Đang đăng nhập...`;
+                
+                setTimeout(function() {
+                    btn.disabled = true;
+                    btn.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                             stroke="currentColor" stroke-width="2"
+                             style="width:16px;height:16px;animation:spin 1s linear infinite">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9
+                                   m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                        Đang đăng nhập...`;
+                }, 0);
             });
         });
     </script>

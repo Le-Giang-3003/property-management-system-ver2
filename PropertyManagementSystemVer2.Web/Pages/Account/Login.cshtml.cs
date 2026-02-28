@@ -64,7 +64,9 @@ namespace PropertyManagementSystemVer2.Web.Pages.Account
 
             if (!result.IsSuccess)
             {
-                ErrorMessage = result.Message;
+                ErrorMessage = !string.IsNullOrEmpty(result.Message) 
+                    ? result.Message 
+                    : result.Errors?.FirstOrDefault() ?? "Đăng nhập thất bại. Vui lòng thử lại.";
                 return Page();
             }
 
