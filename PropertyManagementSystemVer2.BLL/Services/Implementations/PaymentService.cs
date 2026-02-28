@@ -16,10 +16,8 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
         }
 
         // BR28: Tự động tạo Payment record hàng tháng
-        // 1. Hệ thống auto-generate payment record hàng tháng dựa trên Lease
-        // 2. Tạo trước 5 ngày due date
-        // 3. Bao gồm: tiền thuê + phí phát sinh
-        // 4. Payment đầu tiên bao gồm tiền cọc
+        // - Tạo vào ngày 1 hàng tháng, sau khi StartDate và trước EndDate
+        // - Hạn chót mặc định ngày 5 của tháng billing
         public async Task<ServiceResultDto> GenerateMonthlyPaymentsAsync(int leaseId)
         {
             var lease = await _unitOfWork.Leases.GetByIdWithDetailsAsync(leaseId);
@@ -29,9 +27,18 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
             if (lease.Status != LeaseStatus.Active)
                 return ServiceResultDto.Failure("Hợp đồng không active.");
 
-            var now = DateTime.UtcNow;
+            var now = DateTime.UtcNow.Date;
             var billingMonth = now.Month;
             var billingYear = now.Year;
+
+            // Kiểm tra hợp đồng đã bắt đầu chưa (ngày hiện tại >= ngày bắt đầu)
+            // StartDate = 2026-02-28 → hóa đơn đầu tiên tạo từ 2026-03-01 trở đi
+            if (now < lease.StartDate.Date)
+                return ServiceResultDto.Failure("Hợp đồng chưa bắt đầu.");
+
+            // Kiểm tra hợp đồng chưa hết hạn (EndDate là ngày cuối cùng tenant thuê)
+            if (now > lease.EndDate.Date)
+                return ServiceResultDto.Failure("Hợp đồng đã hết hạn, không tạo thêm hóa đơn.");
 
             // Kiểm tra đã tạo payment cho tháng này chưa
             var existingPayments = await _unitOfWork.Payments.GetByLeaseIdAsync(leaseId);
@@ -41,9 +48,14 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
             if (hasPaymentForMonth)
                 return ServiceResultDto.Failure("Đã tạo payment cho tháng này.");
 
-            var dueDate = new DateTime(billingYear, billingMonth, lease.PaymentDueDay);
+            // Hạn chót: ngày 5 của tháng billing (hoặc PaymentDueDay nếu muốn configurable)
+            var dueDay = lease.PaymentDueDay > 0 ? lease.PaymentDueDay : 5;
+            // Đảm bảo dueDay không vượt quá số ngày trong tháng
+            var daysInMonth = DateTime.DaysInMonth(billingYear, billingMonth);
+            dueDay = Math.Min(dueDay, daysInMonth);
+            var dueDate = new DateTime(billingYear, billingMonth, dueDay);
 
-            // BR28.1: Tạo payment tiền thuê
+            // Tạo payment tiền thuê
             var rentPayment = new Payment
             {
                 LeaseId = leaseId,
@@ -54,13 +66,13 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
                 DueDate = dueDate,
                 BillingMonth = billingMonth,
                 BillingYear = billingYear,
-                Description = $"Tiền thuê tháng {billingMonth}/{billingYear}",
+                Description = $"Ti\u1ec1n thu\u00ea th\u00e1ng {billingMonth}/{billingYear}",
                 CreatedAt = DateTime.UtcNow
             };
 
             await _unitOfWork.Payments.AddAsync(rentPayment);
 
-            // BR28.4: Payment đầu tiên bao gồm tiền cọc
+            // Payment đầu tiên bao gồm tiền cọc
             var isFirstPayment = !existingPayments.Any(p => p.PaymentType == PaymentType.Deposit);
             if (isFirstPayment && lease.DepositAmount > 0)
             {
@@ -74,14 +86,14 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
                     DueDate = dueDate,
                     BillingMonth = billingMonth,
                     BillingYear = billingYear,
-                    Description = "Tiền đặt cọc",
+                    Description = "Ti\u1ec1n \u0111\u1eb7t c\u1ecdc",
                     CreatedAt = DateTime.UtcNow
                 };
                 await _unitOfWork.Payments.AddAsync(depositPayment);
             }
 
             await _unitOfWork.SaveChangesAsync();
-            return ServiceResultDto.Success("Đã tạo payment cho tháng này.");
+            return ServiceResultDto.Success($"\u0110\u00e3 t\u1ea1o payment th\u00e1ng {billingMonth}/{billingYear}.");
         }
 
         // BR29: Tenant thanh toán
@@ -154,8 +166,8 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
         }
 
         // BR31: Xử lý trả chậm và quá hạn
-        // - Phí quá hạn = Amount × (LateFeePercentage / 100) × số ngày quá hạn
-        // - Cập nhật LateFeeAmount mỗi khi chạy
+        // Phí quá hạn (1 lần): LateFeeAmount = MonthlyRent × (LateFeePercentage / 100)
+        // Tổng phải trả = MonthlyRent + LateFeeAmount
         public async Task<ServiceResultDto> ProcessOverduePaymentsAsync()
         {
             var overduePayments = await _unitOfWork.Payments.GetOverduePaymentsAsync();
@@ -166,14 +178,16 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
                 var daysOverdue = (int)(DateTime.UtcNow - payment.DueDate).TotalDays;
                 if (daysOverdue <= 0) continue;
 
-                // Tính phí quá hạn dựa theo LateFeePercentage trong Lease
-                var lease = await _unitOfWork.Leases.GetByIdAsync(payment.LeaseId);
-                if (lease?.LateFeePercentage is > 0)
+                // Tính phí quá hạn 1 lần khi lần đầu quá hạn
+                if (payment.LateFeeAmount == null)
                 {
-                    // Phí mỗi ngày = Amount × (LateFeePercentage / 100)
-                    // Tổng phí = phí mỗi ngày × số ngày quá hạn
-                    var dailyFee = payment.Amount * (lease.LateFeePercentage.Value / 100m);
-                    payment.LateFeeAmount = Math.Round(dailyFee * daysOverdue, 0);
+                    var lease = await _unitOfWork.Leases.GetByIdAsync(payment.LeaseId);
+                    if (lease?.LateFeePercentage is > 0)
+                    {
+                        // Tổng phí = MonthlyRent × (LateFeePercentage / 100)
+                        // LateFeeAmount chỉ là phần phí thêm, tổng cần trả = Amount + LateFeeAmount
+                        payment.LateFeeAmount = Math.Round(lease.MonthlyRent * (lease.LateFeePercentage.Value / 100m), 0);
+                    }
                 }
 
                 if (payment.Status != PaymentStatus.Overdue)
