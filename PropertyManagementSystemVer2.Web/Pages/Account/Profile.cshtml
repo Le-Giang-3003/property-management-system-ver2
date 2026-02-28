@@ -1,0 +1,414 @@
+@page "/Account/Profile"
+@model PropertyManagementSystemVer2.Web.Pages.Account.ProfileModel
+@{
+    ViewData["Title"] = "Hồ sơ cá nhân";
+    var userAvatar = string.IsNullOrEmpty(Model.UserProfile.AvatarUrl) 
+        ? "https://ui-avatars.com/api/?name=" + Uri.EscapeDataString(Model.UserProfile.FullName) + "&background=6366f1&color=fff" 
+        : Model.UserProfile.AvatarUrl;
+}
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="mb-20" style="padding: 12px 16px; background: var(--success-bg); color: var(--success); border-radius: var(--radius-sm); border: 1px solid var(--success);">
+        @TempData["SuccessMessage"]
+    </div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="mb-20" style="padding: 12px 16px; background: var(--danger-bg); color: var(--danger); border-radius: var(--radius-sm); border: 1px solid var(--danger);">
+        @TempData["ErrorMessage"]
+    </div>
+}
+
+<div class="mb-20">
+    <div class="page-title">Hồ sơ cá nhân</div>
+    <div class="page-desc">Quản lý thông tin tài khoản của bạn</div>
+</div>
+
+@if (Model.UserRole == "Admin")
+{
+    <div style="padding: 16px 20px; background: rgba(139, 92, 246, 0.1); border: 1px solid #8b5cf6; border-radius: 12px; margin-bottom: 24px; display: flex; align-items: center; gap: 12px;">
+        <i data-feather="shield" style="color: #8b5cf6; width: 24px; height: 24px;"></i>
+        <div style="flex: 1;">
+            <div style="font-size: 14px; font-weight: 600; margin-bottom: 4px;">Tài khoản quản trị viên</div>
+            <div style="font-size: 13px; color: var(--text-muted);">Bạn có quyền truy cập đầy đủ vào tất cả chức năng quản trị hệ thống</div>
+        </div>
+    </div>
+}
+else if (Model.UserRole == "Landlord")
+{
+    var isVerified = Model.UserProfile.IsIdentityVerified;
+    <div style="padding: 16px 20px; background: @(isVerified ? "rgba(16, 185, 129, 0.1)" : "rgba(245, 158, 11, 0.1)"); border: 1px solid @(isVerified ? "#10b981" : "#f59e0b"); border-radius: 12px; margin-bottom: 24px; display: flex; align-items: center; gap: 12px;">
+        <i data-feather="@(isVerified ? "check-circle" : "alert-circle")" style="color: @(isVerified ? "#10b981" : "#f59e0b"); width: 24px; height: 24px;"></i>
+        <div style="flex: 1;">
+            <div style="font-size: 14px; font-weight: 600; margin-bottom: 4px;">
+                @(isVerified ? "Tài khoản đã được xác minh" : "Tài khoản chưa xác minh đầy đủ")
+            </div>
+            <div style="font-size: 13px; color: var(--text-muted);">
+                @(isVerified ? "Bạn có thể đăng bất động sản và nhận thanh toán" : "Vui lòng hoàn tất xác minh (cập nhật CMND/CCCD) để sử dụng đầy đủ tính năng")
+            </div>
+        </div>
+        @if (!isVerified)
+        {
+            <button class="btn btn-primary btn-sm" onclick="enableEditMode()">Cập nhật ngay</button>
+        }
+    </div>
+}
+else
+{
+    var isVerified = Model.UserProfile.IsEmailVerified && Model.UserProfile.IsPhoneVerified;
+    <div style="padding: 16px 20px; background: @(isVerified ? "rgba(16, 185, 129, 0.1)" : "rgba(245, 158, 11, 0.1)"); border: 1px solid @(isVerified ? "#10b981" : "#f59e0b"); border-radius: 12px; margin-bottom: 24px; display: flex; align-items: center; gap: 12px;">
+        <i data-feather="@(isVerified ? "check-circle" : "alert-circle")" style="color: @(isVerified ? "#10b981" : "#f59e0b"); width: 24px; height: 24px;"></i>
+        <div style="flex: 1;">
+            <div style="font-size: 14px; font-weight: 600; margin-bottom: 4px;">
+                @(isVerified ? "Tài khoản đã được xác minh" : "Tài khoản chưa xác minh đầy đủ")
+            </div>
+            <div style="font-size: 13px; color: var(--text-muted);">
+                @(isVerified ? "Bạn có thể thuê bất động sản và thực hiện thanh toán" : "Vui lòng đợi hệ thống xác minh để sử dụng đầy đủ tính năng")
+            </div>
+        </div>
+    </div>
+}
+
+<div style="display: flex; flex-direction: column; gap: 16px;">
+    <!-- Personal Information Card -->
+    <div class="card" style="padding: 28px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
+            <div style="font-size: 16px; font-weight: 700;">Thông tin cá nhân</div>
+            <div id="viewModeActions">
+                <button class="btn btn-primary btn-sm" onclick="enableEditMode()">
+                    <i data-feather="edit-2" style="width: 14px; height: 14px; margin-right: 4px;"></i> Chỉnh sửa
+                </button>
+            </div>
+            <div id="editModeActions" style="display: none; gap: 8px;">
+                <button class="btn btn-secondary btn-sm" onclick="disableEditMode()">
+                    <i data-feather="x" style="width: 14px; height: 14px; margin-right: 4px;"></i> Hủy
+                </button>
+                <button class="btn btn-success btn-sm" onclick="document.getElementById('profileForm').submit()">
+                    <i data-feather="save" style="width: 14px; height: 14px; margin-right: 4px;"></i> Lưu thay đổi
+                </button>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: @(Model.UserRole == "Landlord" ? "280px 1fr" : "1fr"); gap: 32px;">
+            @if (Model.UserRole == "Landlord")
+            {
+                <!-- Left: Avatar & Stats for Landlord -->
+                <div>
+                    <form method="post" asp-page-handler="UploadAvatar" enctype="multipart/form-data" id="avatarFormLandlord" style="position: relative; width: 160px; height: 160px; margin: 0 auto 16px;">
+                        <img src="@userAvatar" alt="@Model.UserProfile.FullName" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 4px solid var(--border);" />
+                        <label style="position: absolute; bottom: 4px; right: 4px; width: 36px; height: 36px; border-radius: 50%; background: var(--accent); border: 3px solid var(--bg-card); color: white; display: flex; align-items: center; justify-content: center; cursor: pointer; margin: 0;" title="Thay đổi ảnh">
+                            <i data-feather="camera" style="width: 16px; height: 16px;"></i>
+                            <input type="file" asp-for="AvatarFile" accept="image/*" style="display: none;" onchange="document.getElementById('avatarFormLandlord').submit()" />
+                        </label>
+                    </form>
+
+                    <div style="text-align: center; margin-bottom: 12px;">
+                        <div style="display: inline-block; padding: 4px 12px; border-radius: 16px; font-size: 12px; font-weight: 600; background: #dcfce7; color: #166534;">
+                            Chủ nhà
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 6px; justify-content: center; margin-bottom: 16px; flex-wrap: wrap;">
+                        @if (Model.UserProfile.IsEmailVerified)
+                        {
+                            <div style="display: flex; align-items: center; gap: 4px; padding: 4px 8px; background: rgba(16, 185, 129, 0.1); border-radius: 12px; font-size: 11px; color: #10b981;">
+                                <i data-feather="check-circle" style="width: 12px; height: 12px;"></i> Email
+                            </div>
+                        }
+                        @if (Model.UserProfile.IsPhoneVerified)
+                        {
+                            <div style="display: flex; align-items: center; gap: 4px; padding: 4px 8px; background: rgba(16, 185, 129, 0.1); border-radius: 12px; font-size: 11px; color: #10b981;">
+                                <i data-feather="check-circle" style="width: 12px; height: 12px;"></i> SĐT
+                            </div>
+                        }
+                        @if (Model.UserProfile.IsIdentityVerified)
+                        {
+                            <div style="display: flex; align-items: center; gap: 4px; padding: 4px 8px; background: rgba(16, 185, 129, 0.1); border-radius: 12px; font-size: 11px; color: #10b981;">
+                                <i data-feather="check-circle" style="width: 12px; height: 12px;"></i> CCCD
+                            </div>
+                        }
+                    </div>
+
+                    <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 16px; text-align: center;">
+                        Mã chủ nhà: #@Model.UserProfile.Id
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 16px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); margin-bottom: 16px;">
+                        <div style="text-align: center;">
+                            <div style="font-size: 24px; font-weight: 700; color: var(--accent);">
+                                @Model.LandlordStats.TotalProperties
+                            </div>
+                            <div style="font-size: 11px; color: var(--text-muted);">BĐS sở hữu</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 24px; font-weight: 700; color: #10b981;">
+                                @Model.LandlordStats.RentedCount
+                            </div>
+                            <div style="font-size: 11px; color: var(--text-muted);">Đang cho thuê</div>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-secondary" style="width: 100%;" onclick="document.getElementById('passwordModal').style.display='flex'">
+                        <i data-feather="lock" style="width: 16px; height: 16px; margin-right: 4px;"></i> Đổi mật khẩu
+                    </button>
+                </div>
+            }
+
+            <form method="post" asp-page-handler="UpdateProfile" id="profileForm">
+                @if (Model.UserRole != "Landlord")
+                {
+                    <div style="text-align: center; margin-bottom: 32px;">
+                        <form method="post" asp-page-handler="UploadAvatar" enctype="multipart/form-data" id="avatarForm" style="position: relative; width: 120px; height: 120px; margin: 0 auto 16px;">
+                            <img src="@userAvatar" alt="@Model.UserProfile.FullName" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 4px solid var(--border);" />
+                            <label style="position: absolute; bottom: 0; right: 0; width: 32px; height: 32px; border-radius: 50%; background: var(--accent); border: 3px solid var(--bg-card); color: white; display: flex; align-items: center; justify-content: center; cursor: pointer; margin: 0;" title="Thay đổi ảnh">
+                                <i data-feather="camera" style="width: 14px; height: 14px;"></i>
+                                <input type="file" asp-for="AvatarFile" accept="image/*" style="display: none;" onchange="document.getElementById('avatarForm').submit()" />
+                            </label>
+                        </form>
+                        <div style="margin-bottom: 12px;">
+                            <div style="display: inline-block; padding: 4px 12px; border-radius: 16px; font-size: 12px; font-weight: 600; @(Model.UserRole == "Admin" ? "background: #f3e8ff; color: #6b21a8;" : "background: #dbeafe; color: #1e40af;")">
+                                @(Model.UserRole == "Admin" ? "Quản trị viên" : "Người thuê")
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 8px; justify-content: center; margin-bottom: 8px; flex-wrap: wrap;">
+                            @if (Model.UserProfile.IsEmailVerified)
+                            {
+                                <div style="display: flex; align-items: center; gap: 4px; padding: 4px 10px; background: rgba(16, 185, 129, 0.1); border-radius: 12px; font-size: 11px; color: #10b981;">
+                                    <i data-feather="check-circle" style="width: 12px; height: 12px;"></i> Email
+                                </div>
+                            }
+                            @if (Model.UserProfile.IsPhoneVerified)
+                            {
+                                <div style="display: flex; align-items: center; gap: 4px; padding: 4px 10px; background: rgba(16, 185, 129, 0.1); border-radius: 12px; font-size: 11px; color: #10b981;">
+                                    <i data-feather="check-circle" style="width: 12px; height: 12px;"></i> SĐT
+                                </div>
+                            }
+                        </div>
+                        <div style="font-size: 11px; color: var(--text-muted);">Mã tài khoản: #@Model.UserProfile.Id</div>
+                    </div>
+                }
+
+                <div style="display: grid; grid-template-columns: repeat(@(Model.UserRole == "Landlord" ? "2" : "3"), 1fr); gap: 18px; margin-bottom: 24px;">
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i data-feather="user" style="width: 14px; height: 14px; margin-right: 6px; vertical-align: middle;"></i> Họ và tên *
+                        </label>
+                        <input class="form-control profile-input" asp-for="UpdateForm.FullName" required disabled />
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i data-feather="mail" style="width: 14px; height: 14px; margin-right: 6px; vertical-align: middle;"></i> Email *
+                        </label>
+                        <input class="form-control" value="@Model.UserProfile.Email" disabled />
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i data-feather="phone" style="width: 14px; height: 14px; margin-right: 6px; vertical-align: middle;"></i> Số điện thoại *
+                        </label>
+                        <input class="form-control profile-input" asp-for="UpdateForm.PhoneNumber" required disabled />
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i data-feather="calendar" style="width: 14px; height: 14px; margin-right: 6px; vertical-align: middle;"></i> Ngày tham gia
+                        </label>
+                        <input class="form-control" type="date" value="@Model.UserProfile.CreatedAt.ToString("yyyy-MM-dd")" disabled />
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i data-feather="credit-card" style="width: 14px; height: 14px; margin-right: 6px; vertical-align: middle;"></i> CMND/CCCD
+                        </label>
+                        <input class="form-control profile-input" asp-for="UpdateForm.IdentityNumber" disabled />
+                    </div>
+
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label class="form-label">
+                            <i data-feather="map-pin" style="width: 14px; height: 14px; margin-right: 6px; vertical-align: middle;"></i> Địa chỉ liên hệ
+                        </label>
+                        <input class="form-control profile-input" asp-for="UpdateForm.Address" disabled />
+                    </div>
+                    
+                    <input type="hidden" asp-for="UpdateForm.AvatarUrl" />
+                    @if (Model.UserRole == "Landlord")
+                    {
+                        <input type="hidden" asp-for="UpdateForm.BankName" />
+                        <input type="hidden" asp-for="UpdateForm.BankAccountNumber" />
+                        <input type="hidden" asp-for="UpdateForm.BankAccountHolder" />
+                    }
+                </div>
+
+                @if (Model.UserRole != "Landlord")
+                {
+                    <div style="border-top: 1px solid var(--border); padding-top: 24px; text-align: center;">
+                        <button type="button" class="btn btn-secondary" onclick="document.getElementById('passwordModal').style.display='flex'">
+                            <i data-feather="lock" style="width: 16px; height: 16px; margin-right: 4px;"></i> Đổi mật khẩu
+                        </button>
+                    </div>
+                }
+            </form>
+        </div>
+    </div>
+
+    @if (Model.UserRole == "Landlord")
+    {
+        <!-- Banking Information Card (Landlord Only) -->
+        <div class="card" style="padding: 28px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+                <div style="font-size: 16px; font-weight: 700;">Thông tin ngân hàng</div>
+                <div id="viewModeBankActions">
+                    <button class="btn btn-primary btn-sm" onclick="enableBankEditMode()">
+                        <i data-feather="edit-2" style="width: 14px; height: 14px; margin-right: 4px;"></i> Chỉnh sửa
+                    </button>
+                </div>
+                <div id="editModeBankActions" style="display: none; gap: 8px;">
+                    <button class="btn btn-secondary btn-sm" onclick="disableBankEditMode()">
+                        <i data-feather="x" style="width: 14px; height: 14px; margin-right: 4px;"></i> Hủy
+                    </button>
+                    <!-- Instead of duplicate save, we just submit the bank form. So we separate the bank save endpoint. Actually, both use UpdateProfileDto, we can use a separate form for Bank info. -->
+                    <button class="btn btn-success btn-sm" onclick="document.getElementById('bankForm').submit()">
+                        <i data-feather="save" style="width: 14px; height: 14px; margin-right: 4px;"></i> Lưu thay đổi
+                    </button>
+                </div>
+            </div>
+
+            <form method="post" asp-page-handler="UpdateProfile" id="bankForm">
+                <input type="hidden" asp-for="UpdateForm.FullName" value="@Model.UserProfile.FullName" />
+                <input type="hidden" asp-for="UpdateForm.PhoneNumber" value="@Model.UserProfile.PhoneNumber" />
+                <input type="hidden" asp-for="UpdateForm.Address" value="@Model.UserProfile.Address" />
+                <input type="hidden" asp-for="UpdateForm.AvatarUrl" value="@Model.UserProfile.AvatarUrl" />
+                <input type="hidden" asp-for="UpdateForm.IdentityNumber" value="@Model.UserProfile.IdentityNumber" />
+
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px;">
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i data-feather="credit-card" style="width: 14px; height: 14px; margin-right: 6px; vertical-align: middle;"></i> Ngân hàng *
+                        </label>
+                        <input class="form-control bank-input" asp-for="UpdateForm.BankName" placeholder="VD: Vietcombank" required disabled />
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i data-feather="credit-card" style="width: 14px; height: 14px; margin-right: 6px; vertical-align: middle;"></i> Số tài khoản *
+                        </label>
+                        <input class="form-control bank-input" asp-for="UpdateForm.BankAccountNumber" placeholder="Nhập số tài khoản..." required disabled />
+                    </div>
+
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label class="form-label">
+                            <i data-feather="user" style="width: 14px; height: 14px; margin-right: 6px; vertical-align: middle;"></i> Chủ tài khoản *
+                        </label>
+                        <input class="form-control bank-input" asp-for="UpdateForm.BankAccountHolder" placeholder="VD: NGUYEN VAN A" required disabled />
+                    </div>
+                </div>
+            </form>
+
+            <div style="margin-top: 20px; padding: 14px; background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 8px; font-size: 12px; color: var(--text-muted);">
+                💡 <strong>Lưu ý:</strong> Thông tin ngân hàng được sử dụng để nhận thanh toán tiền thuê từ người thuê một cách an toàn.
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Password Change Modal -->
+<div class="modal-overlay" id="passwordModal" style="display: none;" onclick="this.style.display='none'">
+    <div class="modal" onclick="event.stopPropagation()">
+        <form method="post" asp-page-handler="ChangePassword" id="changePasswordForm" onsubmit="return validatePassword(event)">
+            <div class="modal-header">
+                <span class="modal-title">Đổi mật khẩu</span>
+                <button type="button" class="modal-close btn btn-ghost btn-sm btn-icon" onclick="document.getElementById('passwordModal').style.display='none'">
+                    <i data-feather="x"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Mật khẩu hiện tại *</label>
+                    <input type="password" class="form-control" asp-for="PasswordForm.CurrentPassword" placeholder="Nhập mật khẩu hiện tại..." required />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Mật khẩu mới *</label>
+                    <input type="password" class="form-control" asp-for="PasswordForm.NewPassword" placeholder="Nhập mật khẩu mới..." required />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Xác nhận mật khẩu mới *</label>
+                    <input type="password" class="form-control" asp-for="PasswordForm.ConfirmPassword" id="confirmPasswordInput" placeholder="Nhập lại mật khẩu mới..." required />
+                </div>
+                
+                <div id="passwordErrorMsg" style="display: none; padding: 12px; background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444; border-radius: 8px; font-size: 13px; color: #ef4444; margin-bottom: 12px;">
+                </div>
+
+                <div style="padding: 12px; background: rgba(59, 130, 246, 0.1); border: 1px solid #3b82f6; border-radius: 8px; font-size: 12px; color: var(--text-muted);">
+                    💡 <strong>Lưu ý:</strong> Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('passwordModal').style.display='none'">Hủy</button>
+                <button type="submit" class="btn btn-primary">
+                    <i data-feather="lock" style="width: 14px; height: 14px; margin-right: 4px;"></i> Lưu mật khẩu
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function enableEditMode() {
+            document.querySelectorAll('.profile-input').forEach(el => el.disabled = false);
+            document.getElementById('viewModeActions').style.display = 'none';
+            document.getElementById('editModeActions').style.display = 'flex';
+        }
+
+        function disableEditMode() {
+            document.querySelectorAll('.profile-input').forEach(el => el.disabled = true);
+            document.getElementById('viewModeActions').style.display = 'block';
+            document.getElementById('editModeActions').style.display = 'none';
+        }
+
+        function enableBankEditMode() {
+            document.querySelectorAll('.bank-input').forEach(el => el.disabled = false);
+            document.getElementById('viewModeBankActions').style.display = 'none';
+            document.getElementById('editModeBankActions').style.display = 'flex';
+        }
+
+        function disableBankEditMode() {
+            document.querySelectorAll('.bank-input').forEach(el => el.disabled = true);
+            document.getElementById('viewModeBankActions').style.display = 'block';
+            document.getElementById('editModeBankActions').style.display = 'none';
+        }
+
+        function validatePassword(event) {
+            const newPassword = document.getElementById('PasswordForm_NewPassword').value;
+            const confirmPassword = document.getElementById('confirmPasswordInput').value;
+            const errorBlock = document.getElementById('passwordErrorMsg');
+
+            // Regex checks
+            const hasUppercase = /[A-Z]/.test(newPassword);
+            const hasLowercase = /[a-z]/.test(newPassword);
+            const hasNumbers = /\d/.test(newPassword);
+            const hasSpecial = /[!@@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]+/.test(newPassword);
+            const isLongEnough = newPassword.length >= 8;
+
+            let errorStr = "";
+
+            if (!isLongEnough || !hasUppercase || !hasLowercase || !hasNumbers || !hasSpecial) {
+                errorStr = "Mật khẩu mới không đủ mạnh. Phải có ít nhất 8 ký tự, gồm ít nhất 1 chữ hoa, 1 chữ thường, 1 số và 1 ký tự đặc biệt.";
+            } else if (newPassword !== confirmPassword) {
+                errorStr = "Mật khẩu xác nhận không khớp. Vui lòng thử lại.";
+            }
+
+            if (errorStr.length > 0) {
+                errorBlock.style.display = 'block';
+                errorBlock.innerText = errorStr;
+                event.preventDefault();
+                return false;
+            }
+
+            errorBlock.style.display = 'none';
+            return true;
+        }
+    </script>
+}

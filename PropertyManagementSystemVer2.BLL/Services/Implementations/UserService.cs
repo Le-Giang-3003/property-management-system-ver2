@@ -237,7 +237,11 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
                 IsPhoneVerified = user.IsPhoneVerified,
                 IsIdentityVerified = user.IsIdentityVerified,
                 CreatedAt = user.CreatedAt,
-                LastLoginAt = user.LastLoginAt
+                LastLoginAt = user.LastLoginAt,
+                IdentityNumber = user.IdentityNumber,
+                BankAccountNumber = user.BankAccountNumber,
+                BankName = user.BankName,
+                BankAccountHolder = user.BankAccountHolder
             };
         }
     }

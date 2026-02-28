@@ -20,6 +20,12 @@ namespace PropertyManagementSystemVer2.BLL.DTOs
         public bool IsIdentityVerified { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? LastLoginAt { get; set; }
+
+        // Landlord-specific info
+        public string? IdentityNumber { get; set; }
+        public string? BankAccountNumber { get; set; }
+        public string? BankName { get; set; }
+        public string? BankAccountHolder { get; set; }
     }
 
     // DTO đăng ký tài khoản

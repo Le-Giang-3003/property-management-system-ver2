@@ -71,6 +71,11 @@ namespace PropertyManagementSystemVer2.Web.Pages.Account
             }
 
             var user = result.Data;
+            if (user == null)
+            {
+                ErrorMessage = "Hệ thống gặp lỗi, không thể lấy thông tin tài khoản.";
+                return Page();
+            }
             
             // Determine the active role for the session
             string userRole = "Tenant";
