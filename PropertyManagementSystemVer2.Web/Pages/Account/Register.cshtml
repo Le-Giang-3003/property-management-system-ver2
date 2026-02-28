@@ -415,12 +415,12 @@
                     @if (Model.ActionType == "Verify")
                     {
                         <!-- ===== OTP VERIFY STEP ===== -->
-                        <input type="hidden" asp-for="RegisterForm.Role" />
-                        <input type="hidden" asp-for="RegisterForm.FullName" />
-                        <input type="hidden" asp-for="RegisterForm.Email" />
-                        <input type="hidden" asp-for="RegisterForm.PhoneNumber" />
-                        <input type="hidden" asp-for="RegisterForm.Password" />
-                        <input type="hidden" asp-for="RegisterForm.ConfirmPassword" />
+                        <input type="hidden" asp-for="RegisterForm.Role" data-val="false" />
+                        <input type="hidden" asp-for="RegisterForm.FullName" data-val="false" />
+                        <input type="hidden" asp-for="RegisterForm.Email" data-val="false" />
+                        <input type="hidden" asp-for="RegisterForm.PhoneNumber" data-val="false" />
+                        <input type="hidden" asp-for="RegisterForm.Password" data-val="false" />
+                        <input type="hidden" asp-for="RegisterForm.ConfirmPassword" data-val="false" />
 
                         <div class="otp-card">
                             <span class="otp-emoji">✉️</span>
@@ -751,12 +751,53 @@
     }
 
     // ========== Submit loading state ==========
-    // Bọc trong $(document).ready() để đảm bảo chạy SAU khi
-    // jquery.validate.unobtrusive đã đăng ký submit handler của nó.
-    // Khi đó e.isDefaultPrevented() mới phản ánh đúng kết quả validation.
     $(document).ready(function () {
+        var actionType = document.getElementById('ActionType');
+        var isVerifyStep = actionType && actionType.value === 'Verify';
+
+        if (isVerifyStep) {
+            // Ở bước Verify: tắt hoàn toàn jQuery Validation để form luôn submit được
+            var form = document.getElementById('registerForm');
+            if (form) {
+                $(form).data('validator', null);
+                $.validator && $.validator.unobtrusive && $.validator.unobtrusive.parse(form);
+                // Vô hiệu hóa validator
+                var validator = $(form).validate();
+                if (validator) validator.settings.ignore = '*';
+            }
+        }
+
         $('#registerForm').on('submit', function (e) {
-            // Nếu jQuery validation đã chặn (field thiếu/sai) → không disable
+            var currentActionType = document.getElementById('ActionType');
+            var isVerify = currentActionType && currentActionType.value === 'Verify';
+
+            if (isVerify) {
+                // Sync OTP trước khi submit
+                syncOtp();
+
+                var otpVal = document.getElementById('RegisterForm_OtpCode');
+                if (!otpVal || otpVal.value.replace(/\D/g, '').length < 6) {
+                    e.preventDefault();
+                    return;
+                }
+
+                var btn = $(this).find('.btn-register')[0];
+                if (!btn || btn.disabled) return;
+                btn.disabled = true;
+                btn.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                         stroke="currentColor" stroke-width="2"
+                         style="animation: spin 1s linear infinite; width:16px; height:16px;">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9
+                               m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                    Đang xác thực...
+                `;
+                return; // cho form submit bình thường
+            }
+
+            // Bước SendOtp: kiểm tra jQuery validation đã chặn chưa
             if (e.isDefaultPrevented()) return;
 
             var btn = $(this).find('.btn-register')[0];

@@ -70,6 +70,7 @@ namespace PropertyManagementSystemVer2.Web.Pages.Account
             // User clicked "Back / change info"
             if (ActionType == "Edit")
             {
+                ModelState.Remove("ActionType");
                 ActionType = "SendOtp";
                 return Page();
             }
@@ -101,6 +102,7 @@ namespace PropertyManagementSystemVer2.Web.Pages.Account
                 // Tạo OTP 6 số
                 var rnd = new Random();
                 var otp = rnd.Next(100000, 999999).ToString();
+                System.IO.File.WriteAllText("otp.txt", otp); // FOR TESTING
 
                 // Cache key luôn dùng email đã chuẩn hóa (lowercase, trimmed)
                 var cacheKey = $"OTP_{normalizedEmail}";
@@ -125,6 +127,7 @@ namespace PropertyManagementSystemVer2.Web.Pages.Account
                     return Page();
                 }
 
+                ModelState.Remove("ActionType");
                 ActionType = "Verify";
                 SuccessMessage = $"Mã OTP đã được gửi đến {normalizedEmail}. Vui lòng kiểm tra hộp thư (bao gồm thư rác). Mã hết hạn sau 5 phút.";
                 return Page();
@@ -142,6 +145,7 @@ namespace PropertyManagementSystemVer2.Web.Pages.Account
                 if (string.IsNullOrEmpty(cleanOtp) || cleanOtp.Length != 6)
                 {
                     ErrorMessage = "Vui lòng nhập đủ 6 chữ số của mã OTP.";
+                    ModelState.Remove("ActionType");
                     ActionType = "Verify";
                     return Page();
                 }
@@ -152,6 +156,7 @@ namespace PropertyManagementSystemVer2.Web.Pages.Account
                 if (cachedOtp == null)
                 {
                     ErrorMessage = "Mã OTP đã hết hạn (5 phút). Vui lòng quay lại và gửi lại mã mới.";
+                    ModelState.Remove("ActionType");
                     ActionType = "SendOtp";
                     return Page();
                 }
@@ -159,6 +164,7 @@ namespace PropertyManagementSystemVer2.Web.Pages.Account
                 if (cachedOtp != cleanOtp)
                 {
                     ErrorMessage = "Mã OTP không chính xác. Vui lòng kiểm tra lại email.";
+                    ModelState.Remove("ActionType");
                     ActionType = "Verify";
                     return Page();
                 }
@@ -179,6 +185,7 @@ namespace PropertyManagementSystemVer2.Web.Pages.Account
                     // Xóa OTP vì không còn dùng được
                     _memoryCache.Remove(cacheKey);
                     ErrorMessage = result.Message;
+                    ModelState.Remove("ActionType");
                     ActionType = "SendOtp";
                     return Page();
                 }
