@@ -27,14 +27,22 @@ namespace PropertyManagementSystemVer2.DAL.Repositories.Implementations
 
         public async Task<IEnumerable<Payment>> GetByTenantIdAsync(int tenantId, PaymentStatus? status = null, CancellationToken cancellationToken = default)
         {
-            var query = _dbSet.Include(p => p.Lease).ThenInclude(l => l.Property).Where(p => p.Lease.TenantId == tenantId);
+            var query = _dbSet
+                .Include(p => p.Lease).ThenInclude(l => l.Property)
+                .Include(p => p.Lease).ThenInclude(l => l.Tenant)
+                .Include(p => p.Lease).ThenInclude(l => l.Landlord)  // ← cần để lấy bank info
+                .Where(p => p.Lease.TenantId == tenantId);
             if (status.HasValue) query = query.Where(p => p.Status == status.Value);
             return await query.OrderByDescending(p => p.DueDate).ToListAsync(cancellationToken);
         }
 
         public async Task<IEnumerable<Payment>> GetByLandlordIdAsync(int landlordId, PaymentStatus? status = null, CancellationToken cancellationToken = default)
         {
-            var query = _dbSet.Include(p => p.Lease).ThenInclude(l => l.Property).Where(p => p.Lease.LandlordId == landlordId);
+            var query = _dbSet
+                .Include(p => p.Lease).ThenInclude(l => l.Property)
+                .Include(p => p.Lease).ThenInclude(l => l.Tenant)   // ← cần để lấy TenantName
+                .Include(p => p.Lease).ThenInclude(l => l.Landlord) // ← cần để lấy LandlordName
+                .Where(p => p.Lease.LandlordId == landlordId);
             if (status.HasValue) query = query.Where(p => p.Status == status.Value);
             return await query.OrderByDescending(p => p.DueDate).ToListAsync(cancellationToken);
         }

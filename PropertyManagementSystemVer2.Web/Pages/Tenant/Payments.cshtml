@@ -1,24 +1,55 @@
 @page
 @model PropertyManagementSystemVer2.Web.Pages.Tenant.PaymentsModel
 @{
-    ViewData["Title"] = "Thanh toán của bạn";
+    ViewData["Title"] = "Thanh toán";
+}
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="mb-20" style="padding: 12px 16px; background: rgba(16,185,129,0.1); color: #10b981; border-radius: 8px; border: 1px solid #10b981; display: flex; align-items: center; gap: 8px;">
+        <i data-feather="check-circle" style="width: 16px;"></i> @TempData["SuccessMessage"]
+    </div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="mb-20" style="padding: 12px 16px; background: rgba(239,68,68,0.1); color: #ef4444; border-radius: 8px; border: 1px solid #ef4444; display: flex; align-items: center; gap: 8px;">
+        <i data-feather="alert-circle" style="width: 16px;"></i> @TempData["ErrorMessage"]
+    </div>
 }
 
 <div class="mb-20">
     <div class="page-title">Thanh toán</div>
-    <div class="page-desc">Lịch sử thanh toán và các hoá đơn chưa thanh toán</div>
+    <div class="page-desc">Lịch sử thanh toán và các hoá đơn của bạn</div>
 </div>
 
-<div class="card mb-20">
-    <div class="filter-bar" style="margin-bottom: 0;">
-        <div class="header-search" style="flex: 1; min-width: 200px;">
-            <i data-feather="search" style="color: var(--text-muted); width: 14px;"></i>
-            <input placeholder="Tìm mã tham chiếu, nội dung..." style="width: 100%;" />
+@{
+    var pending = Model.Payments.Count(p => p.Status.ToString() == "Pending");
+    var overdue = Model.Payments.Count(p => p.Status.ToString() == "Overdue");
+    var completed = Model.Payments.Count(p => p.Status.ToString() == "Completed");
+    var totalPending = Model.Payments.Where(p => p.Status.ToString() == "Pending" || p.Status.ToString() == "Overdue").Sum(p => p.Amount);
+}
+
+<div class="stat-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 24px;">
+    <div class="stat-card">
+        <div class="stat-icon yellow"><i data-feather="clock"></i></div>
+        <div class="stat-info">
+            <div class="stat-label">Chờ thanh toán</div>
+            <div class="stat-value">@pending</div>
         </div>
-        <button class="btn btn-primary btn-sm">Tất cả</button>
-        <button class="btn btn-ghost btn-sm text-yellow" style="border-color: var(--warning);">Chưa thanh toán</button>
-        <button class="btn btn-ghost btn-sm text-green" style="border-color: var(--success);">Đã thanh toán</button>
-        <button class="btn btn-ghost btn-sm text-red" style="border-color: var(--danger);">Quá hạn</button>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon red"><i data-feather="alert-triangle"></i></div>
+        <div class="stat-info">
+            <div class="stat-label">Quá hạn</div>
+            <div class="stat-value">@overdue</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon green"><i data-feather="check-circle"></i></div>
+        <div class="stat-info">
+            <div class="stat-label">Đã thanh toán</div>
+            <div class="stat-value">@completed</div>
+        </div>
     </div>
 </div>
 
@@ -27,66 +58,74 @@
         <table>
             <thead>
                 <tr>
-                    <th>Mã tham chiếu</th>
+                    <th>Hóa đơn</th>
                     <th>Nội dung</th>
-                    <th>Chủ cho thuê</th>
+                    <th>Chủ nhà</th>
                     <th>Hạn chót</th>
-                    <th>Số tiền (VND)</th>
+                    <th>Số tiền (VNĐ)</th>
                     <th>Trạng thái</th>
                     <th>Hành động</th>
                 </tr>
             </thead>
             <tbody>
-                @if (Model.Payments != null && Model.Payments.Any())
+                @if (Model.Payments.Any())
                 {
                     foreach (var payment in Model.Payments)
                     {
+                        var isPayable = payment.Status.ToString() == "Pending" || payment.Status.ToString() == "Overdue";
+                        var isOverdue = payment.DueDate < DateTime.Now && isPayable;
+                        var hasBank = !string.IsNullOrEmpty(payment.LandlordBankAccount) && !string.IsNullOrEmpty(payment.LandlordBankName);
                         <tr>
                             <td>
-                                <div class="fw-700">#@payment.Id</div>
+                                <div class="fw-700" style="color: var(--text-primary);">#@payment.Id</div>
                                 <div style="font-size: 11px; color: var(--text-muted);">HĐ: @payment.LeaseNumber</div>
                             </td>
                             <td>
                                 <div class="fw-600">@payment.Description</div>
                                 <div style="font-size: 11px; color: var(--text-muted);">Kỳ: @payment.BillingMonth/@payment.BillingYear</div>
                             </td>
+                            <td style="color: var(--text-secondary);">@payment.LandlordName</td>
                             <td>
-                                <div>@payment.LandlordName</div>
-                            </td>
-                            <td>
-                                <div class="@(payment.DueDate < DateTime.Now && payment.Status.ToString() != "Paid" ? "text-red fw-600" : "")">
+                                <div class="@(isOverdue ? "fw-600" : "")" style="color: @(isOverdue ? "var(--danger)" : "var(--text-secondary)");">
                                     @payment.DueDate.ToString("dd/MM/yyyy")
                                 </div>
                             </td>
-                            <td class="text-green fw-700">@payment.Amount.ToString("N0")</td>
+                            <td style="color: var(--success); font-weight: 700;">@payment.Amount.ToString("N0")đ</td>
                             <td>
                                 @if (payment.Status.ToString() == "Pending")
                                 {
-                                    <span class="badge badge-warning">Chưa thanh toán</span>
-                                }
-                                else if (payment.Status.ToString() == "Processing")
-                                {
-                                    <span class="badge badge-info">Đang xử lý</span>
-                                }
-                                else if (payment.Status.ToString() == "Paid")
-                                {
-                                    <span class="badge badge-success">Thành công</span>
+                                    <span class="badge badge-warning">Chờ thanh toán</span>
                                 }
                                 else if (payment.Status.ToString() == "Overdue")
                                 {
                                     <span class="badge badge-danger">Quá hạn</span>
                                 }
+                                else if (payment.Status.ToString() == "Completed")
+                                {
+                                    <span class="badge badge-success">Đã thanh toán</span>
+                                }
+                                else if (payment.Status.ToString() == "Failed")
+                                {
+                                    <span class="badge badge-danger">Thất bại</span>
+                                }
                                 else
                                 {
-                                    <span class="badge badge-gray">@payment.Status</span>
+                                    <span class="badge" style="background: rgba(148,163,184,0.15); color: var(--text-muted);">@payment.Status</span>
                                 }
                             </td>
                             <td>
                                 <div style="display: flex; gap: 6px;">
-                                    <button class="btn btn-ghost btn-sm btn-icon" title="Hóa đơn (Invoice)"><i data-feather="file-text" style="width: 14px;"></i></button>
-                                    @if (payment.Status.ToString() == "Pending" || payment.Status.ToString() == "Overdue")
+                                    @if (!string.IsNullOrEmpty(payment.PaymentProof))
                                     {
-                                        <button class="btn btn-primary btn-sm btn-icon" title="Thanh toán ngay"><i data-feather="dollar-sign" style="width: 14px;"></i></button>
+                                        <a href="@payment.PaymentProof" target="_blank" class="btn btn-ghost btn-sm btn-icon" title="Xem biên lai đã nộp">
+                                            <i data-feather="image" style="width: 14px;"></i>
+                                        </a>
+                                    }
+                                    @if (isPayable)
+                                    {
+                                        <button class="btn btn-primary btn-sm" onclick="openPayModal(@payment.Id)" data-id="@payment.Id">
+                                            <i data-feather="credit-card" style="width: 14px; margin-right: 4px;"></i>Thanh toán
+                                        </button>
                                     }
                                 </div>
                             </td>
@@ -98,8 +137,8 @@
                     <tr>
                         <td colspan="7">
                             <div class="empty-state">
-                                <div class="empty-icon">credit-card</div>
-                                <p>Bạn không có khoản thanh toán nào.</p>
+                                <div class="empty-icon" style="font-size: 32px;">💳</div>
+                                <p style="color: var(--text-muted); margin-top: 12px;">Bạn chưa có hóa đơn nào.</p>
                             </div>
                         </td>
                     </tr>
@@ -107,4 +146,397 @@
             </tbody>
         </table>
     </div>
+    <div style="padding: 12px 16px; border-top: 1px solid var(--border); font-size: 13px; color: var(--text-muted);">
+        Hiển thị @Model.Payments.Count hóa đơn
+    </div>
 </div>
+
+<!-- Payment data store (avoids HtmlEncode issue with data attributes) -->
+<script>
+    window._payments = {};
+    @foreach (var payment in Model.Payments)
+    {
+        var hasBank2 = !string.IsNullOrEmpty(payment.LandlordBankAccount) && !string.IsNullOrEmpty(payment.LandlordBankName);
+        <text>
+    window._payments[@payment.Id] = {
+        id: @payment.Id,
+        description: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(payment.Description ?? "")),
+        amount: @payment.Amount,
+        amountFormatted: "@payment.Amount.ToString("N0")",
+        lateFeeAmount: @(payment.LateFeeAmount.HasValue ? payment.LateFeeAmount.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "0"),
+        lateFeeFormatted: "@(payment.LateFeeAmount.HasValue && payment.LateFeeAmount > 0 ? payment.LateFeeAmount.Value.ToString("N0") : "0")",
+        totalAmount: @((payment.Amount + (payment.LateFeeAmount ?? 0)).ToString(System.Globalization.CultureInfo.InvariantCulture)),
+        totalFormatted: "@((payment.Amount + (payment.LateFeeAmount ?? 0)).ToString("N0"))",
+        isOverdue: @(payment.Status.ToString() == "Overdue" ? "true" : "false"),
+        dueDate: "@payment.DueDate.ToString("dd/MM/yyyy")",
+        landlordName: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(payment.LandlordName ?? "")),
+        landlordBankAccount: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(payment.LandlordBankAccount ?? "")),
+        landlordBankName: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(payment.LandlordBankName ?? "")),
+        landlordBankHolder: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(payment.LandlordBankAccountHolder ?? "")),
+        hasBank: @(hasBank2 ? "true" : "false"),
+        paymentProof: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(payment.PaymentProof ?? ""))
+    };
+        </text>
+    }
+</script>
+
+<!-- ===== Payment Modal ===== -->
+<div class="modal-overlay" id="payModal" style="display: none;" onclick="closePayModal()">
+    <div class="modal" style="max-width: 580px; width: 95%; max-height: 90vh; overflow-y: auto;" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <span class="modal-title"><i data-feather="credit-card" style="width: 16px; margin-right: 6px;"></i>Thanh toán hóa đơn</span>
+            <button class="modal-close btn btn-ghost btn-sm btn-icon" onclick="closePayModal()">✕</button>
+        </div>
+        <div class="modal-body" style="padding: 20px;">
+
+            <!-- Invoice summary -->
+            <div style="background: var(--bg-primary); border-radius: 10px; padding: 16px; margin-bottom: 20px; border: 1px solid var(--border);">
+                <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px;" id="pDescription"></div>
+                <!-- Base amount -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <span style="font-size: 12px; color: var(--text-muted);">Tiền thuê gốc</span>
+                    <span style="font-size: 15px; font-weight: 700; color: var(--text-primary);" id="pAmount"></span>
+                </div>
+                <!-- Late fee row (hidden if no late fee) -->
+                <div id="pLateFeeRow" style="display: none; justify-content: space-between; align-items: center; margin-bottom: 4px; padding: 6px 8px; background: rgba(239,68,68,0.08); border-radius: 6px; border: 1px solid rgba(239,68,68,0.2);">
+                    <span style="font-size: 12px; color: var(--danger);">⚠️ Phí quá hạn</span>
+                    <span style="font-size: 14px; font-weight: 700; color: var(--danger);" id="pLateFee"></span>
+                </div>
+                <!-- Total -->
+                <div id="pTotalRow" style="display: flex; justify-content: space-between; align-items: center; padding-top: 8px; margin-top: 4px; border-top: 1px dashed var(--border);">
+                    <span style="font-size: 13px; color: var(--text-muted); font-weight: 600;">TỔNG CẦN THANH TOÁN</span>
+                    <span style="font-size: 22px; font-weight: 800; color: var(--accent);" id="pTotal"></span>
+                </div>
+                <div style="font-size: 12px; color: var(--text-muted); margin-top: 6px;">Hạn chót: <span id="pDueDate"></span></div>
+            </div>
+
+            <!-- Choose method -->
+            <div style="margin-bottom: 20px;">
+                <label class="form-label" style="font-weight: 600; margin-bottom: 10px; display: block;">Chọn phương thức thanh toán</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <label id="lblBankTransfer" class="method-card method-selected" for="m_bank" style="display: flex; align-items: center; gap: 10px; padding: 12px; border: 2px solid var(--accent); border-radius: 10px; cursor: pointer; background: rgba(99,102,241,0.05);">
+                        <input type="radio" id="m_bank" name="payMethod" value="BankTransfer" style="display:none;" checked onchange="onMethodChange('BankTransfer')"/>
+                        <span style="font-size: 22px;">🏦</span>
+                        <div><div style="font-weight: 600; font-size: 13px;">Chuyển khoản</div><div style="font-size: 11px; color: var(--text-muted);">Quét QR VietQR</div></div>
+                    </label>
+                    <label id="lblCash" class="method-card" for="m_cash" style="display: flex; align-items: center; gap: 10px; padding: 12px; border: 2px solid var(--border); border-radius: 10px; cursor: pointer;">
+                        <input type="radio" id="m_cash" name="payMethod" value="Cash" style="display:none;" onchange="onMethodChange('Cash')"/>
+                        <span style="font-size: 22px;">💵</span>
+                        <div><div style="font-weight: 600; font-size: 13px;">Tiền mặt</div><div style="font-size: 11px; color: var(--text-muted);">Trả trực tiếp</div></div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- VietQR Section -->
+            <div id="vietQrSection" style="margin-bottom: 20px;">
+                <div id="bankInfoBlock" style="display: none;">
+                    <div style="display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: start;">
+                        <div>
+                            <div style="background: var(--bg-primary); border-radius: 10px; padding: 14px; border: 1px solid var(--border); font-size: 13px;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                    <span style="color: var(--text-muted);">Ngân hàng</span>
+                                    <span id="bankName" style="font-weight: 700; color: var(--text-primary);"></span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                    <span style="color: var(--text-muted);">Số tài khoản</span>
+                                    <span id="bankAccount" style="font-weight: 700; color: var(--text-primary); font-family: monospace;"></span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                    <span style="color: var(--text-muted);">Chủ tài khoản</span>
+                                    <span id="bankHolder" style="font-weight: 700; color: var(--text-primary);"></span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between;">
+                                    <span style="color: var(--text-muted);">Số tiền</span>
+                                    <span id="bankAmount" style="font-weight: 800; color: var(--danger); font-size: 15px;"></span>
+                                </div>
+                            </div>
+                            <div style="margin-top: 8px; padding: 10px; background: rgba(59,130,246,0.08); border-radius: 8px; font-size: 12px; color: var(--text-muted);">
+                                💡 Quét mã QR bằng app ngân hàng để chuyển khoản nhanh. Nội dung chuyển khoản đã được điền sẵn.
+                            </div>
+                        </div>
+                        <div style="text-align: center;">
+                            <img id="qrImg" src="" style="width: 160px; height: 160px; border-radius: 10px; border: 2px solid var(--border); display: block;" loading="lazy" />
+                            <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">Quét bằng app ngân hàng</div>
+                        </div>
+                    </div>
+                </div>
+                <div id="noBankBlock" style="display: none; padding: 14px; background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); border-radius: 8px; font-size: 13px; color: var(--text-muted);">
+                    ⚠️ Chủ nhà chưa cập nhật thông tin ngân hàng. Vui lòng liên hệ trực tiếp để thanh toán.
+                </div>
+            </div>
+
+            <!-- Upload bill section -->
+            <div class="form-group" style="margin-bottom: 16px;">
+                <label class="form-label" style="font-weight: 600;">Upload biên lai <span id="billRequired" style="color: var(--danger);">*</span></label>
+                <div id="billDropZone" style="border: 2px dashed var(--border); border-radius: 10px; padding: 20px; text-align: center; cursor: pointer; transition: border-color 0.2s;" 
+                     onclick="document.getElementById('billFileInput').click()"
+                     ondragover="event.preventDefault(); this.style.borderColor='var(--accent)'"
+                     ondragleave="this.style.borderColor='var(--border)'"
+                     ondrop="handleDrop(event)">
+                    <div id="billPlaceholder">
+                        <div style="font-size: 28px; margin-bottom: 8px;">📎</div>
+                        <div style="font-size: 13px; color: var(--text-muted);">Kéo thả hoặc <strong style="color: var(--accent);">chọn tệp</strong></div>
+                        <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">PNG, JPG, PDF tối đa 5MB</div>
+                    </div>
+                    <div id="billPreviewWrap" style="display: none;">
+                        <img id="billPreview" src="" style="max-height: 120px; border-radius: 8px; margin: 0 auto;" />
+                        <div id="billFileName" style="font-size: 12px; color: var(--text-muted); margin-top: 6px;"></div>
+                    </div>
+                    <input type="file" id="billFileInput" accept="image/*,application/pdf" style="display: none;" onchange="handleBillFile(event)" />
+                </div>
+            </div>
+
+            <!-- Transaction ID -->
+            <div class="form-group" id="txIdGroup" style="margin-bottom: 16px;">
+                <label class="form-label" style="font-weight: 600;">Mã giao dịch (tuỳ chọn)</label>
+                <input type="text" class="form-control" id="txIdInput" placeholder="Nhập mã giao dịch ngân hàng nếu có..."/>
+            </div>
+
+            <!-- Notes -->
+            <div class="form-group" style="margin-bottom: 4px;">
+                <label class="form-label" style="font-weight: 600;">Ghi chú</label>
+                <textarea class="form-control" id="notesInput" placeholder="Ghi chú thêm nếu cần..." rows="2" style="resize: none; font-size: 13px;"></textarea>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closePayModal()">Hủy</button>
+            <button class="btn btn-primary" id="submitPayBtn" onclick="submitPayment()">
+                <i data-feather="send" style="width: 14px; margin-right: 6px;"></i>Xác nhận đã chuyển khoản
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden form for POST -->
+<form id="paymentForm" method="post" asp-page-handler="MakePayment" enctype="multipart/form-data" style="display:none;">
+    <input type="hidden" id="f_paymentId" name="paymentId" />
+    <input type="hidden" id="f_paymentMethod" name="paymentMethod" />
+    <input type="hidden" id="f_transactionId" name="transactionId" />
+    <input type="hidden" id="f_notes" name="notes" />
+    <input type="file" id="f_paymentProof" name="PaymentProofFile" style="display:none;" />
+</form>
+
+@section Scripts {
+    <script>
+        let currentPayment = null;
+        let currentMethod = 'BankTransfer';
+
+        // Bank name → VietQR BIN mapping (các ngân hàng phổ biến ở VN)
+        const BANK_BINS = {
+            'vietcombank': '970436',
+            'vcb': '970436',
+            'techcombank': '970407',
+            'tcb': '970407',
+            'vietinbank': '970415',
+            'ctg': '970415',
+            'agribank': '970405',
+            'acb': '970416',
+            'bidv': '970418',
+            'mbbank': '970422',
+            'mb': '970422',
+            'sacombank': '970403',
+            'stb': '970403',
+            'vpbank': '970432',
+            'vpb': '970432',
+            'tpbank': '970423',
+            'hdbank': '970437',
+            'vib': '970441',
+            'ocb': '970448',
+            'msb': '970426',
+            'seabank': '970440',
+            'abbank': '970425',
+            'eximbank': '970431',
+            'ncb': '970419',
+            'pvcombank': '970412',
+            'baovietbank': '970438',
+            'nam a bank': '970428',
+            'namabank': '970428',
+            'kienlongbank': '970452',
+            'lpbank': '970449',
+            'lienvietpostbank': '970449',
+        };
+
+        function getBankBin(bankName) {
+            if (!bankName) return null;
+            const key = bankName.toLowerCase().trim();
+            for (const [name, bin] of Object.entries(BANK_BINS)) {
+                if (key.includes(name) || name.includes(key)) return bin;
+            }
+            return null;
+        }
+
+        function openPayModal(id) {
+            currentPayment = window._payments[id];
+            if (!currentPayment) { console.error('Payment not found:', id); return; }
+
+            document.getElementById('pDescription').innerText = currentPayment.description;
+            document.getElementById('pAmount').innerText = currentPayment.amountFormatted + '₫';
+            document.getElementById('pDueDate').innerText = currentPayment.dueDate;
+
+            // Hiển thị phí quá hạn nếu có
+            const lateFeeRow = document.getElementById('pLateFeeRow');
+            const totalEl = document.getElementById('pTotal');
+            if (currentPayment.lateFeeAmount > 0) {
+                document.getElementById('pLateFee').innerText = '+' + currentPayment.lateFeeFormatted + '₫';
+                lateFeeRow.style.display = 'flex';
+            } else {
+                lateFeeRow.style.display = 'none';
+            }
+            totalEl.innerText = currentPayment.totalFormatted + '₫';
+
+            currentMethod = 'BankTransfer';
+            document.getElementById('m_bank').checked = true;
+            setMethodUI('BankTransfer');
+            loadBankInfo();
+
+            // Clear form
+            document.getElementById('txIdInput').value = '';
+            document.getElementById('notesInput').value = '';
+            clearBillPreview();
+
+            document.getElementById('payModal').style.display = 'flex';
+            feather.replace();
+        }
+
+        function closePayModal() {
+            document.getElementById('payModal').style.display = 'none';
+        }
+
+        function onMethodChange(method) {
+            currentMethod = method;
+            setMethodUI(method);
+            loadBankInfo();
+        }
+
+        function setMethodUI(method) {
+            const lblBank = document.getElementById('lblBankTransfer');
+            const lblCash = document.getElementById('lblCash');
+            const activeStyle = 'border: 2px solid var(--accent); background: rgba(99,102,241,0.05);';
+            const normalStyle = 'border: 2px solid var(--border); background: transparent;';
+
+            if (method === 'BankTransfer') {
+                lblBank.style.cssText += activeStyle;
+                lblCash.style.cssText = 'display:flex;align-items:center;gap:10px;padding:12px;border-radius:10px;cursor:pointer;' + normalStyle;
+                document.getElementById('vietQrSection').style.display = 'block';
+                document.getElementById('txIdGroup').style.display = 'block';
+                document.getElementById('submitPayBtn').innerHTML = '<i data-feather="send" style="width:14px;margin-right:6px;"></i>Xác nhận đã chuyển khoản';
+            } else {
+                lblCash.style.cssText += activeStyle;
+                lblBank.style.cssText = 'display:flex;align-items:center;gap:10px;padding:12px;border-radius:10px;cursor:pointer;' + normalStyle;
+                document.getElementById('vietQrSection').style.display = 'none';
+                document.getElementById('txIdGroup').style.display = 'none';
+                document.getElementById('submitPayBtn').innerHTML = '<i data-feather="check" style="width:14px;margin-right:6px;"></i>Xác nhận đã nộp tiền mặt';
+            }
+            feather.replace();
+        }
+
+        function loadBankInfo() {
+            if (!currentPayment || currentMethod !== 'BankTransfer') return;
+
+            const bankInfoBlock = document.getElementById('bankInfoBlock');
+            const noBankBlock = document.getElementById('noBankBlock');
+
+            if (!currentPayment.hasBank) {
+                bankInfoBlock.style.display = 'none';
+                noBankBlock.style.display = 'block';
+                return;
+            }
+
+            bankInfoBlock.style.display = 'flex';
+            bankInfoBlock.style.display = 'block';
+            noBankBlock.style.display = 'none';
+
+            document.getElementById('bankName').innerText = currentPayment.landlordBankName;
+            document.getElementById('bankAccount').innerText = currentPayment.landlordBankAccount;
+            document.getElementById('bankHolder').innerText = currentPayment.landlordBankHolder;
+            document.getElementById('bankAmount').innerText = currentPayment.totalFormatted + '₫';
+
+            // Generate VietQR URL
+            const bin = getBankBin(currentPayment.landlordBankName);
+            const qrImg = document.getElementById('qrImg');
+
+            if (bin) {
+                const info = encodeURIComponent('Thanh toan ' + currentPayment.description);
+                const holder = encodeURIComponent(currentPayment.landlordBankHolder || '');
+                const amount = Math.round(currentPayment.totalAmount);
+                const qrUrl = `https://img.vietqr.io/image/${bin}-${currentPayment.landlordBankAccount}-compact2.png?amount=${amount}&addInfo=${info}&accountName=${holder}`;
+                qrImg.src = qrUrl;
+                qrImg.style.display = 'block';
+            } else {
+                // Fallback: show QR via generic VietQR with account number only
+                qrImg.src = `https://img.vietqr.io/image/${currentPayment.landlordBankAccount}-compact2.png`;
+                qrImg.style.display = 'block';
+            }
+        }
+
+        function handleBillFile(event) {
+            const file = event.target.files[0];
+            if (file) showBillPreview(file);
+        }
+
+        function handleDrop(event) {
+            event.preventDefault();
+            const file = event.dataTransfer.files[0];
+            if (file) {
+                document.getElementById('billFileInput').files = event.dataTransfer.files;
+                showBillPreview(file);
+            }
+            document.getElementById('billDropZone').style.borderColor = 'var(--border)';
+        }
+
+        function showBillPreview(file) {
+            document.getElementById('billPlaceholder').style.display = 'none';
+            document.getElementById('billPreviewWrap').style.display = 'block';
+            document.getElementById('billFileName').innerText = file.name + ' (' + (file.size / 1024).toFixed(0) + ' KB)';
+
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = e => { document.getElementById('billPreview').src = e.target.result; };
+                reader.readAsDataURL(file);
+                document.getElementById('billPreview').style.display = 'block';
+            } else {
+                document.getElementById('billPreview').style.display = 'none';
+            }
+        }
+
+        function clearBillPreview() {
+            document.getElementById('billPlaceholder').style.display = 'block';
+            document.getElementById('billPreviewWrap').style.display = 'none';
+            document.getElementById('billFileInput').value = '';
+        }
+
+        function submitPayment() {
+            if (!currentPayment) return;
+
+            // Validate: need at least bill or txId for BankTransfer
+            const billFile = document.getElementById('billFileInput').files[0];
+            const txId = document.getElementById('txIdInput').value.trim();
+
+            if (currentMethod === 'BankTransfer' && !billFile && !txId) {
+                Swal.fire({
+                    title: 'Thiếu biên lai',
+                    text: 'Vui lòng upload ảnh biên lai chuyển khoản hoặc nhập mã giao dịch.',
+                    icon: 'warning',
+                    confirmButtonColor: 'var(--accent)'
+                });
+                return;
+            }
+
+            // Copy file to hidden form input
+            const f_proof = document.getElementById('f_paymentProof');
+            if (billFile) {
+                const dt = new DataTransfer();
+                dt.items.add(billFile);
+                f_proof.files = dt.files;
+            }
+
+            document.getElementById('f_paymentId').value = currentPayment.id;
+            document.getElementById('f_paymentMethod').value = currentMethod;
+            document.getElementById('f_transactionId').value = txId;
+            document.getElementById('f_notes').value = document.getElementById('notesInput').value;
+
+            document.getElementById('paymentForm').submit();
+        }
+    </script>
+}

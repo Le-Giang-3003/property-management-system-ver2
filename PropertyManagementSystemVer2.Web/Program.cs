@@ -1,6 +1,7 @@
 using PropertyManagementSystemVer2.BLL;
 using PropertyManagementSystemVer2.BLL.Settings;
 using PropertyManagementSystemVer2.DAL;
+using PropertyManagementSystemVer2.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +14,9 @@ builder.Services.AddBusinessLogic(builder.Configuration); // BLL Layer
 
 // Cloudinary Configuration
 builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection("CloudinarySettings"));
+
+// Background Service: Auto tạo hóa đơn hàng tháng
+builder.Services.AddHostedService<MonthlyPaymentGeneratorService>();
 
 // Configure Authentication
 builder.Services.AddAuthentication("Cookies")

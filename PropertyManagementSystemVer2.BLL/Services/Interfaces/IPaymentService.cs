@@ -5,6 +5,7 @@ namespace PropertyManagementSystemVer2.BLL.Services.Interfaces
 {
     public interface IPaymentService
     {
+        Task<ServiceResultDto<List<PaymentDto>>> GetAllPaymentsAsync(DAL.Enums.PaymentStatus? status = null);
         Task<ServiceResultDto<PaymentDto>> GetByIdAsync(int paymentId);
         Task<ServiceResultDto<List<PaymentDto>>> GetByLeaseIdAsync(int leaseId, PaymentStatus? status = null);
         Task<ServiceResultDto<List<PaymentDto>>> GetByTenantIdAsync(int tenantId, PaymentStatus? status = null);

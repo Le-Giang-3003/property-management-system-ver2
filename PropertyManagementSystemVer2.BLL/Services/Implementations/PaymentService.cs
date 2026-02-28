@@ -154,10 +154,8 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
         }
 
         // BR31: Xử lý trả chậm và quá hạn
-        // 1. Quá due date 3 ngày → notify Tenant
-        // 2. Quá 7 ngày → tính phí trả hạn (configurable %)
-        // 3. Quá 30 ngày → notify Admin, có thể trigger chấm dứt Lease
-        // 4. Ghi nhận lịch sử trả hạn
+        // - Phí quá hạn = Amount × (LateFeePercentage / 100) × số ngày quá hạn
+        // - Cập nhật LateFeeAmount mỗi khi chạy
         public async Task<ServiceResultDto> ProcessOverduePaymentsAsync()
         {
             var overduePayments = await _unitOfWork.Payments.GetOverduePaymentsAsync();
@@ -165,16 +163,17 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
 
             foreach (var payment in overduePayments)
             {
-                var daysOverdue = (DateTime.UtcNow - payment.DueDate).Days;
+                var daysOverdue = (int)(DateTime.UtcNow - payment.DueDate).TotalDays;
+                if (daysOverdue <= 0) continue;
 
-                if (daysOverdue >= 7 && payment.LateFeeAmount == null)
+                // Tính phí quá hạn dựa theo LateFeePercentage trong Lease
+                var lease = await _unitOfWork.Leases.GetByIdAsync(payment.LeaseId);
+                if (lease?.LateFeePercentage is > 0)
                 {
-                    // BR31.2: Tính phí trả hạn
-                    var lease = await _unitOfWork.Leases.GetByIdAsync(payment.LeaseId);
-                    if (lease?.LateFeePercentage > 0)
-                    {
-                        payment.LateFeeAmount = payment.Amount * (lease.LateFeePercentage / 100);
-                    }
+                    // Phí mỗi ngày = Amount × (LateFeePercentage / 100)
+                    // Tổng phí = phí mỗi ngày × số ngày quá hạn
+                    var dailyFee = payment.Amount * (lease.LateFeePercentage.Value / 100m);
+                    payment.LateFeeAmount = Math.Round(dailyFee * daysOverdue, 0);
                 }
 
                 if (payment.Status != PaymentStatus.Overdue)
@@ -190,6 +189,7 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
             await _unitOfWork.SaveChangesAsync();
             return ServiceResultDto.Success($"Đã xử lý {processedCount} khoản thanh toán quá hạn.");
         }
+
 
         // BR33: Hoàn tiền
         // 1. Landlord hoặc Admin initiate refund
@@ -216,6 +216,23 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
 
             await _unitOfWork.SaveChangesAsync();
             return ServiceResultDto.Success("Đã tạo yêu cầu hoàn tiền.");
+        }
+
+        // Admin: Xem tất cả payments trong hệ thống
+        public async Task<ServiceResultDto<List<PaymentDto>>> GetAllPaymentsAsync(PaymentStatus? status = null)
+        {
+            var query = _unitOfWork.Payments.Query();
+            if (status.HasValue)
+                query = query.Where(p => p.Status == status.Value);
+            var list = query.OrderByDescending(p => p.CreatedAt).ToList();
+            // Fetch details for each (avoid lazy loading issues)
+            var result = new List<PaymentDto>();
+            foreach (var p in list)
+            {
+                var detailed = await _unitOfWork.Payments.GetByIdWithDetailsAsync(p.Id);
+                if (detailed != null) result.Add(MapToPaymentDto(detailed));
+            }
+            return ServiceResultDto<List<PaymentDto>>.Success(result);
         }
 
         // BR32: Xem lịch sử Payment
@@ -291,7 +308,10 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
                 TransactionId = p.TransactionId,
                 PaymentProof = p.PaymentProof,
                 Notes = p.Notes,
-                CreatedAt = p.CreatedAt
+                CreatedAt = p.CreatedAt,
+                LandlordBankAccount = p.Lease?.Landlord?.BankAccountNumber,
+                LandlordBankName = p.Lease?.Landlord?.BankName,
+                LandlordBankAccountHolder = p.Lease?.Landlord?.BankAccountHolder
             };
         }
     }

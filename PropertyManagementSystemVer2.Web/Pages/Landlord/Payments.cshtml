@@ -4,89 +4,167 @@
     ViewData["Title"] = "Quản lý Thanh toán";
 }
 
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="mb-16" style="padding: 12px 16px; background: rgba(16,185,129,0.1); color: #10b981; border-radius: 8px; border: 1px solid #10b981;">
+        <i data-feather="check-circle" style="width:15px;"></i> @TempData["SuccessMessage"]
+    </div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="mb-16" style="padding: 12px 16px; background: rgba(239,68,68,0.1); color: #ef4444; border-radius: 8px; border: 1px solid #ef4444;">
+        <i data-feather="alert-circle" style="width:15px;"></i> @TempData["ErrorMessage"]
+    </div>
+}
+
 <div class="mb-20">
     <div class="page-title">Quản lý Thanh toán</div>
-    <div class="page-desc">Theo dõi các khoản thu tiền thuê nhà và phí khác</div>
+    <div class="page-desc">Theo dõi và xác nhận các khoản thu tiền thuê</div>
 </div>
 
-<div class="card mb-20">
-    <div class="filter-bar" style="margin-bottom: 0;">
-        <div class="header-search" style="flex: 1; min-width: 200px;">
-            <i data-feather="search" style="color: var(--text-muted); width: 14px;"></i>
-            <input placeholder="Tìm mã hợp đồng, tên người thuê..." style="width: 100%;" />
+@{
+    var pendingConfirm = Model.Payments.Count(p => p.Status.ToString() == "Pending" && !string.IsNullOrEmpty(p.PaymentProof));
+    var overdue = Model.Payments.Count(p => p.Status.ToString() == "Overdue");
+    var completed = Model.Payments.Count(p => p.Status.ToString() == "Completed");
+    var totalRevenue = Model.Payments.Where(p => p.Status.ToString() == "Completed").Sum(p => p.Amount);
+}
+
+<div class="stat-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 24px;">
+    <div class="stat-card">
+        <div class="stat-icon yellow"><i data-feather="clock"></i></div>
+        <div class="stat-info">
+            <div class="stat-label">Chờ xác nhận</div>
+            <div class="stat-value">@pendingConfirm</div>
         </div>
-        <button class="btn btn-primary btn-sm">Tất cả</button>
-        <button class="btn btn-ghost btn-sm text-yellow" style="border-color: var(--warning);">Chờ xác nhận</button>
-        <button class="btn btn-ghost btn-sm text-red" style="border-color: var(--danger);">Quá hạn</button>
-        <button class="btn btn-ghost btn-sm text-green" style="border-color: var(--success);">Đã thu</button>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon red"><i data-feather="alert-triangle"></i></div>
+        <div class="stat-info">
+            <div class="stat-label">Quá hạn</div>
+            <div class="stat-value">@overdue</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon green"><i data-feather="check-circle"></i></div>
+        <div class="stat-info">
+            <div class="stat-label">Đã thu</div>
+            <div class="stat-value">@completed</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon blue"><i data-feather="trending-up"></i></div>
+        <div class="stat-info">
+            <div class="stat-label">Tổng đã thu (VNĐ)</div>
+            <div class="stat-value" style="font-size: 18px;">@totalRevenue.ToString("N0")</div>
+        </div>
     </div>
 </div>
+
+<form method="get" class="filter-bar mb-20" id="filterForm">
+    <div class="admin-search-wrapper" style="flex: 1; max-width: 300px;">
+        <i data-feather="search" class="admin-search-icon"></i>
+        <input name="SearchTerm" class="admin-search-input" value="@Model.SearchTerm" placeholder="Tìm tên người thuê, mã HĐ..." onchange="this.form.submit()" />
+        <input type="hidden" name="StatusFilter" value="@Model.StatusFilter" id="StatusFilterInput" />
+    </div>
+    <div style="display: flex; gap: 8px;">
+        <button type="button" class="btn @(Model.StatusFilter == "All" ? "btn-primary" : "btn-ghost") btn-sm" onclick="setFilter('All')">Tất cả</button>
+        <button type="button" class="btn @(Model.StatusFilter == "Pending" ? "btn-primary" : "btn-ghost") btn-sm" onclick="setFilter('Pending')">Chờ</button>
+        <button type="button" class="btn @(Model.StatusFilter == "Completed" ? "btn-primary" : "btn-ghost") btn-sm" onclick="setFilter('Completed')">Đã thu</button>
+        <button type="button" class="btn @(Model.StatusFilter == "Overdue" ? "btn-primary" : "btn-ghost") btn-sm" onclick="setFilter('Overdue')">Quá hạn</button>
+    </div>
+</form>
 
 <div class="card">
     <div class="table-container">
         <table>
             <thead>
                 <tr>
-                    <th>Mã tham chiếu</th>
-                    <th>Nội dung</th>
-                    <th>Người nộp</th>
-                    <th>Ngày đến hạn</th>
-                    <th>Số tiền (VND)</th>
+                    <th>Hóa đơn</th>
+                    <th>Người thuê</th>
+                    <th>BĐS</th>
+                    <th>Hạn chót</th>
+                    <th>Số tiền</th>
+                    <th>Biên lai</th>
                     <th>Trạng thái</th>
                     <th>Hành động</th>
                 </tr>
             </thead>
             <tbody>
-                @if (Model.Payments != null && Model.Payments.Any())
+                @if (Model.FilteredPayments.Any())
                 {
-                    foreach (var payment in Model.Payments)
+                    foreach (var p in Model.FilteredPayments)
                     {
+                        var isOverdue = p.DueDate < DateTime.Now && p.Status.ToString() == "Pending";
+                        var hasProof = !string.IsNullOrEmpty(p.PaymentProof);
+                        var canConfirm = p.Status.ToString() == "Pending" && hasProof;
+
                         <tr>
                             <td>
-                                <div class="fw-700">#@payment.Id</div>
-                                <div style="font-size: 11px; color: var(--text-muted);">HĐ: @payment.LeaseNumber</div>
+                                <div class="fw-700">#@p.Id</div>
+                                <div style="font-size: 11px; color: var(--text-muted);">HĐ: @p.LeaseNumber</div>
                             </td>
+                            <td style="color: var(--text-secondary);">@p.TenantName</td>
                             <td>
-                                <div class="fw-600">@payment.Description</div>
-                                <div style="font-size: 11px; color: var(--text-muted);">Tháng: @payment.BillingMonth/@payment.BillingYear</div>
+                                <div style="font-size: 13px; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">@p.PropertyTitle</div>
+                                <div style="font-size: 11px; color: var(--text-muted);">@p.BillingMonth/@p.BillingYear</div>
                             </td>
-                            <td>
-                                <div>@payment.TenantName</div>
+                            <td style="color: @(isOverdue ? "var(--danger)" : "var(--text-secondary)"); font-weight: @(isOverdue ? "700" : "400");">
+                                @p.DueDate.ToString("dd/MM/yyyy")
                             </td>
+                            <td style="color: var(--success); font-weight: 700;">@p.Amount.ToString("N0")đ</td>
                             <td>
-                                <div class="@(payment.DueDate < DateTime.Now && payment.Status.ToString() != "Paid" ? "text-red fw-600" : "")">
-                                    @payment.DueDate.ToString("dd/MM/yyyy")
-                                </div>
-                            </td>
-                            <td class="text-green fw-700">@payment.Amount.ToString("N0")</td>
-                            <td>
-                                @if (payment.Status.ToString() == "Pending")
+                                @if (hasProof)
                                 {
-                                    <span class="badge badge-warning">Chờ đóng</span>
-                                }
-                                else if (payment.Status.ToString() == "Processing")
-                                {
-                                    <span class="badge badge-info">Đang xử lý</span>
-                                }
-                                else if (payment.Status.ToString() == "Paid")
-                                {
-                                    <span class="badge badge-success">Đã thu</span>
-                                }
-                                else if (payment.Status.ToString() == "Overdue")
-                                {
-                                    <span class="badge badge-danger">Quá hạn</span>
+                                    <a href="@p.PaymentProof" target="_blank" class="btn btn-ghost btn-sm btn-icon" title="Xem biên lai">
+                                        <i data-feather="image" style="width: 14px;"></i>
+                                    </a>
                                 }
                                 else
                                 {
-                                    <span class="badge badge-gray">@payment.Status</span>
+                                    <span style="color: var(--text-muted); font-size: 12px;">—</span>
+                                }
+                            </td>
+                            <td>
+                                @if (p.Status.ToString() == "Pending" && hasProof)
+                                {
+                                    <span class="badge badge-warning" style="animation: pulse 2s infinite;">Chờ xác nhận</span>
+                                }
+                                else if (p.Status.ToString() == "Pending")
+                                {
+                                    <span class="badge badge-warning">Chờ thanh toán</span>
+                                }
+                                else if (p.Status.ToString() == "Overdue")
+                                {
+                                    <span class="badge badge-danger">Quá hạn</span>
+                                }
+                                else if (p.Status.ToString() == "Completed")
+                                {
+                                    <span class="badge badge-success">Đã thu ✓</span>
+                                }
+                                else if (p.Status.ToString() == "Failed")
+                                {
+                                    <span class="badge badge-danger">Từ chối</span>
+                                }
+                                else
+                                {
+                                    <span class="badge" style="background: rgba(148,163,184,0.15); color: var(--text-muted);">@p.Status</span>
                                 }
                             </td>
                             <td>
                                 <div style="display: flex; gap: 6px;">
-                                    <button class="btn btn-ghost btn-sm btn-icon" title="Xem chi tiết"><i data-feather="eye" style="width: 14px;"></i></button>
-                                    @if (payment.Status.ToString() == "Processing")
+                                    <button class="btn btn-ghost btn-sm btn-icon" title="Xem chi tiết" onclick="openDetail(@p.Id)">
+                                        <i data-feather="eye" style="width: 14px;"></i>
+                                    </button>
+                                    @if (canConfirm)
                                     {
-                                        <button class="btn btn-success btn-sm btn-icon" title="Xác nhận đã nhận tiền"><i data-feather="check" style="width: 14px;"></i></button>
+                                        <button class="btn btn-success btn-sm btn-icon" title="Xác nhận đã nhận tiền"
+                                                onclick="confirmPayment(@p.Id, true, '@p.TenantName')">
+                                            <i data-feather="check" style="width: 14px;"></i>
+                                        </button>
+                                        <button class="btn btn-danger btn-sm btn-icon" title="Từ chối"
+                                                onclick="rejectPayment(@p.Id)">
+                                            <i data-feather="x" style="width: 14px;"></i>
+                                        </button>
                                     }
                                 </div>
                             </td>
@@ -96,10 +174,10 @@
                 else
                 {
                     <tr>
-                        <td colspan="7">
+                        <td colspan="8">
                             <div class="empty-state">
-                                <div class="empty-icon">credit-card</div>
-                                <p>Không có dữ liệu thanh toán nào thuộc quyền quản lý của bạn.</p>
+                                <div class="empty-icon" style="font-size: 32px;">💳</div>
+                                <p style="color: var(--text-muted); margin-top: 12px;">Không có hóa đơn phù hợp.</p>
                             </div>
                         </td>
                     </tr>
@@ -107,4 +185,174 @@
             </tbody>
         </table>
     </div>
+    <div style="padding: 12px 16px; border-top: 1px solid var(--border); font-size: 13px; color: var(--text-muted);">
+        Hiển thị @Model.FilteredPayments.Count / @Model.Payments.Count hóa đơn
+    </div>
 </div>
+
+<!-- Payment data store -->
+<script>
+    window._lp = {};
+    @foreach (var p in Model.FilteredPayments)
+    {
+        <text>
+    window._lp[@p.Id] = {
+        id: @p.Id,
+        description: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(p.Description ?? "")),
+        tenantName: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(p.TenantName ?? "")),
+        amount: "@p.Amount.ToString("N0")",
+        dueDate: "@p.DueDate.ToString("dd/MM/yyyy")",
+        paidDate: "@(p.PaidDate.HasValue ? p.PaidDate.Value.ToString("dd/MM/yyyy HH:mm") : "")",
+        paymentProof: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(p.PaymentProof ?? "")),
+        transactionId: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(p.TransactionId ?? "")),
+        notes: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(p.Notes ?? "")),
+        paymentMethod: "@(p.PaymentMethod.HasValue ? p.PaymentMethod.Value.ToString() : "")"
+    };
+        </text>
+    }
+</script>
+
+<!-- Detail Modal -->
+<div class="modal-overlay" id="detailModal" style="display: none;" onclick="this.style.display='none'">
+    <div class="modal" style="max-width: 520px;" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <span class="modal-title">Chi tiết thanh toán</span>
+            <button class="modal-close btn btn-ghost btn-sm btn-icon" onclick="document.getElementById('detailModal').style.display='none'">✕</button>
+        </div>
+        <div class="modal-body">
+            <div style="display: grid; gap: 10px; font-size: 13px;">
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--border); padding-bottom: 8px;">
+                    <span style="color: var(--text-secondary);">Nội dung</span>
+                    <span id="d_desc" style="font-weight: 600; max-width: 260px; text-align: right;"></span>
+                </div>
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--border); padding-bottom: 8px;">
+                    <span style="color: var(--text-secondary);">Người thuê</span>
+                    <span id="d_tenant" style="font-weight: 600;"></span>
+                </div>
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--border); padding-bottom: 8px;">
+                    <span style="color: var(--text-secondary);">Số tiền</span>
+                    <span id="d_amount" style="font-weight: 800; color: var(--success); font-size: 15px;"></span>
+                </div>
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--border); padding-bottom: 8px;">
+                    <span style="color: var(--text-secondary);">Phương thức</span>
+                    <span id="d_method" style="font-weight: 600;"></span>
+                </div>
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--border); padding-bottom: 8px;">
+                    <span style="color: var(--text-secondary);">Mã giao dịch</span>
+                    <span id="d_txid" style="font-weight: 600; font-family: monospace;"></span>
+                </div>
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--border); padding-bottom: 8px;">
+                    <span style="color: var(--text-secondary);">Hạn chót</span>
+                    <span id="d_due" style="font-weight: 600;"></span>
+                </div>
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--border); padding-bottom: 8px;">
+                    <span style="color: var(--text-secondary);">Ngày thanh toán</span>
+                    <span id="d_paid" style="font-weight: 600;"></span>
+                </div>
+            </div>
+            <div id="d_proof_wrap" style="margin-top: 16px; display: none;">
+                <div style="color: var(--text-secondary); font-size: 13px; margin-bottom: 8px;">📎 Biên lai thanh toán</div>
+                <a id="d_proof_link" href="#" target="_blank">
+                    <img id="d_proof_img" src="" style="width: 100%; max-height: 200px; object-fit: contain; border-radius: 8px; border: 1px solid var(--border);" />
+                </a>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="document.getElementById('detailModal').style.display='none'">Đóng</button>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden confirm form -->
+<form id="confirmForm" method="post" asp-page-handler="ConfirmPayment" style="display:none;">
+    <input type="hidden" name="paymentId" id="cf_paymentId" />
+    <input type="hidden" name="isConfirmed" id="cf_isConfirmed" />
+    <input type="hidden" name="notes" id="cf_notes" />
+    <input type="hidden" name="StatusFilter" value="@Model.StatusFilter" />
+    <input type="hidden" name="SearchTerm" value="@Model.SearchTerm" />
+</form>
+
+@section Scripts {
+<style>
+@@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+.admin-search-wrapper { position: relative; display: flex; align-items: center; }
+.admin-search-icon { position: absolute; left: 10px; width: 14px; color: var(--text-muted); pointer-events: none; }
+.admin-search-input { width: 100%; padding: 8px 12px 8px 32px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); font-size: 13px; }
+.admin-search-input:focus { outline: none; border-color: var(--accent); }
+</style>
+<script>
+    function setFilter(status) {
+        document.getElementById('StatusFilterInput').value = status;
+        document.getElementById('filterForm').submit();
+    }
+
+    function openDetail(id) {
+        const p = window._lp[id];
+        if (!p) return;
+        document.getElementById('d_desc').innerText = p.description;
+        document.getElementById('d_tenant').innerText = p.tenantName;
+        document.getElementById('d_amount').innerText = p.amount + 'đ';
+        const methodMap = { BankTransfer: 'Chuyển khoản ngân hàng', Cash: 'Tiền mặt', CreditCard: 'Thẻ tín dụng', EWallet: 'Ví điện tử' };
+        document.getElementById('d_method').innerText = methodMap[p.paymentMethod] || p.paymentMethod || '—';
+        document.getElementById('d_txid').innerText = p.transactionId || '—';
+        document.getElementById('d_due').innerText = p.dueDate;
+        document.getElementById('d_paid').innerText = p.paidDate || 'Chưa thanh toán';
+        const proofWrap = document.getElementById('d_proof_wrap');
+        if (p.paymentProof) {
+            proofWrap.style.display = 'block';
+            document.getElementById('d_proof_img').src = p.paymentProof;
+            document.getElementById('d_proof_link').href = p.paymentProof;
+        } else {
+            proofWrap.style.display = 'none';
+        }
+        document.getElementById('detailModal').style.display = 'flex';
+    }
+
+    function confirmPayment(id, confirmed, tenantName) {
+        Swal.fire({
+            title: 'Xác nhận đã nhận tiền?',
+            html: `Bạn xác nhận đã nhận tiền thuê từ <strong>${tenantName}</strong>?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#10b981',
+            cancelButtonColor: '#94a3b8',
+            confirmButtonText: 'Đã nhận ✓',
+            cancelButtonText: 'Hủy',
+            input: 'text',
+            inputPlaceholder: 'Ghi chú (tuỳ chọn)...',
+        }).then(result => {
+            if (result.isConfirmed) {
+                document.getElementById('cf_paymentId').value = id;
+                document.getElementById('cf_isConfirmed').value = 'true';
+                document.getElementById('cf_notes').value = result.value || '';
+                document.getElementById('confirmForm').submit();
+            }
+        });
+    }
+
+    function rejectPayment(id) {
+        Swal.fire({
+            title: 'Từ chối thanh toán?',
+            text: 'Hãy nhập lý do từ chối để thông báo cho người thuê.',
+            icon: 'warning',
+            input: 'text',
+            inputPlaceholder: 'Lý do từ chối...',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#94a3b8',
+            confirmButtonText: 'Từ chối',
+            cancelButtonText: 'Hủy',
+            inputValidator: (value) => {
+                if (!value) return 'Vui lòng nhập lý do từ chối!';
+            }
+        }).then(result => {
+            if (result.isConfirmed) {
+                document.getElementById('cf_paymentId').value = id;
+                document.getElementById('cf_isConfirmed').value = 'false';
+                document.getElementById('cf_notes').value = result.value;
+                document.getElementById('confirmForm').submit();
+            }
+        });
+    }
+</script>
+}

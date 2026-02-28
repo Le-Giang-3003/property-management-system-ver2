@@ -25,6 +25,11 @@ namespace PropertyManagementSystemVer2.BLL.DTOs
         public string? PaymentProof { get; set; }
         public string? Notes { get; set; }
         public DateTime CreatedAt { get; set; }
+
+        // Thông tin ngân hàng Landlord (dùng để tạo VietQR)
+        public string? LandlordBankAccount { get; set; }
+        public string? LandlordBankName { get; set; }
+        public string? LandlordBankAccountHolder { get; set; }
     }
 
     public class MakePaymentDto
