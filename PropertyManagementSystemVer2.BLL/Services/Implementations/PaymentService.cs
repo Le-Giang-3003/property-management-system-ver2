@@ -27,7 +27,7 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
             if (lease.Status != LeaseStatus.Active)
                 return ServiceResultDto.Failure("Hợp đồng không active.");
 
-            var now = DateTime.UtcNow.Date;
+            var now = DateTime.UtcNow.AddHours(7).Date; // Múi giờ Việt Nam (UTC+7)
             var billingMonth = now.Month;
             var billingYear = now.Year;
 
