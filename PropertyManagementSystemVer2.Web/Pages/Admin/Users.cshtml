@@ -4,6 +4,19 @@
     ViewData["Title"] = "Quản lý Người dùng";
 }
 
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="mb-20" style="padding: 12px 16px; background: var(--success-bg); color: var(--success); border-radius: var(--radius-sm); border: 1px solid var(--success);">
+        @TempData["SuccessMessage"]
+    </div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="mb-20" style="padding: 12px 16px; background: var(--danger-bg); color: var(--danger); border-radius: var(--radius-sm); border: 1px solid var(--danger);">
+        @TempData["ErrorMessage"]
+    </div>
+}
+
 <div class="mb-20">
     <div class="page-title">Quản lý Người dùng</div>
     <div class="page-desc">Quản lý tất cả tài khoản trong hệ thống</div>
@@ -18,17 +31,17 @@
         </div>
     </div>
     <div class="stat-card">
-        <div class="stat-icon blue"><i data-feather="home"></i></div>
+        <div class="stat-icon blue"><i data-feather="shield"></i></div>
         <div class="stat-info">
             <div class="stat-label">Chủ nhà</div>
             <div class="stat-value">@Model.Users.Count(u => u.IsLandlord)</div>
         </div>
     </div>
     <div class="stat-card">
-        <div class="stat-icon green"><i data-feather="user"></i></div>
+        <div class="stat-icon green"><i data-feather="shield"></i></div>
         <div class="stat-info">
             <div class="stat-label">Người thuê</div>
-            <div class="stat-value">@Model.Users.Count(u => u.IsTenant)</div>
+            <div class="stat-value">@Model.Users.Count(u => u.IsTenant && !u.IsLandlord)</div>
         </div>
     </div>
     <div class="stat-card">
@@ -40,18 +53,19 @@
     </div>
 </div>
 
-<div class="card mb-20">
-    <div class="filter-bar" style="margin-bottom: 0;">
-        <div class="header-search" style="flex: 1; min-width: 200px;">
-            <i data-feather="search" style="color: var(--text-muted); width: 14px;"></i>
-            <input placeholder="Tìm kiếm theo tên, email..." style="width: 100%;" />
-        </div>
-        <button class="btn btn-primary btn-sm">Tất cả</button>
-        <button class="btn btn-ghost btn-sm">Admin</button>
-        <button class="btn btn-ghost btn-sm">Chủ nhà</button>
-        <button class="btn btn-ghost btn-sm">Người thuê</button>
+<form method="get" class="filter-bar" id="filterForm">
+    <div class="admin-search-wrapper" style="flex: 1; max-width: 320px;">
+        <i data-feather="search" class="admin-search-icon"></i>
+        <input name="SearchTerm" class="admin-search-input" value="@Model.SearchTerm" placeholder="Tìm kiếm theo tên, email..." onchange="this.form.submit()" />
+        <input type="hidden" name="RoleFilter" value="@Model.RoleFilter" id="RoleFilterInput" />
     </div>
-</div>
+    <div style="display: flex; gap: 8px;">
+        <button type="button" class="btn @(Model.RoleFilter == "All" ? "btn-primary" : "btn-ghost") btn-sm" onclick="setRole('All')">Tất cả</button>
+        <button type="button" class="btn @(Model.RoleFilter == "Admin" ? "btn-primary" : "btn-ghost") btn-sm" onclick="setRole('Admin')">Admin</button>
+        <button type="button" class="btn @(Model.RoleFilter == "Landlord" ? "btn-primary" : "btn-ghost") btn-sm" onclick="setRole('Landlord')">Chủ nhà</button>
+        <button type="button" class="btn @(Model.RoleFilter == "Tenant" ? "btn-primary" : "btn-ghost") btn-sm" onclick="setRole('Tenant')">Người thuê</button>
+    </div>
+</form>
 
 <div class="card">
     <div class="table-container">
@@ -62,64 +76,110 @@
                     <th>Email</th>
                     <th>Điện thoại</th>
                     <th>Vai trò</th>
+                    <th>Xác thực</th>
                     <th>Trạng thái</th>
-                    <th>Hành động</th>
+                    <th>Đăng nhập cuối</th>
+                    <th>Thao tác</th>
                 </tr>
             </thead>
             <tbody>
-                @if (Model.Users != null && Model.Users.Any())
+                @if (Model.FilteredUsers != null && Model.FilteredUsers.Any())
                 {
-                    foreach (var user in Model.Users)
+                    foreach (var user in Model.FilteredUsers)
                     {
+                        var avatar = !string.IsNullOrEmpty(user.AvatarUrl) ? user.AvatarUrl : ("https://ui-avatars.com/api/?name=" + Uri.EscapeDataString(user.FullName) + "&background=6366f1&color=fff");
                         <tr>
                             <td>
-                                <div style="display: flex; align-items: center; gap: 12px;">
-                                    <div class="user-avatar" style="width: 36px; height: 36px; font-size: 14px;">
-                                        @(user.FullName.FirstOrDefault())
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <div style="width: 32px; height: 32px; flex-shrink: 0; position: relative;">
+                                        <img src="@avatar" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;" />
                                     </div>
                                     <div>
-                                        <div class="fw-700">@user.FullName</div>
-                                        <div style="font-size: 11px; color: var(--text-muted);">#@user.Id</div>
+                                        <strong style="color: var(--text-primary);">@user.FullName</strong>
+                                        <div class="text-sm text-muted">#@user.Id</div>
                                     </div>
                                 </div>
                             </td>
-                            <td><span class="text-sm" style="color: var(--text-secondary);">@user.Email</span></td>
-                            <td><span class="text-sm" style="color: var(--text-secondary);">@user.PhoneNumber</span></td>
+                            <td class="text-muted">@user.Email</td>
+                            <td class="text-muted">@user.PhoneNumber</td>
                             <td>
                                 @if (user.Role.ToString() == "Admin")
                                 {
                                     <span class="badge" style="background: rgba(239, 68, 68, 0.1); color: var(--danger);">Admin</span>
                                 }
+                                else if (user.IsLandlord && user.IsTenant)
+                                {
+                                    <span class="badge" style="background: rgba(168, 85, 247, 0.1); color: #a855f7;">Chủ nhà & Thuê</span>
+                                }
                                 else if (user.IsLandlord)
                                 {
-                                    <span class="badge badge-purple">Chủ nhà</span>
+                                    <span class="badge" style="background: rgba(168, 85, 247, 0.1); color: #a855f7;">Chủ nhà</span>
                                 }
-                                else if (user.IsTenant)
+                                else
                                 {
-                                    <span class="badge badge-info">Người thuê</span>
+                                    <span class="badge" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;">Người thuê</span>
                                 }
+                            </td>
+                            <td>
+                                <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                                    @if (user.IsEmailVerified)
+                                    {
+                                        <span class="badge" style="background: rgba(16, 185, 129, 0.1); color: #10b981; font-size: 10px;">📧 Email</span>
+                                    }
+                                    @if (user.IsIdentityVerified)
+                                    {
+                                        <span class="badge" style="background: rgba(16, 185, 129, 0.1); color: #10b981; font-size: 10px;">🪪 CCCD</span>
+                                    }
+                                </div>
                             </td>
                             <td>
                                 @if (user.IsActive)
                                 {
-                                    <span class="badge" style="background: rgba(16, 185, 129, 0.1); color: var(--success);">Hoạt động</span>
+                                    <span class="badge" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">Hoạt động</span>
                                 }
                                 else
                                 {
                                     <span class="badge" style="background: rgba(239, 68, 68, 0.1); color: var(--danger);">Bị khoá</span>
                                 }
                             </td>
+                            <td class="text-muted" style="font-size:13px;">
+                                @(user.LastLoginAt.HasValue ? user.LastLoginAt.Value.ToString("dd/MM/yyyy HH:mm") : "")
+                            </td>
                             <td>
                                 <div style="display: flex; gap: 6px;">
-                                    <button class="btn btn-ghost btn-sm btn-icon" title="Sửa"><i data-feather="edit-2" style="width: 14px; height: 14px;"></i></button>
-                                    @if (user.IsActive)
-                                    {
-                                        <button class="btn btn-danger btn-sm btn-icon" title="Khoá tài khoản"><i data-feather="lock" style="width: 14px; height: 14px;"></i></button>
-                                    }
-                                    else
-                                    {
-                                        <button class="btn btn-success btn-sm btn-icon" title="Mở khoá"><i data-feather="unlock" style="width: 14px; height: 14px;"></i></button>
-                                    }
+                                    <button class="btn btn-ghost btn-sm" onclick="viewUser(this)" data-user="@Html.Raw(System.Net.WebUtility.HtmlEncode(System.Text.Json.JsonSerializer.Serialize(new { 
+                                        id = user.Id, 
+                                        fullName = user.FullName, 
+                                        email = user.Email, 
+                                        phoneNumber = user.PhoneNumber, 
+                                        roleName = user.Role.ToString() == "Admin" ? "Admin" : (user.IsLandlord && user.IsTenant ? "Chủ nhà & Người thuê" : (user.IsLandlord ? "Chủ nhà" : "Người thuê")), 
+                                        isEmailVerified = user.IsEmailVerified, 
+                                        isIdentityVerified = user.IsIdentityVerified, 
+                                        isActive = user.IsActive, 
+                                        createdAt = user.CreatedAt.ToString("dd/MM/yyyy"), 
+                                        lastLogin = user.LastLoginAt.HasValue ? user.LastLoginAt.Value.ToString("dd/MM/yyyy HH:mm") : "Chưa đăng nhập",
+                                        avatar = avatar
+                                    })))">Xem</button>
+                                    
+                                    <form method="post" asp-page-handler="ToggleStatus" style="margin: 0;">
+                                        <input type="hidden" name="userId" value="@user.Id" />
+                                        <input type="hidden" name="currentStatus" value="@(user.IsActive ? "true" : "false")" />
+                                        <input type="hidden" name="SearchTerm" value="@Model.SearchTerm" />
+                                        <input type="hidden" name="RoleFilter" value="@Model.RoleFilter" />
+                                        
+                                        @if (user.IsActive)
+                                        {
+                                            <button type="button" class="btn btn-danger btn-sm" title="Khoá tài khoản" onclick="confirmToggleStatus(this.closest('form'), true)">
+                                                <i data-feather="slash" style="width: 14px; height: 14px;"></i>
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <button type="button" class="btn btn-success btn-sm" title="Mở khoá" onclick="confirmToggleStatus(this.closest('form'), false)">
+                                                <i data-feather="check-circle" style="width: 14px; height: 14px;"></i>
+                                            </button>
+                                        }
+                                    </form>
                                 </div>
                             </td>
                         </tr>
@@ -128,10 +188,10 @@
                 else
                 {
                     <tr>
-                        <td colspan="6">
+                        <td colspan="8">
                             <div class="empty-state">
-                                <div class="empty-icon">👥</div>
-                                <p>Không tìm thấy người dùng.</p>
+                                <div class="empty-icon" style="font-size: 32px; color: var(--text-muted);">👥</div>
+                                <p style="color: var(--text-muted); margin-top: 12px; font-weight: 500;">Không tìm thấy người dùng phù hợp.</p>
                             </div>
                         </td>
                     </tr>
@@ -139,4 +199,145 @@
             </tbody>
         </table>
     </div>
+    <div style="padding: 12px 14px; border-top: 1px solid var(--border); font-size: 13px; color: var(--text-muted);">
+        Hiển thị @Model.FilteredUsers.Count / @Model.Users.Count người dùng
+    </div>
 </div>
+
+<!-- View User Modal -->
+<div class="modal-overlay" id="userModal" style="display: none;" onclick="closeModal()">
+    <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <span class="modal-title">Chi tiết người dùng</span>
+            <button class="modal-close btn btn-ghost btn-sm btn-icon" onclick="closeModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px; padding: 16px; background: var(--bg-primary); border-radius: 10px;">
+                <div style="width: 64px; height: 64px; flex-shrink: 0;">
+                    <img id="mAvatar" src="" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 2px solid var(--border);" />
+                </div>
+                <div>
+                    <div id="mName" style="font-size: 18px; font-weight: 700; color: var(--text-primary);"></div>
+                    <div id="mEmail" class="text-muted text-sm"></div>
+                    <div id="mStatusBadgeWrap" style="margin-top: 6px;"></div>
+                </div>
+            </div>
+            
+            <div style="display: grid; gap: 12px; padding-bottom: 8px;">
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--border); padding-bottom: 6px;">
+                    <span style="color: var(--text-secondary); font-size: 13px;">ID</span>
+                    <span id="mId" style="font-weight: 600; font-size: 13px;"></span>
+                </div>
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--border); padding-bottom: 6px;">
+                    <span style="color: var(--text-secondary); font-size: 13px;">Điện thoại</span>
+                    <span id="mPhone" style="font-weight: 600; font-size: 13px;"></span>
+                </div>
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--border); padding-bottom: 6px;">
+                    <span style="color: var(--text-secondary); font-size: 13px;">Vai trò</span>
+                    <span id="mRole" style="font-weight: 600; font-size: 13px;"></span>
+                </div>
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--border); padding-bottom: 6px;">
+                    <span style="color: var(--text-secondary); font-size: 13px;">Email xác thực</span>
+                    <span id="mEmailVeri" style="font-weight: 600; font-size: 13px;"></span>
+                </div>
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--border); padding-bottom: 6px;">
+                    <span style="color: var(--text-secondary); font-size: 13px;">CCCD xác thực</span>
+                    <span id="mCccdVeri" style="font-weight: 600; font-size: 13px;"></span>
+                </div>
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--border); padding-bottom: 6px;">
+                    <span style="color: var(--text-secondary); font-size: 13px;">Ngày tạo</span>
+                    <span id="mCreatedAt" style="font-weight: 600; font-size: 13px;"></span>
+                </div>
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--border); padding-bottom: 6px;">
+                    <span style="color: var(--text-secondary); font-size: 13px;">Đăng nhập cuối</span>
+                    <span id="mLastLogin" style="font-weight: 600; font-size: 13px;"></span>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal()">Đóng</button>
+            <form method="post" asp-page-handler="ToggleStatus" id="mFormAction" style="margin: 0;">
+                <input type="hidden" name="userId" id="mUserId" />
+                <input type="hidden" name="currentStatus" id="mCurrentStatus" />
+                <input type="hidden" name="SearchTerm" value="@Model.SearchTerm" />
+                <input type="hidden" name="RoleFilter" value="@Model.RoleFilter" />
+                
+                <button type="button" id="mActionBtn" class="btn" onclick="confirmToggleStatus(document.getElementById('mFormAction'), document.getElementById('mCurrentStatus').value === 'true')">
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function setRole(role) {
+            document.getElementById('RoleFilterInput').value = role;
+            document.getElementById('filterForm').submit();
+        }
+
+        function viewUser(btn) {
+            const encodedData = btn.getAttribute('data-user');
+            if (encodedData) {
+                const user = JSON.parse(encodedData);
+                
+                document.getElementById('mAvatar').src = user.avatar;
+                document.getElementById('mName').innerText = user.fullName;
+                document.getElementById('mEmail').innerText = user.email;
+                
+                document.getElementById('mStatusBadgeWrap').innerHTML = user.isActive 
+                    ? '<span class="badge" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">Hoạt động</span>'
+                    : '<span class="badge" style="background: rgba(239, 68, 68, 0.1); color: var(--danger);">Bị khoá</span>';
+
+                document.getElementById('mId').innerText = "#" + user.id;
+                document.getElementById('mPhone').innerText = user.phoneNumber;
+                document.getElementById('mRole').innerText = user.roleName;
+                
+                document.getElementById('mEmailVeri').innerText = user.isEmailVerified ? "✅ Đã xác thực" : "❌ Chưa xác thực";
+                document.getElementById('mCccdVeri').innerText = user.isIdentityVerified ? "✅ Đã xác thực" : "❌ Chưa xác thực";
+                
+                document.getElementById('mCreatedAt').innerText = user.createdAt;
+                document.getElementById('mLastLogin').innerText = user.lastLogin;
+
+                // Update action form inside modal
+                document.getElementById('mUserId').value = user.id;
+                document.getElementById('mCurrentStatus').value = user.isActive ? "true" : "false";
+                
+                const actionBtn = document.getElementById('mActionBtn');
+                if (user.isActive) {
+                    actionBtn.className = "btn btn-danger";
+                    actionBtn.innerHTML = "Khoá tài khoản";
+                } else {
+                    actionBtn.className = "btn btn-success";
+                    actionBtn.innerHTML = "Mở khoá";
+                }
+
+                document.getElementById('userModal').style.display = 'flex';
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('userModal').style.display = 'none';
+        }
+
+        function confirmToggleStatus(form, isLocking) {
+            const actionText = isLocking ? 'khoá' : 'mở khoá';
+            const confirmColor = isLocking ? '#ef4444' : '#10b981';
+            
+            Swal.fire({
+                title: 'Xác nhận ' + actionText + '?',
+                text: 'Bạn có chắc chắn muốn ' + actionText + ' người dùng này không?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: confirmColor,
+                cancelButtonColor: '#94a3b8',
+                confirmButtonText: 'Đồng ý',
+                cancelButtonText: 'Hủy'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    form.submit();
+                }
+            });
+        }
+    </script>
+}
