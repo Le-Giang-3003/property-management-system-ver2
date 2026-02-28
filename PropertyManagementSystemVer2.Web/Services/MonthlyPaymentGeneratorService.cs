@@ -8,16 +8,19 @@ using PropertyManagementSystemVer2.DAL.Repositories.Interfaces;
 namespace PropertyManagementSystemVer2.Web.Services
 {
     /// <summary>
-    /// Background service tự động tạo hóa đơn hàng tháng vào đầu mỗi tháng.
-    /// Chạy mỗi 24 giờ, kiểm tra nếu đến ngày 1 → generate payments cho tất cả Lease Active.
+    /// Background service tự động tạo hóa đơn hàng tháng và cập nhật phí quá hạn.
+    /// Chạy mỗi 24 giờ (1 lần/ngày).
+    /// - Nếu tháng hiện tại chưa có hóa đơn → tạo mới (theo LeaseId, StartDate, EndDate).
+    /// - Nếu hóa đơn đã qua DueDate mà chưa thanh toán → cập nhật phí trễ.
+    /// - Nếu hóa đơn tháng đó đã có rồi → bỏ qua, không tạo trùng.
     /// </summary>
     public class MonthlyPaymentGeneratorService : BackgroundService
     {
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly ILogger<MonthlyPaymentGeneratorService> _logger;
 
-        // Chạy mỗi 6 tiếng, kiểm tra ngày tháng
-        private static readonly TimeSpan CheckInterval = TimeSpan.FromHours(6);
+        // Chạy mỗi 24 tiếng (1 lần/ngày)
+        private static readonly TimeSpan CheckInterval = TimeSpan.FromHours(24);
 
         public MonthlyPaymentGeneratorService(IServiceScopeFactory scopeFactory, ILogger<MonthlyPaymentGeneratorService> logger)
         {
@@ -53,10 +56,7 @@ namespace PropertyManagementSystemVer2.Web.Services
 
             var now = DateTime.UtcNow.AddHours(7); // Vietnam timezone
 
-            // Tự động tạo hóa đơn vào ngày 1 (hoặc khi DueDay đến), chạy trong khoảng ngày 1-5
-            if (now.Day > 5) return;
-
-            // Lấy tất cả Lease đang Active (dùng FindAsync từ IGenericRepository)
+            // Lấy tất cả Lease đang Active
             var activeLeases = await unitOfWork.Leases.FindAsync(
                 l => l.Status == DAL.Enums.LeaseStatus.Active);
 
