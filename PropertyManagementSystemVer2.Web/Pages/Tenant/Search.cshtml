@@ -310,6 +310,24 @@
                 <div class="amenities-list" id="dtAmenitiesList">
                 </div>
             </div>
+
+            <div class="dt-section" id="dtLandlordSection" style="display: none;">
+                <h3 class="section-title">Thông tin chủ nhà</h3>
+                <div class="detail-grid">
+                    <div class="detail-item">
+                        <span class="detail-label"><i data-feather="user" style="width: 16px;"></i> Họ tên:</span>
+                        <span class="detail-value" id="dtLandlordName"></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label"><i data-feather="mail" style="width: 16px;"></i> Email:</span>
+                        <span class="detail-value" id="dtLandlordEmail"></span>
+                    </div>
+                    <div class="detail-item" style="grid-column: 1 / -1;">
+                        <span class="detail-label"><i data-feather="phone" style="width: 16px;"></i> Điện thoại:</span>
+                        <span class="detail-value" id="dtLandlordPhone"></span>
+                    </div>
+                </div>
+            </div>
             
             <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
                  <button type="button" class="btn btn-secondary" onclick="closeModals()">Đóng</button>
@@ -443,6 +461,15 @@
                     } else {
                         slider.innerHTML = '<div style="padding: 20px; text-align: center; width: 100%; color: var(--text-muted); background: var(--bg-card); border: 1px dashed var(--border); border-radius: 12px; height: 150px; display: flex; align-items: center; justify-content: center;">Chưa có hình ảnh nào.</div>';
                         slider.style.height = '150px';
+                    }
+
+                    if (data && data.Landlord) {
+                        document.getElementById('dtLandlordSection').style.display = 'block';
+                        document.getElementById('dtLandlordName').textContent = data.Landlord.FullName || 'N/A';
+                        document.getElementById('dtLandlordEmail').textContent = data.Landlord.Email || 'N/A';
+                        document.getElementById('dtLandlordPhone').textContent = data.Landlord.PhoneNumber || 'N/A';
+                    } else {
+                        document.getElementById('dtLandlordSection').style.display = 'none';
                     }
                 })
                 .catch(err => {

@@ -559,6 +559,7 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
                 {
                     Id = p.Landlord.Id,
                     FullName = p.Landlord.FullName,
+                    Email = p.Landlord.Email,
                     AvatarUrl = p.Landlord.AvatarUrl,
                     PhoneNumber = p.Landlord.PhoneNumber,
                     IsIdentityVerified = p.Landlord.IsIdentityVerified
@@ -597,6 +598,7 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
                 {
                     Id = p.Landlord.Id,
                     FullName = p.Landlord.FullName,
+                    Email = p.Landlord.Email,
                     AvatarUrl = p.Landlord.AvatarUrl,
                     PhoneNumber = p.Landlord.PhoneNumber,
                     IsIdentityVerified = p.Landlord.IsIdentityVerified

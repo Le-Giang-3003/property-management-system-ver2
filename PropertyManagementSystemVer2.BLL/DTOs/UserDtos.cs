@@ -73,6 +73,7 @@ namespace PropertyManagementSystemVer2.BLL.DTOs
     {
         public int Id { get; set; }
         public string FullName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
         public string? AvatarUrl { get; set; }
         public string PhoneNumber { get; set; } = string.Empty;
         public bool IsIdentityVerified { get; set; }
