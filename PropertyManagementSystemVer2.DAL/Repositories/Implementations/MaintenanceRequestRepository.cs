@@ -49,5 +49,12 @@ namespace PropertyManagementSystemVer2.DAL.Repositories.Implementations
             if (status.HasValue) query = query.Where(m => m.Status == status.Value);
             return await query.OrderByDescending(m => m.CreatedAt).ToListAsync(cancellationToken);
         }
+
+        public async Task<IEnumerable<MaintenanceRequest>> GetAllWithDetailsAsync(MaintenanceStatus? status = null, CancellationToken cancellationToken = default)
+        {
+            var query = _dbSet.Include(m => m.Property).Include(m => m.Requester).AsQueryable();
+            if (status.HasValue) query = query.Where(m => m.Status == status.Value);
+            return await query.OrderByDescending(m => m.CreatedAt).ToListAsync(cancellationToken);
+        }
     }
 }

@@ -181,7 +181,11 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
             return ServiceResultDto<List<MaintenanceRequestDto>>.Success(requests.Select(MapToDto).ToList());
         }
 
-
+        public async Task<ServiceResultDto<List<MaintenanceRequestDto>>> GetAllRequestsAsync(MaintenanceStatus? status = null)
+        {
+            var requests = await _unitOfWork.MaintenanceRequests.GetAllWithDetailsAsync(status);
+            return ServiceResultDto<List<MaintenanceRequestDto>>.Success(requests.Select(MapToDto).ToList());
+        }
 
         // BR38.3: Maintenance Summary
         public async Task<ServiceResultDto<MaintenanceSummaryDto>> GetSummaryByPropertyAsync(int propertyId)

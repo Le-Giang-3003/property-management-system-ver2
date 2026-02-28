@@ -12,5 +12,6 @@ namespace PropertyManagementSystemVer2.DAL.Repositories.Interfaces
         Task<IEnumerable<MaintenanceRequest>> GetByLeaseIdAsync(int leaseId, CancellationToken cancellationToken = default);
         Task<int> CountByStatusAndPropertyAsync(int propertyId, MaintenanceStatus status, CancellationToken cancellationToken = default);
         Task<IEnumerable<MaintenanceRequest>> GetByLandlordIdAsync(int landlordId, MaintenanceStatus? status = null, CancellationToken cancellationToken = default);
+        Task<IEnumerable<MaintenanceRequest>> GetAllWithDetailsAsync(MaintenanceStatus? status = null, CancellationToken cancellationToken = default);
     }
 }

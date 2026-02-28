@@ -10,6 +10,7 @@ namespace PropertyManagementSystemVer2.BLL.Services.Interfaces
         Task<ServiceResultDto<List<MaintenanceRequestDto>>> GetByPropertyIdAsync(int propertyId, MaintenanceStatus? status = null);
         Task<ServiceResultDto<List<MaintenanceRequestDto>>> GetByTenantIdAsync(int tenantId, MaintenanceStatus? status = null);
         Task<ServiceResultDto<List<MaintenanceRequestDto>>> GetByLandlordIdAsync(int landlordId, MaintenanceStatus? status = null);
+        Task<ServiceResultDto<List<MaintenanceRequestDto>>> GetAllRequestsAsync(MaintenanceStatus? status = null);
         Task<ServiceResultDto> ReviewRequestAsync(int landlordId, UpdateMaintenanceRequestDto dto);
         Task<ServiceResultDto> LandlordApproveAsync(int landlordId, int requestId, string technicianName, string technicianPhone);
         Task<ServiceResultDto> LandlordRejectAsync(int landlordId, int requestId, string reason);

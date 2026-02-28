@@ -1,24 +1,26 @@
 @page
 @model PropertyManagementSystemVer2.Web.Pages.Admin.MaintenanceModel
 @{
-    ViewData["Title"] = "Bảo trì Hệ thống (Admin)";
+    ViewData["Title"] = "Quản lý Bảo trì (Admin)";
 }
 
 <div class="mb-20">
-    <div class="page-title">Quản lý Yêu cầu Bảo trì (Admin)</div>
-    <div class="page-desc">Giám sát mức độ phản hồi và tình trạng bảo trì toàn diện</div>
+    <div class="page-title">Quản lý Yêu cầu Bảo trì toàn hệ thống</div>
+    <div class="page-desc">Theo dõi tất cả yêu cầu bảo trì của người dùng</div>
 </div>
 
-<div class="card mb-20">
-    <div class="filter-bar" style="margin-bottom: 0;">
-        <div class="header-search" style="flex: 1; min-width: 200px;">
-            <i data-feather="search" style="color: var(--text-muted); width: 14px;"></i>
-            <input placeholder="Tìm mã yêu cầu..." style="width: 100%;" />
-        </div>
-        <button class="btn btn-primary btn-sm">Tất cả</button>
-        <button class="btn btn-ghost btn-sm text-yellow" style="border-color: var(--warning);">Mở</button>
-        <button class="btn btn-ghost btn-sm text-green" style="border-color: var(--success);">Giải quyết</button>
+<div class="card mb-16" style="padding: 16px;">
+    <div class="admin-search-wrapper" style="margin: 0;">
+        <i data-feather="search" class="admin-search-icon"></i>
+        <input type="text" id="searchInput" class="admin-search-input" placeholder="Tìm theo tên yêu cầu, bất động sản..." onkeyup="filterRequests()" />
     </div>
+</div>
+
+<div class="filter-bar">
+    <button class="btn btn-primary btn-sm filter-btn" data-status="All" onclick="setStatusFilter('All', this)">Tất cả</button>
+    <button class="btn btn-ghost btn-sm filter-btn" data-status="InProgress" onclick="setStatusFilter('InProgress', this)">Đang xử lý</button>
+    <button class="btn btn-ghost btn-sm filter-btn" data-status="Open" onclick="setStatusFilter('Open', this)">Đang chờ</button>
+    <button class="btn btn-ghost btn-sm filter-btn" data-status="Resolved" onclick="setStatusFilter('Resolved', this)">Đã xong</button>
 </div>
 
 <div class="card">
@@ -26,24 +28,325 @@
         <table>
             <thead>
                 <tr>
-                    <th>Tiêu đề / Bất động sản</th>
-                    <th>Chủ cho thuê</th>
-                    <th>Người yêu cầu</th>
-                    <th>Mức độ</th>
-                    <th>Trạng thái</th>
-                    <th>Hành động</th>
+                    <th>TIÊU ĐỀ / BẤT ĐỘNG SẢN</th>
+                    <th>NGÀY YÊU CẦU</th>
+                    <th>MỨC ĐỘ</th>
+                    <th>DANH MỤC</th>
+                    <th>TRẠNG THÁI</th>
+                    <th>HÀNH ĐỘNG</th>
                 </tr>
             </thead>
-            <tbody>
-                <tr>
-                    <td colspan="6">
-                        <div class="empty-state">
-                            <div class="empty-icon">tool</div>
-                            <p>Admin Maintenance monitoring data will be listed here.</p>
-                        </div>
-                    </td>
-                </tr>
+            <tbody id="maintenanceTableBody">
+                @if (Model.MaintenanceRequests != null && Model.MaintenanceRequests.Any())
+                {
+                    foreach (var req in Model.MaintenanceRequests)
+                    {
+                        <tr class="maintenance-row" data-search="@req.Title.ToLower() @req.PropertyTitle.ToLower()" data-status="@req.Status">
+                            <td>
+                                <div style="display: flex; flex-direction: column; gap: 4px;">
+                                    <strong style="font-size: 13px; color: var(--text-primary);">@req.Title</strong>
+                                    <span style="font-size: 11px; color: var(--text-muted);">@req.PropertyTitle</span>
+                                </div>
+                            </td>
+                            <td class="text-muted">@req.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                            <td>
+                                @if (req.Priority.ToString() == "Urgent" || req.Priority.ToString() == "Critical")
+                                {
+                                    <span class="badge" style="background: rgba(239, 68, 68, 0.1); color: var(--danger);">Khẩn cấp</span>
+                                }
+                                else if (req.Priority.ToString() == "High")
+                                {
+                                    <span class="badge" style="background: rgba(245, 158, 11, 0.1); color: var(--warning);">Cao</span>
+                                }
+                                else if (req.Priority.ToString() == "Medium")
+                                {
+                                    <span class="badge badge-info">Trung bình</span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-success">Thấp</span>
+                                }
+                            </td>
+                            <td>
+                                @{
+                                    var categoryLabel = req.Category.ToString() switch
+                                    {
+                                        "Plumbing" => "Ống nước",
+                                        "Electrical" => "Điện",
+                                        "Appliance" => "Gia dụng",
+                                        "Structural" => "Cấu trúc/Xây dựng",
+                                        "Other" => "Khác",
+                                        _ => req.Category.ToString()
+                                    };
+                                }
+                                <span class="badge badge-gray">@categoryLabel</span>
+                            </td>
+                            <td>
+                                @if (req.Status.ToString() == "Open")
+                                {
+                                    <span class="badge badge-warning">Đang chờ</span>
+                                }
+                                else if (req.Status.ToString() == "InProgress")
+                                {
+                                    <span class="badge badge-info">Đang xử lý</span>
+                                }
+                                else if (req.Status.ToString() == "Resolved")
+                                {
+                                    <span class="badge badge-success">Đã xong</span>
+                                }
+                                else if (req.Status.ToString() == "Cancelled")
+                                {
+                                    <span class="badge badge-danger">Đã hủy</span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-gray">@req.Status</span>
+                                }
+                            </td>
+                            <td>
+                                <div style="display: flex; gap: 4px; align-items: center;">
+                                    <button class="btn btn-ghost btn-sm btn-icon" onclick="openDetailModal(@req.Id)" title="Xem chi tiết" style="width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center;">
+                                        <i data-feather="eye" style="width: 16px;"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="6">
+                            <div class="empty-state">
+                                <div class="empty-icon">tool</div>
+                                <p>Hệ thống hiện không có yêu cầu bảo trì nào.</p>
+                            </div>
+                        </td>
+                    </tr>
+                }
             </tbody>
         </table>
     </div>
 </div>
+
+@if (Model.MaintenanceRequests != null)
+{
+    foreach (var req in Model.MaintenanceRequests)
+    {
+        <!-- DETAIL MODAL -->
+        <div id="detailModal-@req.Id" class="modal-overlay" style="display: none;">
+            <div class="modal custom-modal" style="width: 680px; max-width: 95vw;">
+                <div class="modal-header">
+                    <span class="modal-title">
+                        <span style="color: var(--text-muted); font-size: 12px; margin-right: 6px;">#@req.Id</span>
+                        @req.Title
+                    </span>
+                    <button class="modal-close btn btn-ghost btn-sm btn-icon" onclick="closeModal('detailModal-@req.Id')">✕</button>
+                </div>
+
+                <div class="modal-body" style="padding: 20px;">
+
+                    <!-- ── Status + Priority + Category badges ── -->
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;">
+                        @if (req.Status.ToString() == "Open")
+                        { <span class="badge badge-warning">⏳ Đang chờ</span> }
+                        else if (req.Status.ToString() == "InProgress")
+                        { <span class="badge badge-info">🔧 Đang xử lý</span> }
+                        else if (req.Status.ToString() == "Resolved")
+                        { <span class="badge badge-success">✅ Đã xong</span> }
+                        else if (req.Status.ToString() == "Cancelled")
+                        { <span class="badge badge-danger">❌ Đã hủy</span> }
+
+                        @if (req.Priority.ToString() is "Urgent" or "Critical")
+                        { <span class="badge" style="background:rgba(239,68,68,.15);color:var(--danger);">🔴 Khẩn cấp</span> }
+                        else if (req.Priority.ToString() == "High")
+                        { <span class="badge" style="background:rgba(245,158,11,.15);color:var(--warning);">🟠 Cao</span> }
+                        else if (req.Priority.ToString() == "Medium")
+                        { <span class="badge badge-info">🟡 Trung bình</span> }
+                        else
+                        { <span class="badge badge-success">🟢 Thấp</span> }
+
+                        @{
+                            var detailCat = req.Category.ToString() switch
+                            {
+                                "Plumbing"   => "🪠 Ống nước",
+                                "Electrical" => "⚡ Điện",
+                                "Appliance"  => "🏠 Gia dụng",
+                                "Structural" => "🏗️ Cấu trúc",
+                                "Painting"   => "🎨 Sơn",
+                                "Cleaning"   => "🧹 Vệ sinh",
+                                _            => req.Category.ToString()
+                            };
+                        }
+                        <span class="badge badge-gray">@detailCat</span>
+                    </div>
+
+                    <!-- ── Thông tin chính ── -->
+                    <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:14px;">
+
+                        <!-- BĐS + Người yêu cầu -->
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px; padding-bottom:12px; border-bottom:1px dashed var(--border);">
+                            <div>
+                                <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:4px;">🏢 Bất động sản</div>
+                                <div style="font-weight:600; font-size:13px;">@req.PropertyTitle</div>
+                            </div>
+                            <div>
+                                <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:4px;">👤 Người yêu cầu</div>
+                                <div style="font-weight:600; font-size:13px;">@req.RequesterName</div>
+                                @if (!string.IsNullOrEmpty(req.RequesterPhone))
+                                {
+                                    <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">📞 @req.RequesterPhone</div>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Ngày tạo + Ngày hẹn + Ngày xong -->
+                        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px,1fr)); gap:10px; margin-bottom:12px; padding-bottom:12px; border-bottom:1px dashed var(--border);">
+                            <div>
+                                <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:4px;">📅 Ngày tạo</div>
+                                <div style="font-weight:600; font-size:13px;">@req.CreatedAt.ToString("dd/MM/yyyy HH:mm")</div>
+                            </div>
+                            @if (req.ScheduledDate.HasValue)
+                            {
+                                <div>
+                                    <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:4px;">🗓️ Ngày hẹn</div>
+                                    <div style="font-weight:600; font-size:13px; color:#60a5fa;">@req.ScheduledDate.Value.ToString("dd/MM/yyyy")</div>
+                                </div>
+                            }
+                            @if (req.ResolvedAt.HasValue)
+                            {
+                                <div>
+                                    <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:4px;">✅ Ngày xong</div>
+                                    <div style="font-weight:600; font-size:13px; color:#34d399;">@req.ResolvedAt.Value.ToString("dd/MM/yyyy HH:mm")</div>
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Mô tả -->
+                        <div style="margin-bottom: 0;">
+                            <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:6px;">📝 Mô tả chi tiết</div>
+                            <div style="font-size:14px; line-height:1.6; white-space:pre-wrap;">@req.Description</div>
+                        </div>
+                    </div>
+
+                    <!-- ── Thông tin kỹ thuật viên (khi InProgress) ── -->
+                    @if (!string.IsNullOrEmpty(req.TechnicianName))
+                    {
+                        <div style="background:rgba(16,185,129,.1); border:2px solid #10b981; border-radius:10px; padding:14px; margin-bottom:14px;">
+                            <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+                                <i data-feather="user-check" style="width:16px; color:#10b981;"></i>
+                                <span style="font-size:11px; font-weight:700; text-transform:uppercase; color:#10b981; letter-spacing:.5px;">Đã kêu thợ</span>
+                            </div>
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                                <div>
+                                    <div style="font-size:11px; color:#34d399; margin-bottom:3px;">Tên kỹ thuật viên</div>
+                                    <div style="font-weight:700; font-size:14px; color:#f1f5f9;">@req.TechnicianName</div>
+                                </div>
+                                <div>
+                                    <div style="font-size:11px; color:#34d399; margin-bottom:3px;">Số điện thoại</div>
+                                    <div style="font-weight:700; font-size:14px; color:#f1f5f9;">@req.TechnicianPhone</div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- ── Lý do từ chối (khi Cancelled) ── -->
+                    @if (!string.IsNullOrEmpty(req.RejectionReason))
+                    {
+                        <div style="background:rgba(239,68,68,.1); border:2px solid #ef4444; border-radius:10px; padding:14px; margin-bottom:14px;">
+                            <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                                <i data-feather="x-circle" style="width:16px; color:#ef4444;"></i>
+                                <span style="font-size:11px; font-weight:700; text-transform:uppercase; color:#ef4444; letter-spacing:.5px;">Lý do từ chối</span>
+                            </div>
+                            <div style="font-size:14px; line-height:1.6; color:#fca5a5; white-space:pre-wrap;">@req.RejectionReason</div>
+                        </div>
+                    }
+
+                    <!-- ── Kết quả xử lý (Resolution) ── -->
+                    @if (!string.IsNullOrEmpty(req.Resolution))
+                    {
+                        <div style="background:rgba(99,102,241,.1); border:1px solid rgba(99,102,241,.4); border-radius:10px; padding:14px; margin-bottom:14px;">
+                            <div style="font-size:11px; color:#818cf8; text-transform:uppercase; letter-spacing:.5px; margin-bottom:6px;">📋 Kết quả xử lý</div>
+                            <div style="font-size:14px; line-height:1.6; white-space:pre-wrap; color:#e2e8f0;">@req.Resolution</div>
+                        </div>
+                    }
+
+                    <!-- ── Hình ảnh ── -->
+                    @if (!string.IsNullOrEmpty(req.ImageUrls))
+                    {
+                        var images = req.ImageUrls.Split(',').Select(u => u.Trim()).Where(u => !string.IsNullOrEmpty(u)).ToArray();
+                        if (images.Length > 0)
+                        {
+                            <div>
+                                <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+                                    <i data-feather="image" style="width:15px; color:var(--text-muted);"></i>
+                                    <span style="font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; font-weight:600;">Hình ảnh đính kèm (@images.Length ảnh)</span>
+                                </div>
+                                <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(110px,1fr)); gap:8px;">
+                                    @foreach (var img in images)
+                                    {
+                                        var trimmedImg = img.Trim();
+                                        <div style="position:relative; border-radius:8px; overflow:hidden; padding-top:100%; border:2px solid var(--border); background:var(--bg-hover);">
+                                            <a href="@trimmedImg" target="_blank" style="position:absolute; top:0; left:0; width:100%; height:100%;">
+                                                <img src="@trimmedImg" alt="Ảnh đính kèm"
+                                                     style="width:100%; height:100%; object-fit:cover; transition:opacity .2s;"
+                                                     onerror="this.style.display='none'; this.parentElement.innerHTML += '<div style=\'display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:11px;\'>Lỗi tải ảnh</div>';" />
+                                            </a>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    }
+
+                </div><!-- end modal-body -->
+
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="closeModal('detailModal-@req.Id')">Đóng</button>
+                </div>
+            </div>
+        </div>
+    }
+}
+
+@section Scripts {
+    <script>
+        function filterRequests() {
+            var search = document.getElementById('searchInput').value.toLowerCase();
+            var activeStatus = document.querySelector('.filter-btn.btn-primary').getAttribute('data-status');
+            
+            var rows = document.querySelectorAll('.maintenance-row');
+            rows.forEach(function(row) {
+                var text = row.getAttribute('data-search');
+                var status = row.getAttribute('data-status');
+                
+                var matchSearch = search === "" || text.includes(search);
+                var matchStatus = activeStatus === "All" || status === activeStatus;
+                
+                if (matchSearch && matchStatus) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+
+        function setStatusFilter(status, btn) {
+            document.querySelectorAll('.filter-btn').forEach(function(b) {
+                b.classList.remove('btn-primary');
+                b.classList.add('btn-ghost');
+            });
+            btn.classList.remove('btn-ghost');
+            btn.classList.add('btn-primary');
+            filterRequests();
+        }
+
+        function openDetailModal(id) {
+            document.getElementById('detailModal-' + id).style.display = 'flex';
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).style.display = 'none';
+        }
+    </script>
+}
