@@ -142,7 +142,7 @@
                 {
                     foreach (var prop in Model.Properties)
                     {
-                        <tr>
+                        <tr data-property-id="@prop.Id">
                             <td>#@prop.Id</td>
                             <td>
                                 <div style="display: flex; gap: 12px; align-items: center; max-width: 300px;">
@@ -392,7 +392,76 @@
 </div>
 
 @section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
     <script>
+        // Init SignalR connection
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/propertyHub")
+            .withAutomaticReconnect()
+            .build();
+
+        connection.on("PropertyDeleted", function (propertyId) {
+            console.log("Admin SignalR: Property deleted:", propertyId);
+            const row = document.querySelector(`tr[data-property-id="${propertyId}"]`);
+            if (row) {
+                row.style.transition = 'all 0.5s ease';
+                row.style.opacity = '0';
+                row.style.background = 'var(--danger-bg)';
+                setTimeout(() => {
+                    row.remove();
+                    console.log("Admin SignalR: Row removed");
+                }, 500);
+            }
+            if (currentPropId == propertyId && document.getElementById('detailModal').style.display === 'flex') {
+                closeModals();
+                Swal.fire({
+                    title: 'BDS đã bị xóa',
+                    text: 'Bất động sản này đã bị xóa bởi chủ nhà.',
+                    icon: 'warning',
+                    confirmButtonText: 'Đóng'
+                });
+            }
+        });
+
+        connection.on("PropertyUpdated", function (p) {
+            console.log("Admin SignalR: Property updated:", p);
+            
+            const id = p.id || p.Id;
+            const title = p.title || p.Title;
+            const price = p.monthlyRent || p.MonthlyRent;
+            const thumbnail = p.thumbnailUrl || p.ThumbnailUrl;
+
+            const row = document.querySelector(`tr[data-property-id="${id}"]`);
+            if (row) {
+                console.log("Admin SignalR: Updating row UI for ID:", id);
+                // Flash effect
+                row.style.backgroundColor = 'var(--accent-glow)';
+                setTimeout(() => row.style.backgroundColor = '', 2000);
+
+                // Update row content
+                const titleEl = row.querySelector('.fw-700');
+                if (titleEl) titleEl.textContent = title;
+
+                const priceEl = row.querySelector('.text-green');
+                if (priceEl) priceEl.textContent = new Intl.NumberFormat('vi-VN').format(price) + ' đ';
+
+                const imgEl = row.querySelector('img');
+                if (imgEl && thumbnail) imgEl.src = thumbnail;
+
+                // Refresh modal if open for this property
+                if (currentPropId == id && document.getElementById('detailModal').style.display === 'flex') {
+                    console.log("Admin SignalR: Refreshing open detail modal for ID:", id);
+                    openDetailModal(id, title);
+                }
+            }
+        });
+
+        connection.start().then(() => {
+            console.log("Admin SignalR: Connected to PropertyHub");
+        }).catch(err => {
+            console.error("Admin SignalR: Connection error:", err);
+        });
+
         let currentPropId = null;
         let currentPropTitle = '';
 

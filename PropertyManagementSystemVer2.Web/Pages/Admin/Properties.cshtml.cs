@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using PropertyManagementSystemVer2.BLL.DTOs;
 using PropertyManagementSystemVer2.BLL.Services.Interfaces;
 using PropertyManagementSystemVer2.DAL.Enums;
+using Microsoft.AspNetCore.SignalR;
+using PropertyManagementSystemVer2.Web.Hubs;
 
 namespace PropertyManagementSystemVer2.Web.Pages.Admin
 {
@@ -11,10 +13,12 @@ namespace PropertyManagementSystemVer2.Web.Pages.Admin
     public class PropertiesModel : PageModel
     {
         private readonly IPropertyService _propertyService;
+        private readonly IHubContext<PropertyHub> _hubContext;
 
-        public PropertiesModel(IPropertyService propertyService)
+        public PropertiesModel(IPropertyService propertyService, IHubContext<PropertyHub> hubContext)
         {
             _propertyService = propertyService;
+            _hubContext = hubContext;
         }
 
         [BindProperty(SupportsGet = true)]
@@ -95,6 +99,38 @@ namespace PropertyManagementSystemVer2.Web.Pages.Admin
             
             if (result.IsSuccess)
             {
+                // Real-time broadcast: Get latest list DTO and notify clients
+                var latestResult = await _propertyService.GetByIdAsync(id);
+                if (latestResult.IsSuccess && latestResult.Data != null)
+                {
+                    var prop = latestResult.Data;
+                    var listDto = new PropertyListDto
+                    {
+                        Id = prop.Id,
+                        Title = prop.Title,
+                        MonthlyRent = prop.MonthlyRent,
+                        City = prop.City,
+                        District = prop.District,
+                        Ward = prop.Ward,
+                        Address = prop.Address,
+                        ThumbnailUrl = prop.Images.FirstOrDefault(i => i.IsPrimary)?.ImageUrl ?? prop.Images.FirstOrDefault()?.ImageUrl,
+                        PropertyType = prop.PropertyType,
+                        Status = prop.Status,
+                        Bedrooms = prop.Bedrooms,
+                        Bathrooms = prop.Bathrooms,
+                        Area = prop.Area,
+                        Description = prop.Description,
+                        Amenities = prop.Amenities,
+                        AllowPets = prop.AllowPets,
+                        AllowSmoking = prop.AllowSmoking,
+                        CreatedAt = prop.CreatedAt,
+                        DepositAmount = prop.DepositAmount,
+                        Floors = prop.Floors,
+                        Landlord = prop.Landlord != null ? new LandlordSummaryDto { Id = prop.Landlord.Id, FullName = prop.Landlord.FullName, Email = prop.Landlord.Email, PhoneNumber = prop.Landlord.PhoneNumber } : null
+                    };
+                    await _hubContext.Clients.All.SendAsync("PropertyUpdated", listDto);
+                }
+
                 TempData["SuccessMessage"] = "Đã duyệt bất động sản thành công.";
             }
             else
@@ -124,6 +160,41 @@ namespace PropertyManagementSystemVer2.Web.Pages.Admin
             
             if (result.IsSuccess)
             {
+                // Real-time broadcast: notify clients to remove from search page
+                await _hubContext.Clients.All.SendAsync("PropertyDeleted", id);
+                
+                // Also update Admin view list
+                var latestResult = await _propertyService.GetByIdAsync(id);
+                if (latestResult.IsSuccess && latestResult.Data != null)
+                {
+                    var prop = latestResult.Data;
+                    var listDto = new PropertyListDto
+                    {
+                        Id = prop.Id,
+                        Title = prop.Title,
+                        MonthlyRent = prop.MonthlyRent,
+                        City = prop.City,
+                        District = prop.District,
+                        Ward = prop.Ward,
+                        Address = prop.Address,
+                        ThumbnailUrl = prop.Images.FirstOrDefault(i => i.IsPrimary)?.ImageUrl ?? prop.Images.FirstOrDefault()?.ImageUrl,
+                        PropertyType = prop.PropertyType,
+                        Status = prop.Status,
+                        Bedrooms = prop.Bedrooms,
+                        Bathrooms = prop.Bathrooms,
+                        Area = prop.Area,
+                        Description = prop.Description,
+                        Amenities = prop.Amenities,
+                        AllowPets = prop.AllowPets,
+                        AllowSmoking = prop.AllowSmoking,
+                        CreatedAt = prop.CreatedAt,
+                        DepositAmount = prop.DepositAmount,
+                        Floors = prop.Floors,
+                        Landlord = prop.Landlord != null ? new LandlordSummaryDto { Id = prop.Landlord.Id, FullName = prop.Landlord.FullName, Email = prop.Landlord.Email, PhoneNumber = prop.Landlord.PhoneNumber } : null
+                    };
+                    await _hubContext.Clients.All.SendAsync("PropertyUpdated", listDto);
+                }
+
                 TempData["SuccessMessage"] = "Đã từ chối bất động sản thành công.";
             }
             else
@@ -146,7 +217,42 @@ namespace PropertyManagementSystemVer2.Web.Pages.Admin
             
             if (result.IsSuccess)
             {
-                TempData["SuccessMessage"] = "Đã khóa bất động sản thành công.";
+                // Real-time broadcast: notify clients to remove from search page
+                await _hubContext.Clients.All.SendAsync("PropertyDeleted", id);
+
+                // Also update Admin view list
+                var latestResult = await _propertyService.GetByIdAsync(id);
+                if (latestResult.IsSuccess && latestResult.Data != null)
+                {
+                    var prop = latestResult.Data;
+                    var listDto = new PropertyListDto
+                    {
+                        Id = prop.Id,
+                        Title = prop.Title,
+                        MonthlyRent = prop.MonthlyRent,
+                        City = prop.City,
+                        District = prop.District,
+                        Ward = prop.Ward,
+                        Address = prop.Address,
+                        ThumbnailUrl = prop.Images.FirstOrDefault(i => i.IsPrimary)?.ImageUrl ?? prop.Images.FirstOrDefault()?.ImageUrl,
+                        PropertyType = prop.PropertyType,
+                        Status = prop.Status,
+                        Bedrooms = prop.Bedrooms,
+                        Bathrooms = prop.Bathrooms,
+                        Area = prop.Area,
+                        Description = prop.Description,
+                        Amenities = prop.Amenities,
+                        AllowPets = prop.AllowPets,
+                        AllowSmoking = prop.AllowSmoking,
+                        CreatedAt = prop.CreatedAt,
+                        DepositAmount = prop.DepositAmount,
+                        Floors = prop.Floors,
+                        Landlord = prop.Landlord != null ? new LandlordSummaryDto { Id = prop.Landlord.Id, FullName = prop.Landlord.FullName, Email = prop.Landlord.Email, PhoneNumber = prop.Landlord.PhoneNumber } : null
+                    };
+                    await _hubContext.Clients.All.SendAsync("PropertyUpdated", listDto);
+                }
+
+                TempData["SuccessMessage"] = "Đã khóa bài đăng bất động sản thành công.";
             }
             else
             {

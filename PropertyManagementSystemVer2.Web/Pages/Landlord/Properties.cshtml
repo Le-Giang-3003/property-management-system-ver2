@@ -314,6 +314,12 @@
                                     <button class="btn btn-secondary btn-sm btn-icon" title="Chỉnh sửa" onclick="openEditModal(@propJson)"><i data-feather="edit-2" style="width: 14px; height: 14px;"></i></button>
                                     <button class="btn btn-primary btn-sm btn-icon" title="Hình ảnh" onclick="openUploadModal(@prop.Id)"><i data-feather="image" style="width: 14px; height: 14px;"></i></button>
                                 }
+                                <form method="post" asp-page-handler="Delete" style="display:inline;" onsubmit="return confirm('Bạn có chắc chắn muốn xóa bất động sản này? Thao tác này sẽ ẩn BDS khỏi hệ thống.')">
+                                    <input type="hidden" name="id" value="@prop.Id" />
+                                    <button type="submit" class="btn btn-danger btn-sm btn-icon" title="Xóa BDS">
+                                        <i data-feather="trash-2" style="width: 14px; height: 14px;"></i>
+                                    </button>
+                                </form>
                             </div>
                     </div>
                 </div>

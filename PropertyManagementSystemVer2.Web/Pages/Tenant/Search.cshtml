@@ -157,7 +157,7 @@
     {
         foreach (var p in Model.Properties)
         {
-            <div class="property-card" style="position: relative;">
+            <div class="property-card" style="position: relative;" data-property-id="@p.Id">
                 <button style="position: absolute; top: 10px; right: 10px; z-index: 1; background: rgba(0,0,0,0.5); border: none; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #fff;">
                     <i data-feather="heart" style="width: 14px; height: 14px;"></i>
                 </button>
@@ -417,7 +417,148 @@
 </div>
 
 @section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
     <script>
+        // Init SignalR connection
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/propertyHub")
+            .withAutomaticReconnect()
+            .build();
+
+        connection.on("PropertyDeleted", function (propertyId) {
+            console.log("SignalR: Property deleted:", propertyId);
+            const card = document.querySelector(`.property-card[data-property-id="${propertyId}"]`);
+            if (card) {
+                card.style.transition = 'all 0.5s ease';
+                card.style.opacity = '0';
+                card.style.transform = 'scale(0.8)';
+                setTimeout(() => {
+                    card.remove();
+                    console.log("SignalR: Card removed from UI");
+                }, 500);
+            }
+        });
+
+        connection.on("PropertyUpdated", function (p) {
+            console.log("SignalR: Property updated:", p);
+            // Handle both PascalCase and camelCase
+            const id = p.id || p.Id;
+            const title = p.title || p.Title;
+            const price = p.monthlyRent || p.MonthlyRent;
+            const city = p.city || p.City;
+            const thumbnail = p.thumbnailUrl || p.ThumbnailUrl;
+            const status = p.status || p.Status;
+            const type = p.propertyType || p.PropertyType;
+
+            const grid = document.querySelector('.property-grid');
+            let card = document.querySelector(`.property-card[data-property-id="${id}"]`);
+
+            // If not Available, remove it (it might have been unpublished or rented)
+            if (status !== 7 && status !== 'Available') { 
+                if (card) {
+                    card.style.opacity = '0';
+                    setTimeout(() => card.remove(), 500);
+                }
+                return;
+            }
+
+            if (card) {
+                console.log("SignalR: Updating existing card UI for ID:", id);
+                // Flash effect
+                card.style.boxShadow = '0 0 15px var(--accent-light)';
+                setTimeout(() => card.style.boxShadow = '', 2000);
+
+                // Update fields
+                const titleEl = card.querySelector('.property-title');
+                if (titleEl) titleEl.textContent = title;
+
+                const priceEl = card.querySelector('.property-price');
+                if (priceEl) priceEl.textContent = new Intl.NumberFormat('vi-VN').format(price);
+
+                const cityEl = card.querySelector('.property-address');
+                if (cityEl) cityEl.innerHTML = `<i data-feather="map-pin" style="width: 12px; height: 12px;"></i> ${city}`;
+
+                const imgEl = card.querySelector('.property-image');
+                if (imgEl && thumbnail) imgEl.src = thumbnail;
+
+                if (window.feather) feather.replace();
+            } else if (grid) {
+                console.log("SignalR: Adding NEW card for ID:", id);
+                
+                // Create new card HTML
+                const typeMap = {
+                    'Apartment': 'Căn hộ',
+                    'House': 'Nhà phố',
+                    'Studio': 'Căn hộ studio',
+                    'Room': 'Phòng trọ',
+                    0: 'Căn hộ', 1: 'Nhà phố', 2: 'Căn hộ studio', 3: 'Phòng trọ' // Handle numeric if needed
+                };
+                const typeText = typeMap[type] || type;
+
+                const newCard = document.createElement('div');
+                newCard.className = 'property-card';
+                newCard.style.position = 'relative';
+                newCard.style.opacity = '0';
+                newCard.style.transform = 'translateY(20px)';
+                newCard.style.transition = 'all 0.5s ease';
+                newCard.setAttribute('data-property-id', id);
+
+                const imgHtml = thumbnail 
+                    ? `<img class="property-image" src="${thumbnail}" alt="${title}" />`
+                    : `<div class="property-image-placeholder">🏠</div>`;
+
+                const propJson = JSON.stringify(p).replace(/"/g, '&quot;');
+
+                newCard.innerHTML = `
+                    <button style="position: absolute; top: 10px; right: 10px; z-index: 1; background: rgba(0,0,0,0.5); border: none; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #fff;">
+                        <i data-feather="heart" style="width: 14px; height: 14px;"></i>
+                    </button>
+                    ${imgHtml}
+                    <div class="property-body">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                            <span class="property-type-badge">${typeText}</span>
+                            <span class="badge badge-success">Còn trống</span>
+                        </div>
+                        <div class="property-title">${title}</div>
+                        <div class="property-address"><i data-feather="map-pin" style="width: 12px; height: 12px;"></i> ${city}</div>
+                        <div class="property-specs">
+                            <span class="spec-item"><i data-feather="home" style="width: 13px; height: 13px;"></i> ID: ${id}</span>
+                        </div>
+                        <div style="border-top: 1px solid var(--border); padding-top: 12px; display: flex; align-items: center; justify-content: space-between;">
+                            <div>
+                                <div class="property-price">${new Intl.NumberFormat('vi-VN').format(price)}</div>
+                                <div class="property-price-sub">/tháng</div>
+                            </div>
+                            <div style="display: flex; gap: 6px;">
+                                <button type="button" class="btn btn-ghost btn-sm" onclick="openDetailModal(${propJson})">📅 Xem nhà</button>
+                                <button type="button" class="btn btn-primary btn-sm" onclick="openApplicationModal(${id}, '${title.replace(/'/g, "\\'")}', ${price}, '${(thumbnail || '').replace(/'/g, "\\'")}')">Nộp đơn</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Remove empty state if exists
+                const emptyState = grid.querySelector('.empty-state');
+                if (emptyState) emptyState.remove();
+
+                grid.prepend(newCard);
+                
+                // Trigger animation
+                setTimeout(() => {
+                    newCard.style.opacity = '1';
+                    newCard.style.transform = 'translateY(0)';
+                }, 100);
+
+                if (window.feather) feather.replace();
+            }
+        });
+
+        connection.start().then(() => {
+            console.log("SignalR: Connected to PropertyHub");
+        }).catch(err => {
+            console.error("SignalR: Connection error:", err);
+        });
+
         function closeModals() {
             document.getElementById('detailModal').style.display = 'none';
             document.getElementById('applicationModal').style.display = 'none';

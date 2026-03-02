@@ -2,6 +2,7 @@ using PropertyManagementSystemVer2.BLL;
 using PropertyManagementSystemVer2.BLL.Settings;
 using PropertyManagementSystemVer2.DAL;
 using PropertyManagementSystemVer2.Web.Services;
+using PropertyManagementSystemVer2.Web.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,6 +18,9 @@ builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection(
 
 // Background Service: Auto tạo hóa đơn hàng tháng
 builder.Services.AddHostedService<MonthlyPaymentGeneratorService>();
+
+// SignalR
+builder.Services.AddSignalR();
 
 // Configure Authentication
 builder.Services.AddAuthentication("Cookies")
@@ -46,5 +50,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapRazorPages();
+app.MapHub<PropertyHub>("/propertyHub");
 
 app.Run();
