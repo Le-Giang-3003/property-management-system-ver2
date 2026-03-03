@@ -203,7 +203,7 @@
     {
         foreach (var prop in Model.Properties)
         {
-            <div class="property-card" style="position: relative;">
+            <div class="property-card" style="position: relative;" data-property-id="@prop.Id">
                 @if (!string.IsNullOrEmpty(prop.ThumbnailUrl))
                 {
                     <img class="property-image" src="@prop.ThumbnailUrl" alt="@prop.Title" />
@@ -223,6 +223,7 @@
                                 _ => prop.PropertyType.ToString()
                             })
                         </span>
+                        <span class="status-badge-container">
                         @if (prop.Status.ToString() == "Available")
                         {
                             <span class="badge badge-success">Đang đăng</span>
@@ -255,6 +256,7 @@
                         {
                             <span class="badge badge-gray">@prop.Status</span>
                         }
+                        </span>
                     </div>
                     <div class="property-title">@prop.Title</div>
                     <div class="property-address"><i data-feather="map-pin" style="width: 12px; height: 12px;"></i> @prop.City</div>
@@ -264,6 +266,7 @@
                         <span class="spec-item"><i data-feather="layout" style="width: 13px; height: 13px;"></i> @prop.Area m²</span>
                     </div>
 
+                    <div class="rejection-reason-container">
                     @if (prop.Status.ToString() == "Rejected" || prop.Status.ToString() == "Blocked")
                     {
                         <div style="margin-top: 10px; padding: 10px; background-color: var(--danger-bg); border-radius: 8px; border: 1px solid var(--danger);">
@@ -271,13 +274,14 @@
                             <div style="font-size: 13px; color: var(--danger);">@prop.RejectionReason</div>
                         </div>
                     }
+                    </div>
 
                     <div style="border-top: 1px solid var(--border); padding-top: 12px; display: flex; align-items: center; justify-content: space-between;">
                         <div>
                             <div class="property-price">@prop.MonthlyRent.ToString("N0") VNĐ</div>
                             <div class="property-price-sub">/tháng</div>
                         </div>
-                            <div style="display: flex; gap: 6px;">
+                            <div class="property-actions-container" style="display: flex; gap: 6px;">
                                 @{
                                     var propJson = System.Text.Json.JsonSerializer.Serialize(prop);
                                 }
@@ -308,11 +312,11 @@
                                         </button>
                                     </form>
                                 }
-                                <button class="btn btn-ghost btn-sm btn-icon" title="Xem chi tiết" onclick="openDetailModal(@propJson)"><i data-feather="eye" style="width: 14px; height: 14px;"></i></button>
+                                <button type="button" class="btn btn-ghost btn-sm btn-icon" title="Xem chi tiết" onclick="openDetailModal(@propJson)"><i data-feather="eye" style="width: 14px; height: 14px;"></i></button>
                                 @if (prop.Status.ToString() != "Blocked")
                                 {
-                                    <button class="btn btn-secondary btn-sm btn-icon" title="Chỉnh sửa" onclick="openEditModal(@propJson)"><i data-feather="edit-2" style="width: 14px; height: 14px;"></i></button>
-                                    <button class="btn btn-primary btn-sm btn-icon" title="Hình ảnh" onclick="openUploadModal(@prop.Id)"><i data-feather="image" style="width: 14px; height: 14px;"></i></button>
+                                    <button type="button" class="btn btn-secondary btn-sm btn-icon" title="Chỉnh sửa" onclick="openEditModal(@propJson)"><i data-feather="edit-2" style="width: 14px; height: 14px;"></i></button>
+                                    <button type="button" class="btn btn-primary btn-sm btn-icon" title="Hình ảnh" onclick="openUploadModal(@prop.Id)"><i data-feather="image" style="width: 14px; height: 14px;"></i></button>
                                 }
                                 <form method="post" asp-page-handler="Delete" style="display:inline;" onsubmit="return confirm('Bạn có chắc chắn muốn xóa bất động sản này? Thao tác này sẽ ẩn BDS khỏi hệ thống.')">
                                     <input type="hidden" name="id" value="@prop.Id" />
@@ -793,7 +797,187 @@
 </div>
 
 @section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
     <script>
+        // Init SignalR connection
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/propertyHub")
+            .withAutomaticReconnect()
+            .build();
+
+        const currentUserId = "@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value";
+
+        connection.on("PropertyUpdated", function (p) {
+            console.log("SignalR: Property updated:", p);
+            const id = p.id || p.Id;
+            const landlordId = p.landlordId || (p.landlord ? p.landlord.id || p.landlord.Id : null);
+            
+            // Optimization: only update if it's in our DOM
+            const card = document.querySelector(`.property-card[data-property-id="${id}"]`);
+            if (card) {
+                console.log("SignalR: Updating landlord card UI for ID:", id);
+                
+                // Flash effect
+                card.style.boxShadow = '0 0 20px var(--accent-light)';
+                setTimeout(() => card.style.boxShadow = '', 3000);
+
+                // We'll just refresh the specific parts of the card
+                // Since the UI logic is complex in Razor, we'll use a trick: 
+                // Either we refresh the page (simple) OR we update status text/badge.
+                // Given the user wants "instant" update, let's update the badge and reason.
+                
+                const status = p.status || p.Status;
+                const statusMap = {
+                    2: { text: 'Chờ duyệt', class: 'badge-warning' }, // Pending
+                    3: { text: 'Đã duyệt', class: 'badge-info', title: "Vui lòng bấm 'Đăng bài' để đăng" }, // Approved
+                    4: { text: 'Từ chối', class: 'badge-danger' }, // Rejected
+                    5: { text: 'Đã thuê', class: 'badge-secondary' }, // Rented
+                    6: { text: 'Tạm ẩn', class: 'badge-gray' }, // Unavailable
+                    7: { text: 'Đang đăng', class: 'badge-success' }, // Available
+                    8: { text: 'Bị khóa', class: '', style: 'background: rgba(52, 58, 64, 0.1); color: #343a40; border: 1px solid #343a40;' } // Blocked
+                };
+
+                const statusData = statusMap[status] || { text: status, class: 'badge-gray' };
+                const badgeContainer = card.querySelector('.status-badge-container');
+                if (badgeContainer) {
+                    let badgeHtml = `<span class="badge ${statusData.class}" ${statusData.title ? `title="${statusData.title}"` : ''} ${statusData.style ? `style="${statusData.style}"` : ''}>${statusData.text}</span>`;
+                    badgeContainer.innerHTML = badgeHtml;
+                }
+
+                // Update Actions Buttons
+                const actionsContainer = card.querySelector('.property-actions-container');
+                if (actionsContainer) {
+                    const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+                    const propJson = JSON.stringify(p).replace(/"/g, '&quot;');
+                    
+                    let buttonsHtml = '';
+                    
+                    // Publish Button
+                    if (status === 3 || status === 6) { // Approved or Unavailable
+                        buttonsHtml += `
+                            <form method="post" action="?handler=Publish" style="display:inline;">
+                                <input type="hidden" name="__RequestVerificationToken" value="${token}" />
+                                <input type="hidden" name="propertyId" value="${id}" />
+                                <button type="submit" class="btn btn-sm btn-success" title="Đăng bài này lên để người thuê nhìn thấy">
+                                    Đăng bài
+                                </button>
+                            </form>
+                        `;
+                    } 
+                    // Unpublish Button
+                    else if (status === 7) { // Available
+                        buttonsHtml += `
+                            <form method="post" action="?handler=Unpublish" style="display:inline;">
+                                <input type="hidden" name="__RequestVerificationToken" value="${token}" />
+                                <input type="hidden" name="propertyId" value="${id}" />
+                                <button type="submit" class="btn btn-sm btn-warning" title="Tạm ẩn bài đăng này khỏi danh sách">
+                                    Tạm ẩn
+                                </button>
+                            </form>
+                        `;
+                    }
+                    // Resubmit Button
+                    else if (status === 4) { // Rejected
+                        buttonsHtml += `
+                            <form method="post" action="?handler=Resubmit" style="display:inline;">
+                                <input type="hidden" name="__RequestVerificationToken" value="${token}" />
+                                <input type="hidden" name="propertyId" value="${id}" />
+                                <button type="submit" class="btn btn-sm btn-outline btn-outline-primary" style="background: white;" title="Gửi lại cho admin duyệt sau khi đã chỉnh sửa">
+                                    Gửi lại duyệt
+                                </button>
+                            </form>
+                        `;
+                    }
+
+                    // Common Buttons
+                    buttonsHtml += `
+                        <button type="button" class="btn btn-ghost btn-sm btn-icon" title="Xem chi tiết" onclick='openDetailModal(${propJson})'><i data-feather="eye" style="width: 14px; height: 14px;"></i></button>
+                    `;
+
+                    if (status !== 8) { // Not Blocked
+                        buttonsHtml += `
+                            <button type="button" class="btn btn-secondary btn-sm btn-icon" title="Chỉnh sửa" onclick='openEditModal(${propJson})'><i data-feather="edit-2" style="width: 14px; height: 14px;"></i></button>
+                            <button type="button" class="btn btn-primary btn-sm btn-icon" title="Hình ảnh" onclick="openUploadModal(${id})"><i data-feather="image" style="width: 14px; height: 14px;"></i></button>
+                        `;
+                    }
+
+                    // Delete Button
+                    buttonsHtml += `
+                        <form method="post" action="?handler=Delete" style="display:inline;" onsubmit="return confirm('Bạn có chắc chắn muốn xóa bất động sản này? Thao tác này sẽ ẩn BDS khỏi hệ thống.')">
+                            <input type="hidden" name="__RequestVerificationToken" value="${token}" />
+                            <input type="hidden" name="id" value="${id}" />
+                            <button type="submit" class="btn btn-danger btn-sm btn-icon" title="Xóa BDS">
+                                <i data-feather="trash-2" style="width: 14px; height: 14px;"></i>
+                            </button>
+                        </form>
+                    `;
+
+                    actionsContainer.innerHTML = buttonsHtml;
+                    if (window.feather) feather.replace();
+                }
+
+                // Update rejection reason if any
+                const reasonContainer = card.querySelector('.rejection-reason-container');
+                const reason = p.rejectionReason || p.RejectionReason;
+                if (reasonContainer) {
+                    if (status === 4 || status === 8) { // Rejected or Blocked
+                        reasonContainer.innerHTML = `
+                            <div style="margin-top: 10px; padding: 10px; background-color: var(--danger-bg); border-radius: 8px; border: 1px solid var(--danger);">
+                                <div style="color: var(--danger); font-size: 13px; font-weight: 600; margin-bottom: 4px;">${status === 8 ? "Lý do khóa bài:" : "Lý do từ chối:"}</div>
+                                <div style="font-size: 13px; color: var(--danger);">${reason || 'Không có lý do.'}</div>
+                            </div>
+                        `;
+                    } else {
+                        reasonContainer.innerHTML = '';
+                    }
+                }
+
+                // For the buttons, it's safer to just reload or tell the user to refresh if the buttons change significantly.
+                // However, we can update the 'Gửi lại duyệt' / 'Đăng bài' buttons if we want to be fancy.
+                // For now, let's at least update the title/badge.
+                
+                // If the user is currently viewing the detail modal for this property, we should refresh it too
+                const detailModal = document.getElementById('detailModal');
+                if (detailModal.style.display === 'flex') {
+                    // Check if it's the same property (we'd need to store current editing ID)
+                    // Simplified: just update the status in the modal if it's open
+                    const modalStatusEl = document.getElementById('detailStatus');
+                    if (modalStatusEl) {
+                        modalStatusEl.textContent = statusData.text;
+                        modalStatusEl.className = `badge ${statusData.class}`;
+                        if (status === 8) {
+                            modalStatusEl.style.background = 'rgba(52, 58, 64, 0.1)';
+                            modalStatusEl.style.color = '#343a40';
+                            modalStatusEl.style.border = '1px solid #343a40';
+                        } else {
+                            modalStatusEl.style.background = '';
+                            modalStatusEl.style.color = '';
+                            modalStatusEl.style.border = '';
+                        }
+                    }
+                }
+                
+                console.log("SignalR: Card UI updated partially. Recommendation: Reload for full button state sync.");
+            }
+        });
+
+        connection.on("PropertyDeleted", function (propertyId) {
+            console.log("SignalR: Property deleted:", propertyId);
+            const card = document.querySelector(`.property-card[data-property-id="${propertyId}"]`);
+            if (card) {
+                card.style.transition = 'all 0.5s ease';
+                card.style.opacity = '0';
+                card.style.transform = 'scale(0.8)';
+                setTimeout(() => card.remove(), 500);
+            }
+        });
+
+        connection.start().then(() => {
+            console.log("SignalR: Connected to PropertyHub (Landlord View)");
+        }).catch(err => {
+            console.error("SignalR: Connection error:", err);
+        });
+
         function closeModals() {
             document.getElementById('createModal').style.display = 'none';
             document.getElementById('editModal').style.display = 'none';
@@ -856,11 +1040,11 @@
             
             // Populate form fields
             document.getElementById('editTitle').value = prop.Title || '';
-            let typeVal = prop.PropertyType === 1 ? 'Apartment' : 
-                          prop.PropertyType === 2 ? 'House' : 
-                          prop.PropertyType === 3 ? 'Studio' : 
-                          prop.PropertyType === 4 ? 'Room' : 'Apartment';
-            document.getElementById('editPropertyType').value = prop.PropertyTypeText || typeVal;
+            let typeVal = prop.PropertyType === 1 || prop.PropertyType === 'Apartment' ? 'Apartment' : 
+                          prop.PropertyType === 2 || prop.PropertyType === 'House' ? 'House' : 
+                          prop.PropertyType === 3 || prop.PropertyType === 'Studio' ? 'Studio' : 
+                          prop.PropertyType === 4 || prop.PropertyType === 'Room' ? 'Room' : 'Apartment';
+            document.getElementById('editPropertyType').value = typeVal;
             document.getElementById('editDesc').value = prop.Description || '';
             document.getElementById('editCity').value = prop.City || '';
             document.getElementById('editAddress').value = prop.Address || '';
@@ -908,23 +1092,35 @@
                     }
                 });
 
-            let statusText = prop.Status === 'Approved' ? 'Còn trống' :
-                             prop.Status === 'Rented' ? 'Đã thuê' :
-                             prop.Status === 'Pending' ? 'Chờ duyệt' :
-                             prop.Status === 'Draft' ? 'Bản nháp' :
-                             prop.Status === 'Rejected' ? 'Từ chối' :
-                             prop.Status === 'Blocked' ? 'Bị khóa' : String(prop.Status);
-            
-            let statusClass = prop.Status === 'Approved' ? 'badge-success' :
-                              prop.Status === 'Rented' ? 'badge-info' :
-                              prop.Status === 'Pending' ? 'badge-warning' :
-                              prop.Status === 'Rejected' ? 'badge-danger' : 
-                              prop.Status === 'Blocked' ? '' : 'badge-gray';
+            const status = prop.Status;
+            const statusMap = {
+                2: { text: 'Chờ duyệt', class: 'badge-warning' }, // Pending
+                3: { text: 'Đã duyệt', class: 'badge-info' }, // Approved
+                4: { text: 'Từ chối', class: 'badge-danger' }, // Rejected
+                5: { text: 'Đã thuê', class: 'badge-secondary' }, // Rented
+                6: { text: 'Tạm ẩn', class: 'badge-gray' }, // Unavailable
+                7: { text: 'Đang đăng', class: 'badge-success' }, // Available
+                8: { text: 'Bị khóa', class: '' } // Blocked
+            };
+
+            let statusInfo = statusMap[status] || { text: String(status), class: 'badge-gray' };
+            if (typeof status === 'string') {
+                statusInfo.text = status === 'Available' ? 'Còn trống' :
+                                  status === 'Rented' ? 'Đã thuê' :
+                                  status === 'Pending' ? 'Chờ duyệt' :
+                                  status === 'Rejected' ? 'Từ chối' :
+                                  status === 'Blocked' ? 'Bị khóa' : status;
+                statusInfo.class = status === 'Available' ? 'badge-success' :
+                                   status === 'Rented' ? 'badge-info' :
+                                   status === 'Pending' ? 'badge-warning' :
+                                   status === 'Rejected' ? 'badge-danger' : 
+                                   status === 'Blocked' ? '' : 'badge-gray';
+            }
 
             const statusEl = document.getElementById('detailStatus');
-            statusEl.textContent = statusText;
-            statusEl.className = `badge ${statusClass}`;
-            if(prop.Status === 'Blocked') {
+            statusEl.textContent = statusInfo.text;
+            statusEl.className = `badge ${statusInfo.class}`;
+            if(status === 8 || status === 'Blocked') {
                 statusEl.style.background = 'rgba(52, 58, 64, 0.1)';
                 statusEl.style.color = '#343a40';
                 statusEl.style.border = '1px solid #343a40';
@@ -941,10 +1137,10 @@
             document.getElementById('dtFullAddress').textContent = `${prop.Address}, ${prop.Ward}, ${prop.District}, ${prop.City}`;
             document.getElementById('dtRentMain').textContent = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(prop.MonthlyRent);
             
-            let typeText = prop.PropertyType === 1 ? 'Căn hộ' : 
-                           prop.PropertyType === 2 ? 'Nhà phố' : 
-                           prop.PropertyType === 3 ? 'Căn hộ studio' : 
-                           prop.PropertyType === 4 ? 'Phòng trọ' : String(prop.PropertyType);
+            let typeText = prop.PropertyType === 1 || prop.PropertyType === 'Apartment' ? 'Căn hộ' : 
+                           prop.PropertyType === 2 || prop.PropertyType === 'House' ? 'Nhà phố' : 
+                           prop.PropertyType === 3 || prop.PropertyType === 'Studio' ? 'Căn hộ studio' : 
+                           prop.PropertyType === 4 || prop.PropertyType === 'Room' ? 'Phòng trọ' : String(prop.PropertyType);
             
             document.getElementById('dtArea').textContent = `${prop.Area} m²`;
             document.getElementById('dtBedrooms').textContent = prop.Bedrooms || 0;

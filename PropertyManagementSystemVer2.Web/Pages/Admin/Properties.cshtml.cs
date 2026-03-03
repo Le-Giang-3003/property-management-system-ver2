@@ -160,9 +160,6 @@ namespace PropertyManagementSystemVer2.Web.Pages.Admin
             
             if (result.IsSuccess)
             {
-                // Real-time broadcast: notify clients to remove from search page
-                await _hubContext.Clients.All.SendAsync("PropertyDeleted", id);
-                
                 // Also update Admin view list
                 var latestResult = await _propertyService.GetByIdAsync(id);
                 if (latestResult.IsSuccess && latestResult.Data != null)
@@ -190,6 +187,7 @@ namespace PropertyManagementSystemVer2.Web.Pages.Admin
                         CreatedAt = prop.CreatedAt,
                         DepositAmount = prop.DepositAmount,
                         Floors = prop.Floors,
+                        RejectionReason = prop.RejectionReason,
                         Landlord = prop.Landlord != null ? new LandlordSummaryDto { Id = prop.Landlord.Id, FullName = prop.Landlord.FullName, Email = prop.Landlord.Email, PhoneNumber = prop.Landlord.PhoneNumber } : null
                     };
                     await _hubContext.Clients.All.SendAsync("PropertyUpdated", listDto);
@@ -217,9 +215,6 @@ namespace PropertyManagementSystemVer2.Web.Pages.Admin
             
             if (result.IsSuccess)
             {
-                // Real-time broadcast: notify clients to remove from search page
-                await _hubContext.Clients.All.SendAsync("PropertyDeleted", id);
-
                 // Also update Admin view list
                 var latestResult = await _propertyService.GetByIdAsync(id);
                 if (latestResult.IsSuccess && latestResult.Data != null)
@@ -247,6 +242,7 @@ namespace PropertyManagementSystemVer2.Web.Pages.Admin
                         CreatedAt = prop.CreatedAt,
                         DepositAmount = prop.DepositAmount,
                         Floors = prop.Floors,
+                        RejectionReason = prop.RejectionReason,
                         Landlord = prop.Landlord != null ? new LandlordSummaryDto { Id = prop.Landlord.Id, FullName = prop.Landlord.FullName, Email = prop.Landlord.Email, PhoneNumber = prop.Landlord.PhoneNumber } : null
                     };
                     await _hubContext.Clients.All.SendAsync("PropertyUpdated", listDto);

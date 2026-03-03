@@ -24,6 +24,47 @@ namespace PropertyManagementSystemVer2.Web.Pages.Landlord
             _hubContext = hubContext;
         }
 
+        private async Task BroadcastPropertyUpdate(int propertyId)
+        {
+            var latestResult = await _propertyService.GetByIdAsync(propertyId);
+            if (latestResult.IsSuccess && latestResult.Data != null)
+            {
+                var prop = latestResult.Data;
+                var listDto = new PropertyListDto
+                {
+                    Id = prop.Id,
+                    Title = prop.Title,
+                    MonthlyRent = prop.MonthlyRent,
+                    City = prop.City,
+                    District = prop.District,
+                    Ward = prop.Ward,
+                    Address = prop.Address,
+                    ThumbnailUrl = prop.Images.FirstOrDefault(i => i.IsPrimary)?.ImageUrl ?? prop.Images.FirstOrDefault()?.ImageUrl,
+                    PropertyType = prop.PropertyType,
+                    Status = prop.Status,
+                    Bedrooms = prop.Bedrooms,
+                    Bathrooms = prop.Bathrooms,
+                    Area = prop.Area,
+                    Description = prop.Description,
+                    Amenities = prop.Amenities,
+                    AllowPets = prop.AllowPets,
+                    AllowSmoking = prop.AllowSmoking,
+                    CreatedAt = prop.CreatedAt,
+                    DepositAmount = prop.DepositAmount,
+                    Floors = prop.Floors,
+                    RejectionReason = prop.RejectionReason,
+                    Landlord = prop.Landlord != null ? new LandlordSummaryDto
+                    {
+                        Id = prop.Landlord.Id,
+                        FullName = prop.Landlord.FullName,
+                        Email = prop.Landlord.Email,
+                        PhoneNumber = prop.Landlord.PhoneNumber
+                    } : null
+                };
+                await _hubContext.Clients.All.SendAsync("PropertyUpdated", listDto);
+            }
+        }
+
         public List<PropertyListDto> Properties { get; set; } = new List<PropertyListDto>();
         
         public List<PropertyListDto> AllProperties { get; set; } = new List<PropertyListDto>();
@@ -88,6 +129,12 @@ namespace PropertyManagementSystemVer2.Web.Pages.Landlord
             
             if (result.IsSuccess)
             {
+                // Real-time broadcast: update Admin view
+                if (result.Data != null)
+                {
+                    await BroadcastPropertyUpdate(result.Data.Id);
+                }
+
                 TempData["SuccessMessage"] = "Đăng tin BDS mới thành công.";
                 return RedirectToPage();
             }
@@ -109,43 +156,7 @@ namespace PropertyManagementSystemVer2.Web.Pages.Landlord
             if (result.IsSuccess)
             {
                 // Real-time broadcast: Get latest list DTO and notify clients
-                var latestResult = await _propertyService.GetByIdAsync(id);
-                if (latestResult.IsSuccess && latestResult.Data != null)
-                {
-                    // Map to ListDto for search page
-                    var prop = latestResult.Data;
-                    var listDto = new PropertyListDto
-                    {
-                        Id = prop.Id,
-                        Title = prop.Title,
-                        MonthlyRent = prop.MonthlyRent,
-                        City = prop.City,
-                        District = prop.District,
-                        Ward = prop.Ward,
-                        Address = prop.Address,
-                        ThumbnailUrl = prop.Images.FirstOrDefault(i => i.IsPrimary)?.ImageUrl ?? prop.Images.FirstOrDefault()?.ImageUrl,
-                        PropertyType = prop.PropertyType,
-                        Status = prop.Status,
-                        Bedrooms = prop.Bedrooms,
-                        Bathrooms = prop.Bathrooms,
-                        Area = prop.Area,
-                        Description = prop.Description,
-                        Amenities = prop.Amenities,
-                        AllowPets = prop.AllowPets,
-                        AllowSmoking = prop.AllowSmoking,
-                        CreatedAt = prop.CreatedAt,
-                        DepositAmount = prop.DepositAmount,
-                        Floors = prop.Floors,
-                        Landlord = prop.Landlord != null ? new LandlordSummaryDto 
-                        { 
-                            Id = prop.Landlord.Id, 
-                            FullName = prop.Landlord.FullName, 
-                            Email = prop.Landlord.Email, 
-                            PhoneNumber = prop.Landlord.PhoneNumber 
-                        } : null
-                    };
-                    await _hubContext.Clients.All.SendAsync("PropertyUpdated", listDto);
-                }
+                await BroadcastPropertyUpdate(id);
 
                 TempData["SuccessMessage"] = !string.IsNullOrEmpty(result.Message) ? result.Message : "Cập nhật BDS thành công.";
                 return RedirectToPage();
@@ -187,6 +198,9 @@ namespace PropertyManagementSystemVer2.Web.Pages.Landlord
 
             if (successCount > 0)
             {
+                // Real-time broadcast: Update images in Admin/Tenant views
+                await BroadcastPropertyUpdate(propertyId);
+
                 TempData["SuccessMessage"] = $"Đã tải lên thành công {successCount}/{UploadImages.Count} ảnh.";
             }
             else
@@ -223,6 +237,9 @@ namespace PropertyManagementSystemVer2.Web.Pages.Landlord
             var result = await _propertyService.SetPrimaryImageAsync(userId, propertyId, imageId);
             if (result.IsSuccess)
             {
+                // Real-time broadcast: Update thumbnail in Admin/Tenant views
+                await BroadcastPropertyUpdate(propertyId);
+
                 TempData["SuccessMessage"] = "Đã thay đổi ảnh đại diện thành công.";
             }
             else
@@ -244,36 +261,7 @@ namespace PropertyManagementSystemVer2.Web.Pages.Landlord
             if (result.IsSuccess)
             {
                 // Real-time broadcast: update Admin view
-                var latestResult = await _propertyService.GetByIdAsync(propertyId);
-                if (latestResult.IsSuccess && latestResult.Data != null)
-                {
-                    var prop = latestResult.Data;
-                    var listDto = new PropertyListDto
-                    {
-                        Id = prop.Id,
-                        Title = prop.Title,
-                        MonthlyRent = prop.MonthlyRent,
-                        City = prop.City,
-                        District = prop.District,
-                        Ward = prop.Ward,
-                        Address = prop.Address,
-                        ThumbnailUrl = prop.Images.FirstOrDefault(i => i.IsPrimary)?.ImageUrl ?? prop.Images.FirstOrDefault()?.ImageUrl,
-                        PropertyType = prop.PropertyType,
-                        Status = prop.Status,
-                        Bedrooms = prop.Bedrooms,
-                        Bathrooms = prop.Bathrooms,
-                        Area = prop.Area,
-                        Description = prop.Description,
-                        Amenities = prop.Amenities,
-                        AllowPets = prop.AllowPets,
-                        AllowSmoking = prop.AllowSmoking,
-                        CreatedAt = prop.CreatedAt,
-                        DepositAmount = prop.DepositAmount,
-                        Floors = prop.Floors,
-                        Landlord = prop.Landlord != null ? new LandlordSummaryDto { Id = prop.Landlord.Id, FullName = prop.Landlord.FullName, Email = prop.Landlord.Email, PhoneNumber = prop.Landlord.PhoneNumber } : null
-                    };
-                    await _hubContext.Clients.All.SendAsync("PropertyUpdated", listDto);
-                }
+                await BroadcastPropertyUpdate(propertyId);
 
                 TempData["SuccessMessage"] = "Đã gửi lại yêu cầu duyệt thành công. Vui lòng chờ Admin xác nhận.";
             }
@@ -297,42 +285,7 @@ namespace PropertyManagementSystemVer2.Web.Pages.Landlord
             if (result.IsSuccess)
             {
                 // Real-time broadcast: Show on Tenant search and update Admin
-                var latestResult = await _propertyService.GetByIdAsync(propertyId);
-                if (latestResult.IsSuccess && latestResult.Data != null)
-                {
-                    var prop = latestResult.Data;
-                    var listDto = new PropertyListDto
-                    {
-                        Id = prop.Id,
-                        Title = prop.Title,
-                        MonthlyRent = prop.MonthlyRent,
-                        City = prop.City,
-                        District = prop.District,
-                        Ward = prop.Ward,
-                        Address = prop.Address,
-                        ThumbnailUrl = prop.Images.FirstOrDefault(i => i.IsPrimary)?.ImageUrl ?? prop.Images.FirstOrDefault()?.ImageUrl,
-                        PropertyType = prop.PropertyType,
-                        Status = prop.Status,
-                        Bedrooms = prop.Bedrooms,
-                        Bathrooms = prop.Bathrooms,
-                        Area = prop.Area,
-                        Description = prop.Description,
-                        Amenities = prop.Amenities,
-                        AllowPets = prop.AllowPets,
-                        AllowSmoking = prop.AllowSmoking,
-                        CreatedAt = prop.CreatedAt,
-                        DepositAmount = prop.DepositAmount,
-                        Floors = prop.Floors,
-                        Landlord = prop.Landlord != null ? new LandlordSummaryDto 
-                        { 
-                            Id = prop.Landlord.Id, 
-                            FullName = prop.Landlord.FullName, 
-                            Email = prop.Landlord.Email, 
-                            PhoneNumber = prop.Landlord.PhoneNumber 
-                        } : null
-                    };
-                    await _hubContext.Clients.All.SendAsync("PropertyUpdated", listDto);
-                }
+                await BroadcastPropertyUpdate(propertyId);
 
                 TempData["SuccessMessage"] = "Đã đăng bài thành công. Khách thuê bây giờ có thể thấy bất động sản này.";
             }
@@ -354,16 +307,8 @@ namespace PropertyManagementSystemVer2.Web.Pages.Landlord
             var result = await _propertyService.UnpublishPropertyAsync(userId, propertyId);
             if (result.IsSuccess)
             {
-                // Real-time broadcast: Remove from Tenant search and update Admin
-                await _hubContext.Clients.All.SendAsync("PropertyDeleted", propertyId);
-                
-                var latestResult = await _propertyService.GetByIdAsync(propertyId);
-                if (latestResult.IsSuccess && latestResult.Data != null)
-                {
-                    var prop = latestResult.Data;
-                    var listDto = new PropertyListDto { Id = prop.Id, Status = prop.Status, Title = prop.Title, MonthlyRent = prop.MonthlyRent, City = prop.City, PropertyType = prop.PropertyType };
-                    await _hubContext.Clients.All.SendAsync("PropertyUpdated", listDto);
-                }
+                // Real-time broadcast: Update status in Admin/Tenant views
+                await BroadcastPropertyUpdate(propertyId);
 
                 TempData["SuccessMessage"] = "Đã tạm ẩn bất động sản. Khách thuê sẽ không còn thấy bài đăng này.";
             }

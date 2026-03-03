@@ -160,7 +160,7 @@
                                     </div>
                                 </div>
                             </td>
-                            <td><span class="badge badge-purple">
+                            <td class="property-type-container"><span class="badge badge-purple">
                                 @(prop.PropertyType.ToString() switch {
                                     "Apartment" => "Căn hộ",
                                     "House" => "Nhà phố",
@@ -170,7 +170,7 @@
                                 })
                             </span></td>
                             <td>@prop.Landlord?.FullName</td>
-                            <td>
+                            <td class="status-badge-container">
                                 @if (prop.Status.ToString() == "Available")
                                 {
                                     <span class="badge badge-success">Đang đăng</span>
@@ -206,7 +206,7 @@
                             </td>
                             <td class="text-green fw-600">@prop.MonthlyRent.ToString("N0") đ</td>
                             <td>
-                                <div style="display: flex; gap: 6px;">
+                                <div class="property-actions-container" style="display: flex; gap: 6px;">
                                     <button class="btn btn-ghost btn-sm btn-icon" title="Xem chi tiết" onclick="openDetailModal(@prop.Id, '@Html.Raw(prop.Title.Replace("'", "\\'"))')"><i data-feather="eye" style="width: 14px; height: 14px;"></i></button>
                                     @if (prop.Status == PropertyStatus.Pending)
                                     {
@@ -430,6 +430,8 @@
             const title = p.title || p.Title;
             const price = p.monthlyRent || p.MonthlyRent;
             const thumbnail = p.thumbnailUrl || p.ThumbnailUrl;
+            const type = p.propertyType || p.PropertyType;
+            const status = p.status || p.Status;
 
             const row = document.querySelector(`tr[data-property-id="${id}"]`);
             if (row) {
@@ -448,10 +450,87 @@
                 const imgEl = row.querySelector('img');
                 if (imgEl && thumbnail) imgEl.src = thumbnail;
 
-                // Refresh modal if open for this property
+                // Update Property Type
+                const typeContainer = row.querySelector('.property-type-container');
+                if (typeContainer) {
+                    const typeMap = {
+                        1: 'Căn hộ',
+                        2: 'Nhà phố',
+                        3: 'Căn hộ studio',
+                        4: 'Phòng trọ',
+                        'Apartment': 'Căn hộ',
+                        'House': 'Nhà phố',
+                        'Studio': 'Căn hộ studio',
+                        'Room': 'Phòng trọ'
+                    };
+                    const typeText = typeMap[type] || type;
+                    typeContainer.innerHTML = `<span class="badge badge-purple">${typeText}</span>`;
+                }
+
+                // Update Status
+                const statusContainer = row.querySelector('.status-badge-container');
+                if (statusContainer) {
+                    const statusMap = {
+                        2: { text: 'Chờ duyệt', class: 'badge-warning' }, // Pending
+                        3: { text: 'Đã duyệt', class: 'badge-info' }, // Approved
+                        4: { text: 'Từ chối', class: 'badge-danger' }, // Rejected
+                        5: { text: 'Đã thuê', class: 'badge-secondary' }, // Rented
+                        6: { text: 'Tạm ẩn', class: 'badge-gray' }, // Unavailable
+                        7: { text: 'Đang đăng', class: 'badge-success' }, // Available
+                        8: { text: 'Bị khóa', class: '', style: 'background: rgba(52, 58, 64, 0.1); color: #343a40; border: 1px solid #343a40;' } // Blocked
+                    };
+                    
+                    let s = statusMap[status];
+                    if (!s && typeof status === 'string') {
+                        const sText = status === 'Available' ? 'Đang đăng' :
+                                    status === 'Approved' ? 'Đã duyệt' :
+                                    status === 'Pending' ? 'Chờ duyệt' :
+                                    status === 'Rejected' ? 'Từ chối' :
+                                    status === 'Blocked' ? 'Bị khóa' : status;
+                        const sClass = status === 'Available' ? 'badge-success' :
+                                     status === 'Approved' ? 'badge-info' :
+                                     status === 'Pending' ? 'badge-warning' :
+                                     status === 'Rejected' ? 'badge-danger' : 
+                                     status === 'Blocked' ? '' : 'badge-gray';
+                        s = { text: sText, class: sClass };
+                    }
+                    
+                    if (s) {
+                        statusContainer.innerHTML = `<span class="badge ${s.class}" ${s.style ? `style="${s.style}"` : ''}>${s.text}</span>`;
+                    }
+                }
+
+                // Update Actions
+                const actionsContainer = row.querySelector('.property-actions-container');
+                if (actionsContainer) {
+                    const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+                    const safeTitle = title.replace(/'/g, "\\'");
+                    let buttonsHtml = `
+                        <button type="button" class="btn btn-ghost btn-sm btn-icon" title="Xem chi tiết" onclick="openDetailModal(${id}, '${safeTitle}')"><i data-feather="eye" style="width: 14px; height: 14px;"></i></button>
+                    `;
+
+                    if (status === 2 || status === 'Pending') { // Pending
+                        buttonsHtml += `
+                            <form method="post" action="?handler=Approve&id=${id}" style="display:inline;">
+                                <input type="hidden" name="__RequestVerificationToken" value="${token}" />
+                                <button type="submit" class="btn btn-success btn-sm btn-icon" title="Duyệt"><i data-feather="check" style="width: 14px; height: 14px;"></i></button>
+                            </form>
+                            <button type="button" class="btn btn-danger btn-sm btn-icon" title="Từ chối" onclick="openRejectModal(${id}, '${safeTitle}')"><i data-feather="x" style="width: 14px; height: 14px;"></i></button>
+                        `;
+                    } else if (status === 7 || status === 'Available') { // Available
+                        buttonsHtml += `
+                            <button type="button" class="btn btn-danger btn-sm btn-icon" title="Khóa bài đăng" onclick="openBlockModal(${id}, '${safeTitle}')"><i data-feather="lock" style="width: 14px; height: 14px;"></i></button>
+                        `;
+                    }
+
+                    actionsContainer.innerHTML = buttonsHtml;
+                    if (window.feather) feather.replace();
+                }
+
+                // Refresh modal data if open for this property
                 if (currentPropId == id && document.getElementById('detailModal').style.display === 'flex') {
                     console.log("Admin SignalR: Refreshing open detail modal for ID:", id);
-                    openDetailModal(id, title);
+                    openDetailModal(id, title, true); // True for refreshOnly
                 }
             }
         });
@@ -471,18 +550,24 @@
             document.getElementById('blockModal').style.display = 'none';
         }
 
-        function openDetailModal(id, title) {
-            closeModals();
+        function openDetailModal(id, title, refreshOnly = false) {
+            if (!refreshOnly) {
+                closeModals();
+            }
+            
             currentPropId = id;
             currentPropTitle = title;
             document.getElementById('detailTitle').textContent = title;
             
             const slider = document.getElementById('detailImageSlider');
             slider.style.display = 'flex';
-            slider.innerHTML = '<div style="padding: 20px; text-align: center; width: 100%; font-size: 14px;">Đang tải ảnh...</div>';
+            if (!refreshOnly) {
+                slider.innerHTML = '<div style="padding: 20px; text-align: center; width: 100%; font-size: 14px;">Đang tải ảnh...</div>';
+            }
             document.getElementById('detailRejectionMsg').style.display = 'none';
 
-            fetch(`?handler=PropertyDetails&id=${id}`)
+            // Use cache: 'no-store' and a timestamp to force getting latest images from server
+            fetch(`?handler=PropertyDetails&id=${id}&t=${new Date().getTime()}`, { cache: 'no-store' })
                 .then(res => res.json())
                 .then(prop => {
                     if (prop.Images && prop.Images.length > 0) {
@@ -577,11 +662,13 @@
                         btnReject.style.display = 'none';
                     }
 
-                    document.getElementById('detailModal').style.display = 'flex';
+                    if (!refreshOnly) {
+                        document.getElementById('detailModal').style.display = 'flex';
+                    }
                 })
                 .catch(err => {
                     console.error("Failed to load details", err);
-                    alert("Không thể tải chi tiết bất động sản.");
+                    if (!refreshOnly) alert("Không thể tải chi tiết bất động sản.");
                 });
         }
 
