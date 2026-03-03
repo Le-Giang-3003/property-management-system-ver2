@@ -102,6 +102,8 @@
     </div>
 }
 
+@Html.AntiForgeryToken()
+
 <div class="mb-20">
     <div class="page-title">Quản lý Bất động sản</div>
     <div class="page-desc">Duyệt và quản lý tất cả bất động sản trong hệ thống</div>
@@ -145,7 +147,7 @@
                         <tr data-property-id="@prop.Id">
                             <td>#@prop.Id</td>
                             <td>
-                                <div style="display: flex; gap: 12px; align-items: center; max-width: 300px;">
+                                <div class="property-thumbnail-container" style="display: flex; gap: 12px; align-items: center; max-width: 300px;">
                                     @if (!string.IsNullOrEmpty(prop.ThumbnailUrl))
                                     {
                                         <img src="@prop.ThumbnailUrl" alt="@prop.Title" style="width: 40px; height: 40px; border-radius: 8px; object-fit: cover;" />
@@ -434,6 +436,12 @@
             const status = p.status || p.Status;
 
             const row = document.querySelector(`tr[data-property-id="${id}"]`);
+            
+            // Get Anti-forgery token
+            let token = "";
+            const tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+            if (tokenInput) token = tokenInput.value;
+
             if (row) {
                 console.log("Admin SignalR: Updating row UI for ID:", id);
                 // Flash effect
@@ -447,21 +455,33 @@
                 const priceEl = row.querySelector('.text-green');
                 if (priceEl) priceEl.textContent = new Intl.NumberFormat('vi-VN').format(price) + ' đ';
 
-                const imgEl = row.querySelector('img');
-                if (imgEl && thumbnail) imgEl.src = thumbnail;
+                const imgEl = row.querySelector('.property-thumbnail-container img');
+                const thumbContainer = row.querySelector('.property-thumbnail-container');
+                if (thumbnail) {
+                    const cacheBustUrl = thumbnail.includes('?') ? `${thumbnail}&t=${new Date().getTime()}` : `${thumbnail}?t=${new Date().getTime()}`;
+                    if (imgEl) {
+                        imgEl.src = cacheBustUrl;
+                    } else if (thumbContainer) {
+                        const firstChild = thumbContainer.firstElementChild;
+                        if (firstChild && firstChild.tagName === 'DIV' && !firstChild.style.flex) {
+                            const newImg = document.createElement('img');
+                            newImg.src = cacheBustUrl;
+                            newImg.alt = title;
+                            newImg.style.width = '40px';
+                            newImg.style.height = '40px';
+                            newImg.style.borderRadius = '8px';
+                            newImg.style.objectFit = 'cover';
+                            thumbContainer.replaceChild(newImg, firstChild);
+                        }
+                    }
+                }
 
                 // Update Property Type
                 const typeContainer = row.querySelector('.property-type-container');
                 if (typeContainer) {
                     const typeMap = {
-                        1: 'Căn hộ',
-                        2: 'Nhà phố',
-                        3: 'Căn hộ studio',
-                        4: 'Phòng trọ',
-                        'Apartment': 'Căn hộ',
-                        'House': 'Nhà phố',
-                        'Studio': 'Căn hộ studio',
-                        'Room': 'Phòng trọ'
+                        1: 'Căn hộ', 2: 'Nhà phố', 3: 'Căn hộ studio', 4: 'Phòng trọ',
+                        'Apartment': 'Căn hộ', 'House': 'Nhà phố', 'Studio': 'Căn hộ studio', 'Room': 'Phòng trọ'
                     };
                     const typeText = typeMap[type] || type;
                     typeContainer.innerHTML = `<span class="badge badge-purple">${typeText}</span>`;
@@ -502,9 +522,8 @@
 
                 // Update Actions
                 const actionsContainer = row.querySelector('.property-actions-container');
-                if (actionsContainer) {
-                    const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
-                    const safeTitle = title.replace(/'/g, "\\'");
+                if (actionsContainer && token) {
+                    const safeTitle = (title || "").replace(/'/g, "\\'");
                     let buttonsHtml = `
                         <button type="button" class="btn btn-ghost btn-sm btn-icon" title="Xem chi tiết" onclick="openDetailModal(${id}, '${safeTitle}')"><i data-feather="eye" style="width: 14px; height: 14px;"></i></button>
                     `;
@@ -531,6 +550,92 @@
                 if (currentPropId == id && document.getElementById('detailModal').style.display === 'flex') {
                     console.log("Admin SignalR: Refreshing open detail modal for ID:", id);
                     openDetailModal(id, title, true); // True for refreshOnly
+                }
+            } else {
+                // NEW Property Row Insertion
+                const filterEl = document.getElementById('statusFilter');
+                if (!filterEl) return;
+                
+                const currentFilter = filterEl.value;
+                const isStatusPending = status === 2 || status === 'Pending';
+                
+                // Add if no filter or if filter matches status (newly created properties are always Pending)
+                if (currentFilter === '' || currentFilter === 'Pending') {
+                    console.log("Admin SignalR: Adding NEW row for ID:", id);
+                    const tbody = document.querySelector('table tbody');
+                    if (!tbody) return;
+                    
+                    const emptyState = tbody.querySelector('.empty-state');
+                    if (emptyState) {
+                        tbody.innerHTML = ''; // Clear empty state
+                    }
+
+                    const typeMap = {
+                        1: 'Căn hộ', 2: 'Nhà phố', 3: 'Căn hộ studio', 4: 'Phòng trọ',
+                        'Apartment': 'Căn hộ', 'House': 'Nhà phố', 'Studio': 'Căn hộ studio', 'Room': 'Phòng trọ'
+                    };
+                    const typeText = typeMap[type] || type;
+                    const landlordObj = p.landlord || p.Landlord;
+                    const landlordName = landlordObj ? (landlordObj.fullName || landlordObj.FullName || 'N/A') : 'N/A';
+                    const city = p.city || p.City || 'N/A';
+                    const safeTitle = (title || "").replace(/'/g, "\\'");
+
+                    const newRow = document.createElement('tr');
+                    newRow.setAttribute('data-property-id', id);
+                    newRow.style.opacity = '0';
+                    newRow.style.transform = 'translateY(-10px)';
+                    newRow.style.transition = 'all 0.5s ease';
+                    newRow.style.backgroundColor = 'var(--accent-glow)';
+
+                    let actionsHtml = `<button type="button" class="btn btn-ghost btn-sm btn-icon" title="Xem chi tiết" onclick="openDetailModal(${id}, '${safeTitle}')"><i data-feather="eye" style="width: 14px; height: 14px;"></i></button>`;
+                    if (token) {
+                        actionsHtml += `
+                            <form method="post" action="?handler=Approve&id=${id}" style="display:inline;">
+                                <input type="hidden" name="__RequestVerificationToken" value="${token}" />
+                                <button type="submit" class="btn btn-success btn-sm btn-icon" title="Duyệt"><i data-feather="check" style="width: 14px; height: 14px;"></i></button>
+                            </form>
+                            <button type="button" class="btn btn-danger btn-sm btn-icon" title="Từ chối" onclick="openRejectModal(${id}, '${safeTitle}')"><i data-feather="x" style="width: 14px; height: 14px;"></i></button>
+                        `;
+                    }
+
+                    newRow.innerHTML = `
+                        <td>#${id}</td>
+                        <td>
+                            <div class="property-thumbnail-container" style="display: flex; gap: 12px; align-items: center; max-width: 300px;">
+                                ${thumbnail 
+                                    ? `<img src="${thumbnail}" alt="${title}" style="width: 40px; height: 40px; border-radius: 8px; object-fit: cover;" />`
+                                    : `<div style="width: 40px; height: 40px; border-radius: 8px; background: var(--bg-input); display: flex; align-items: center; justify-content: center; font-size: 16px;">🏠</div>`
+                                }
+                                <div style="flex: 1; min-width: 0;">
+                                    <div class="fw-700" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${title}">${title}</div>
+                                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">${city}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="property-type-container"><span class="badge badge-purple">${typeText}</span></td>
+                        <td>${landlordName}</td>
+                        <td class="status-badge-container">
+                            <span class="badge badge-warning">Chờ duyệt</span>
+                        </td>
+                        <td class="text-green fw-600">${new Intl.NumberFormat('vi-VN').format(price)} đ</td>
+                        <td>
+                            <div class="property-actions-container" style="display: flex; gap: 6px;">
+                                ${actionsHtml}
+                            </div>
+                        </td>
+                    `;
+
+                    tbody.prepend(newRow);
+                    
+                    // Trigger animation
+                    setTimeout(() => {
+                        newRow.style.opacity = '1';
+                        newRow.style.transform = 'translateY(0)';
+                    }, 100);
+                    
+                    setTimeout(() => newRow.style.backgroundColor = '', 3000);
+
+                    if (window.feather) feather.replace();
                 }
             }
         });

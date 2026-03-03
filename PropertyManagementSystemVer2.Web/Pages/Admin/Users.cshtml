@@ -200,7 +200,7 @@
         </table>
     </div>
     <div style="padding: 12px 14px; border-top: 1px solid var(--border); font-size: 13px; color: var(--text-muted);">
-        Hiển thị @Model.FilteredUsers.Count / @Model.Users.Count người dùng
+        Hiển thị @(Model.FilteredUsers?.Count ?? 0) / @(Model.Users?.Count ?? 0) người dùng
     </div>
 </div>
 

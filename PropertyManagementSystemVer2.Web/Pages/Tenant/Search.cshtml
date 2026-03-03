@@ -587,18 +587,19 @@
         function openDetailModal(prop) {
             closeModals();
             
+            const id = prop.Id || prop.id;
             const slider = document.getElementById('detailImageSlider');
             slider.style.display = 'flex';
             slider.innerHTML = '<div style="padding: 20px; text-align: center; width: 100%; font-size: 14px;">Đang tải ảnh...</div>';
             
-            fetch(`?handler=PropertyDetails&id=${prop.Id}`)
+            fetch(`?handler=PropertyDetails&id=${id}`)
                 .then(res => res.json())
                 .then(data => {
                     if (data.Images && data.Images.length > 0) {
                         const sortedImages = [...data.Images].sort((a,b) => (b.IsPrimary === true ? 1 : 0) - (a.IsPrimary === true ? 1 : 0));
                         slider.innerHTML = sortedImages.map(img => `<img src="${img.ImageUrl}" alt="Property Image" />`).join('');
-                    } else if (prop.ThumbnailUrl) {
-                        slider.innerHTML = `<img src="${prop.ThumbnailUrl}" alt="Thumbnail" />`;
+                    } else if (prop.ThumbnailUrl || prop.thumbnailUrl) {
+                        slider.innerHTML = `<img src="${prop.ThumbnailUrl || prop.thumbnailUrl}" alt="Thumbnail" />`;
                     } else {
                         slider.innerHTML = '<div style="padding: 20px; text-align: center; width: 100%; color: var(--text-muted); background: var(--bg-card); border: 1px dashed var(--border); border-radius: 12px; height: 150px; display: flex; align-items: center; justify-content: center;">Chưa có hình ảnh nào.</div>';
                         slider.style.height = '150px';
@@ -615,50 +616,62 @@
                 })
                 .catch(err => {
                     console.error(err);
-                    if (prop.ThumbnailUrl) {
-                        slider.innerHTML = `<img src="${prop.ThumbnailUrl}" alt="Thumbnail" />`;
+                    const thumb = prop.ThumbnailUrl || prop.thumbnailUrl;
+                    if (thumb) {
+                        slider.innerHTML = `<img src="${thumb}" alt="Thumbnail" />`;
                     } else {
                         slider.style.display = 'none';
                     }
                 });
 
-            let statusText = prop.Status === 'Available' ? 'Còn trống' :
-                             prop.Status === 'Rented' ? 'Đã thuê' : String(prop.Status);
-            let statusClass = prop.Status === 'Available' ? 'badge-success' :
-                              prop.Status === 'Rented' ? 'badge-info' : 'badge-gray';
+            const status = prop.Status || prop.status;
+            let statusText = status === 'Available' || status === 7 ? 'Còn trống' :
+                             status === 'Rented' || status === 5 ? 'Đã thuê' : String(status);
+            let statusClass = status === 'Available' || status === 7 ? 'badge-success' :
+                              status === 'Rented' || status === 5 ? 'badge-info' : 'badge-gray';
 
             const statusEl = document.getElementById('detailStatus');
             statusEl.textContent = statusText;
             statusEl.className = `badge ${statusClass}`;
-            document.getElementById('detailCreatedAt').textContent = 'Ngày đăng: ' + new Date(prop.CreatedAt).toLocaleDateString('vi-VN');
+            
+            const createdAt = prop.CreatedAt || prop.createdAt;
+            document.getElementById('detailCreatedAt').textContent = 'Ngày đăng: ' + (createdAt ? new Date(createdAt).toLocaleDateString('vi-VN') : 'N/A');
             
             // Text Content assignments
-            document.getElementById('dtTitle').textContent = prop.Title || 'Chưa có tiêu đề';
-            document.getElementById('dtFullAddress').textContent = `${prop.Address}, ${prop.Ward}, ${prop.District}, ${prop.City}`;
-            document.getElementById('dtRentMain').textContent = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(prop.MonthlyRent);
+            document.getElementById('dtTitle').textContent = prop.Title || prop.title || 'Chưa có tiêu đề';
+            const addr = prop.Address || prop.address || '';
+            const ward = prop.Ward || prop.ward || '';
+            const dist = prop.District || prop.district || '';
+            const city = prop.City || prop.city || '';
+            document.getElementById('dtFullAddress').textContent = `${addr}, ${ward}, ${dist}, ${city}`;
+            const rent = prop.MonthlyRent || prop.monthlyRent || 0;
+            document.getElementById('dtRentMain').textContent = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(rent);
             
-            let typeText = prop.PropertyType === 1 ? 'Căn hộ' : 
-                           prop.PropertyType === 2 ? 'Nhà phố' : 
-                           prop.PropertyType === 3 ? 'Căn hộ studio' : 
-                           prop.PropertyType === 4 ? 'Phòng trọ' : String(prop.PropertyType);
+            const type = prop.PropertyType || prop.propertyType;
+            let typeText = type === 1 || type === 'Apartment' ? 'Căn hộ' : 
+                           type === 2 || type === 'House' ? 'Nhà phố' : 
+                           type === 3 || type === 'Studio' ? 'Căn hộ studio' : 
+                           type === 4 || type === 'Room' ? 'Phòng trọ' : String(type);
             
-            document.getElementById('dtArea').textContent = `${prop.Area} m²`;
-            document.getElementById('dtBedrooms').textContent = prop.Bedrooms || 0;
-            document.getElementById('dtBathrooms').textContent = prop.Bathrooms || 0;
-            document.getElementById('dtDesc').textContent = prop.Description || 'Không có mô tả';
+            document.getElementById('dtArea').textContent = `${prop.Area || prop.area} m²`;
+            document.getElementById('dtBedrooms').textContent = prop.Bedrooms || prop.bedrooms || 0;
+            document.getElementById('dtBathrooms').textContent = prop.Bathrooms || prop.bathrooms || 0;
+            document.getElementById('dtDesc').textContent = prop.Description || prop.description || 'Không có mô tả';
             
-            document.getElementById('dtPropertyType').textContent = prop.PropertyTypeText || typeText;
-            document.getElementById('dtFloors').textContent = prop.Floors || 'N/A';
-            document.getElementById('dtDeposit').textContent = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(prop.DepositAmount);
+            document.getElementById('dtPropertyType').textContent = prop.PropertyTypeText || prop.propertyTypeText || typeText;
+            document.getElementById('dtFloors').textContent = prop.Floors || prop.floors || 'N/A';
+            const deposit = prop.DepositAmount || prop.depositAmount || 0;
+            document.getElementById('dtDeposit').textContent = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(deposit);
             
-            document.getElementById('dtAllowPets').textContent = prop.AllowPets ? "✅ Cho phép" : "❌ Không";
-            document.getElementById('dtAllowSmoking').textContent = prop.AllowSmoking ? "✅ Cho phép" : "❌ Không";
+            document.getElementById('dtAllowPets').textContent = (prop.AllowPets || prop.allowPets) ? "✅ Cho phép" : "❌ Không";
+            document.getElementById('dtAllowSmoking').textContent = (prop.AllowSmoking || prop.allowSmoking) ? "✅ Cho phép" : "❌ Không";
             
             const amenitiesSection = document.getElementById('dtAmenitiesSection');
             const amenitiesList = document.getElementById('dtAmenitiesList');
-            if (prop.Amenities) {
+            const amenities = prop.Amenities || prop.amenities;
+            if (amenities) {
                 amenitiesSection.style.display = 'block';
-                const list = prop.Amenities.split(',').map(a => a.trim()).filter(a => a);
+                const list = amenities.split(',').map(a => a.trim()).filter(a => a);
                 amenitiesList.innerHTML = list.map(a => `<span class="amenity-badge"><i data-feather="check" style="width: 14px;"></i> ${a}</span>`).join('');
                 if(window.feather) feather.replace();
             } else {
