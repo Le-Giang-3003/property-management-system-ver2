@@ -7,12 +7,7 @@ namespace PropertyManagementSystemVer2.Web.Services
 {
     /// <summary>
     /// Background service tự động tạo hóa đơn hàng tháng và xử lý phí quá hạn.
-    /// Chạy mỗi 24 giờ (1 lần/ngày).
-    ///
-    /// Nguyên tắc Clean Architecture được tuân theo:
-    ///   - Web layer CHỈ biết BLL interfaces (ILeaseService, IPaymentService, IEmailService).
-    ///   - KHÔNG resolve IUnitOfWork hay bất kỳ DAL interface nào.
-    ///   - Logic nghiệp vụ và email template nằm hoàn toàn trong BLL.
+   
     /// </summary>
     public class MonthlyPaymentGeneratorService : BackgroundService
     {
@@ -57,26 +52,22 @@ namespace PropertyManagementSystemVer2.Web.Services
         {
             using var scope = _scopeFactory.CreateScope();
 
-            // Web layer chỉ phụ thuộc BLL interfaces — không biết DAL
             var leaseService   = scope.ServiceProvider.GetRequiredService<ILeaseService>();
             var paymentService = scope.ServiceProvider.GetRequiredService<IPaymentService>();
             var emailService   = scope.ServiceProvider.GetRequiredService<IEmailService>();
 
             var now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, VietnamTz);
 
-            // ── 1. Lấy Active leases (qua BLL, không gọi thẳng DAL) ───────────────
             var activeLeases = await leaseService.GetActiveLeasesForBillingAsync();
 
             int generated = 0;
             foreach (var lease in activeLeases)
             {
-                // ── 2. Tạo hóa đơn tháng (BLL xử lý logic trùng tháng, due date...) ──
                 var result = await paymentService.GenerateMonthlyPaymentsAsync(lease.Id);
                 if (!result.IsSuccess) continue;
 
                 generated++;
 
-                // ── 3. Gửi email thông báo (BLL tự build HTML template) ────────────
                 try
                 {
                     var dueDate = new DateTime(now.Year, now.Month,
