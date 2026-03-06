@@ -283,6 +283,35 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
             return ServiceResultDto<List<LeaseDto>>.Success(leases.Select(MapToLeaseDto).ToList());
         }
 
+        /// <summary>
+        /// Trả về các Active lease với thông tin cần thiết để billing job tạo hóa đơn.
+        /// Đây là điểm duy nhất của BLL expose thông tin lease cho background service.
+        /// </summary>
+        public async Task<List<LeaseForBillingDto>> GetActiveLeasesForBillingAsync()
+        {
+            var activeLeases = await _unitOfWork.Leases.FindAsync(
+                l => l.Status == LeaseStatus.Active);
+
+            // GetByIdWithDetailsAsync đảm bảo Tenant và Property được load
+            var result = new List<LeaseForBillingDto>();
+            foreach (var lease in activeLeases)
+            {
+                var detailed = await _unitOfWork.Leases.GetByIdWithDetailsAsync(lease.Id);
+                if (detailed == null) continue;
+
+                result.Add(new LeaseForBillingDto
+                {
+                    Id = detailed.Id,
+                    TenantEmail = detailed.Tenant?.Email ?? string.Empty,
+                    TenantName = detailed.Tenant?.FullName ?? string.Empty,
+                    PropertyTitle = detailed.Property?.Title ?? "Bất động sản",
+                    MonthlyRent = detailed.MonthlyRent,
+                    PaymentDueDay = detailed.PaymentDueDay
+                });
+            }
+            return result;
+        }
+
         private static LeaseDto MapToLeaseDto(Lease l)
         {
             return new LeaseDto

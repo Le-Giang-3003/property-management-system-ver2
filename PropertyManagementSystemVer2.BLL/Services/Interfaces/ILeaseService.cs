@@ -15,5 +15,11 @@ namespace PropertyManagementSystemVer2.BLL.Services.Interfaces
         Task<ServiceResultDto> RequestEarlyTerminationAsync(int userId, EarlyTerminationDto dto);
         Task<ServiceResultDto> ConfirmTerminationAsync(int userId, int leaseId);
         Task<ServiceResultDto<List<LeaseDto>>> GetExpiringLeasesAsync(int daysBeforeExpiry = 30);
+
+        /// <summary>
+        /// Lấy danh sách Active leases cùng thông tin cần thiết để billing job tạo hóa đơn.
+        /// Dành cho background service — Web layer không cần biết DAL.
+        /// </summary>
+        Task<List<LeaseForBillingDto>> GetActiveLeasesForBillingAsync();
     }
 }

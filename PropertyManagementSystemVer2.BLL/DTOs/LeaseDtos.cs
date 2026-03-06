@@ -58,4 +58,18 @@ namespace PropertyManagementSystemVer2.BLL.DTOs
         public int LeaseId { get; set; }
         public string Reason { get; set; } = string.Empty;
     }
+
+    /// <summary>
+    /// DTO nhỏ dùng bởi background billing job.
+    /// Chỉ chứa thông tin cần thiết để tạo hóa đơn và gửi email thông báo.
+    /// </summary>
+    public class LeaseForBillingDto
+    {
+        public int Id { get; set; }
+        public string TenantEmail { get; set; } = string.Empty;
+        public string TenantName { get; set; } = string.Empty;
+        public string PropertyTitle { get; set; } = string.Empty;
+        public decimal MonthlyRent { get; set; }
+        public int PaymentDueDay { get; set; }
+    }
 }
