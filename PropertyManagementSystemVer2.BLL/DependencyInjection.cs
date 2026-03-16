@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using PropertyManagementSystemVer2.BLL.Services.Implementations;
 using PropertyManagementSystemVer2.BLL.Services.Interfaces;
@@ -24,6 +24,11 @@ namespace PropertyManagementSystemVer2.BLL
             services.AddScoped<IAdminService, AdminService>();
             services.AddScoped<IDashboardService, DashboardService>();
             services.AddScoped<IPhotoService, PhotoService>();
+
+            // AI Search Service (Gemini)
+            services.AddHttpClient<IAiSearchService, AiSearchService>();
+            if (configuration != null)
+                services.Configure<GeminiSettings>(configuration.GetSection("GeminiSettings"));
 
             // Email & Cache (dùng cho OTP đăng ký)
             services.AddScoped<IEmailService, EmailService>();

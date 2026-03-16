@@ -1,0 +1,705 @@
+@page
+@model PropertyManagementSystemVer2.Web.Pages.Tenant.AiSearchModel
+@{
+    ViewData["Title"] = "Tìm kiếm AI";
+}
+
+<style>
+    /* ===== AI SEARCH PAGE ===== */
+    .ai-search-hero {
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%);
+        border-radius: 20px;
+        padding: 48px 40px;
+        margin-bottom: 32px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .ai-search-hero::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -10%;
+        width: 400px;
+        height: 400px;
+        background: rgba(255,255,255,0.06);
+        border-radius: 50%;
+    }
+
+    .ai-search-hero::after {
+        content: '';
+        position: absolute;
+        bottom: -30%;
+        left: 20%;
+        width: 250px;
+        height: 250px;
+        background: rgba(255,255,255,0.04);
+        border-radius: 50%;
+    }
+
+    .ai-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(255,255,255,0.2);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255,255,255,0.3);
+        border-radius: 20px;
+        padding: 4px 14px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #fff;
+        margin-bottom: 16px;
+        letter-spacing: 0.5px;
+    }
+
+    .ai-search-hero h1 {
+        font-size: 32px;
+        font-weight: 700;
+        color: #fff;
+        margin: 0 0 8px 0;
+    }
+
+    .ai-search-hero p {
+        color: rgba(255,255,255,0.8);
+        font-size: 15px;
+        margin: 0 0 28px 0;
+    }
+
+    .ai-search-form {
+        position: relative;
+        z-index: 1;
+    }
+
+    .ai-input-wrapper {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+    }
+
+    .ai-textarea {
+        flex: 1;
+        background: rgba(255,255,255,0.95);
+        border: none;
+        border-radius: 14px;
+        padding: 16px 20px;
+        font-size: 15px;
+        line-height: 1.6;
+        color: #1e1b4b;
+        resize: none;
+        min-height: 80px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+        transition: box-shadow 0.2s;
+        font-family: inherit;
+    }
+
+    .ai-textarea:focus {
+        outline: none;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.3), 0 0 0 3px rgba(255,255,255,0.5);
+    }
+
+    .ai-textarea::placeholder {
+        color: #9ca3af;
+    }
+
+    .ai-search-btn {
+        background: #fff;
+        color: #6366f1;
+        border: none;
+        border-radius: 14px;
+        padding: 16px 24px;
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        white-space: nowrap;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+        transition: all 0.2s;
+        min-height: 80px;
+    }
+
+    .ai-search-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 32px rgba(0,0,0,0.25);
+        background: #f8f7ff;
+    }
+
+    .ai-search-btn:active {
+        transform: translateY(0);
+    }
+
+    .ai-search-btn.loading {
+        opacity: 0.8;
+        cursor: not-allowed;
+    }
+
+    /* ===== SUGGESTIONS ===== */
+    .suggestions-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 16px;
+    }
+
+    .suggestion-chip {
+        background: rgba(255,255,255,0.15);
+        border: 1px solid rgba(255,255,255,0.25);
+        border-radius: 20px;
+        padding: 6px 14px;
+        font-size: 12.5px;
+        color: rgba(255,255,255,0.9);
+        cursor: pointer;
+        transition: all 0.15s;
+        white-space: nowrap;
+    }
+
+    .suggestion-chip:hover {
+        background: rgba(255,255,255,0.25);
+        color: #fff;
+    }
+
+    /* ===== AI RESULT HEADER ===== */
+    .ai-result-header {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 24px 28px;
+        margin-bottom: 24px;
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+    }
+
+    .ai-brain-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        color: #fff;
+    }
+
+    .ai-result-summary {
+        flex: 1;
+    }
+
+    .ai-result-summary h3 {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0 0 6px 0;
+    }
+
+    .ai-result-summary p {
+        font-size: 14px;
+        color: var(--text-secondary);
+        margin: 0;
+        line-height: 1.5;
+    }
+
+    /* ===== FILTER BADGES ===== */
+    .filter-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 12px;
+    }
+
+    .filter-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        background: #ede9fe;
+        color: #6d28d9;
+        border: 1px solid #c4b5fd;
+        border-radius: 20px;
+        padding: 4px 12px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+
+    /* ===== PROPERTY GRID ===== */
+    .properties-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 20px;
+    }
+
+    .property-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        overflow: hidden;
+        transition: transform 0.2s, box-shadow 0.2s;
+        text-decoration: none;
+        color: inherit;
+        display: block;
+    }
+
+    .property-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 16px 40px rgba(0,0,0,0.12);
+    }
+
+    .property-img {
+        width: 100%;
+        height: 180px;
+        object-fit: cover;
+        background: linear-gradient(135deg, #e0e7ff 0%, #ede9fe 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #a78bfa;
+        font-size: 48px;
+    }
+
+    .property-img img {
+        width: 100%;
+        height: 180px;
+        object-fit: cover;
+    }
+
+    .property-img-placeholder {
+        width: 100%;
+        height: 180px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #e0e7ff 0%, #ede9fe 100%);
+        color: #a78bfa;
+    }
+
+    .property-info {
+        padding: 16px 20px;
+    }
+
+    .property-type-badge {
+        display: inline-block;
+        background: #ede9fe;
+        color: #6d28d9;
+        border-radius: 6px;
+        padding: 2px 8px;
+        font-size: 11px;
+        font-weight: 600;
+        margin-bottom: 8px;
+    }
+
+    .property-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0 0 6px 0;
+        line-height: 1.4;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .property-address {
+        font-size: 12px;
+        color: var(--text-secondary);
+        margin: 0 0 12px 0;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .property-meta {
+        display: flex;
+        gap: 12px;
+        font-size: 12px;
+        color: var(--text-secondary);
+        margin-bottom: 12px;
+    }
+
+    .property-meta span {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .property-price {
+        font-size: 18px;
+        font-weight: 700;
+        color: #6366f1;
+    }
+
+    .property-price span {
+        font-size: 12px;
+        font-weight: 400;
+        color: var(--text-secondary);
+    }
+
+    /* ===== EMPTY STATE ===== */
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--text-secondary);
+    }
+
+    .empty-state-icon {
+        font-size: 64px;
+        margin-bottom: 16px;
+    }
+
+    .empty-state h3 {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 8px;
+    }
+
+    /* ===== ERROR ===== */
+    .ai-error {
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        border-radius: 12px;
+        padding: 16px 20px;
+        color: #991b1b;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 24px;
+    }
+
+    /* ===== LOADING SPINNER ===== */
+    .ai-loading {
+        display: none;
+        text-align: center;
+        padding: 48px;
+        color: var(--text-secondary);
+    }
+
+    .spinner {
+        width: 48px;
+        height: 48px;
+        border: 4px solid #ede9fe;
+        border-top-color: #6366f1;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        margin: 0 auto 16px;
+    }
+
+    @@keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    /* ===== PAGINATION ===== */
+    .pagination-row {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 32px;
+    }
+
+    .page-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        color: var(--text-primary);
+        font-size: 14px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        transition: all 0.15s;
+    }
+
+    .page-btn:hover, .page-btn.active {
+        background: #6366f1;
+        color: #fff;
+        border-color: #6366f1;
+    }
+</style>
+
+<!-- Hero Section: Search Bar -->
+<div class="ai-search-hero">
+    <div class="ai-badge">
+        <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+        </svg>
+        Powered by Google Gemini AI
+    </div>
+    <h1>Tìm kiếm bằng AI</h1>
+    <p>Mô tả nhu cầu của bạn bằng ngôn ngữ tự nhiên, AI sẽ tìm bất động sản phù hợp nhất</p>
+
+    <form method="get" class="ai-search-form" id="aiSearchForm">
+        <div class="ai-input-wrapper">
+            <textarea
+                name="Query"
+                id="queryInput"
+                class="ai-textarea"
+                placeholder="VD: Tôi cần thuê căn hộ ở Hà Nội, gần trung tâm, giá dưới 10 triệu, 2 phòng ngủ, cho phép nuôi thú cưng..."
+                rows="3"
+                required>@Model.Query</textarea>
+            <button type="submit" class="ai-search-btn" id="searchBtn">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <circle cx="11" cy="11" r="8"/>
+                    <path d="m21 21-4.35-4.35"/>
+                </svg>
+                Tìm kiếm AI
+            </button>
+        </div>
+
+        <!-- Gợi ý câu mẫu -->
+        <div class="suggestions-row">
+            <span class="suggestion-chip" onclick="setSuggestion(this)">🏠 Phòng trọ Hà Nội dưới 3 triệu</span>
+            <span class="suggestion-chip" onclick="setSuggestion(this)">🏢 Căn hộ Quận 1 HCM 2 phòng ngủ</span>
+            <span class="suggestion-chip" onclick="setSuggestion(this)">🐾 Nhà cho thuê nuôi thú cưng</span>
+            <span class="suggestion-chip" onclick="setSuggestion(this)">🌿 Biệt thự Đà Lạt rộng có sân vườn</span>
+            <span class="suggestion-chip" onclick="setSuggestion(this)">💼 Văn phòng Cầu Giấy dưới 15 triệu</span>
+        </div>
+    </form>
+</div>
+
+<!-- Loading indicator -->
+<div class="ai-loading" id="loadingSection">
+    <div class="spinner"></div>
+    <p>AI đang phân tích nhu cầu của bạn...</p>
+</div>
+
+<!-- Error message -->
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="ai-error">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <div>
+            <strong>Không thể tìm kiếm:</strong> @Model.ErrorMessage
+        </div>
+    </div>
+}
+
+<!-- Kết quả tìm kiếm -->
+@if (Model.HasSearched && Model.SearchResult != null)
+{
+    var filter = Model.SearchResult.ParsedFilter;
+    var props = Model.SearchResult.Properties;
+
+    <!-- AI Summary -->
+    <div class="ai-result-header">
+        <div class="ai-brain-icon">
+            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M9.5 2a2.5 2.5 0 0 1 5 0v.5A2.5 2.5 0 0 1 12 5h0a2.5 2.5 0 0 1-2.5-2.5V2Z"/>
+                <path d="M9.5 2C6.46 2 4 4.46 4 7.5c0 2.5 1.5 4.5 3.5 5.5.5.25.5.75.5.75v4.25a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V13.75s0-.5.5-.75c2-1 3.5-3 3.5-5.5C20 4.46 17.54 2 14.5 2"/>
+            </svg>
+        </div>
+        <div class="ai-result-summary">
+            <h3>AI đã hiểu nhu cầu của bạn</h3>
+            @if (!string.IsNullOrEmpty(filter.SummaryVi))
+            {
+                <p>@filter.SummaryVi</p>
+            }
+
+            <!-- Filter badges -->
+            <div class="filter-badges">
+                @if (!string.IsNullOrEmpty(filter.City))
+                {
+                    <span class="filter-badge">📍 @filter.City</span>
+                }
+                @if (!string.IsNullOrEmpty(filter.District))
+                {
+                    <span class="filter-badge">🗺️ @filter.District</span>
+                }
+                @if (!string.IsNullOrEmpty(filter.PropertyType))
+                {
+                    var typeLabel = filter.PropertyType switch {
+                        "Apartment" => "Căn hộ",
+                        "House"     => "Nhà riêng",
+                        "Room"      => "Phòng trọ",
+                        "Villa"     => "Biệt thự",
+                        "Office"    => "Văn phòng",
+                        _           => filter.PropertyType
+                    };
+                    <span class="filter-badge">🏠 @typeLabel</span>
+                }
+                @if (filter.MaxPrice.HasValue)
+                {
+                    <span class="filter-badge">💰 Dưới @((filter.MaxPrice.Value / 1_000_000).ToString("N0")) triệu/tháng</span>
+                }
+                @if (filter.MinPrice.HasValue)
+                {
+                    <span class="filter-badge">💰 Từ @((filter.MinPrice.Value / 1_000_000).ToString("N0")) triệu/tháng</span>
+                }
+                @if (filter.MinBedrooms.HasValue)
+                {
+                    <span class="filter-badge">🛏️ Từ @filter.MinBedrooms phòng ngủ</span>
+                }
+                @if (filter.MinArea.HasValue)
+                {
+                    <span class="filter-badge">📐 Từ @filter.MinArea m²</span>
+                }
+                @if (filter.AllowPets == true)
+                {
+                    <span class="filter-badge">🐾 Cho phép thú cưng</span>
+                }
+                @if (filter.AllowSmoking == true)
+                {
+                    <span class="filter-badge">🚬 Cho phép hút thuốc</span>
+                }
+            </div>
+        </div>
+        <div style="color: var(--text-secondary); font-size: 14px; white-space: nowrap; padding-top: 4px;">
+            <strong style="color: var(--text-primary);">@props.TotalCount</strong> kết quả
+        </div>
+    </div>
+
+    @if (props.Items.Count == 0)
+    {
+        <div class="empty-state">
+            <div class="empty-state-icon">🔍</div>
+            <h3>Không tìm thấy bất động sản phù hợp</h3>
+            <p>Thử mô tả lại nhu cầu với tiêu chí rộng hơn, hoặc thay đổi khu vực tìm kiếm.</p>
+        </div>
+    }
+    else
+    {
+        <div class="properties-grid">
+            @foreach (var p in props.Items)
+            {
+                <a href="/Tenant/Search?propertyId=@p.Id" class="property-card">
+                    @if (!string.IsNullOrEmpty(p.ThumbnailUrl))
+                    {
+                        <img src="@p.ThumbnailUrl" alt="@p.Title" style="width:100%;height:180px;object-fit:cover;" />
+                    }
+                    else
+                    {
+                        <div class="property-img-placeholder">
+                            <svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                                <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                                <polyline points="9 22 9 12 15 12 15 22"/>
+                            </svg>
+                        </div>
+                    }
+                    <div class="property-info">
+                        <div class="property-type-badge">
+                            @(p.PropertyType.ToString() switch {
+                                "Apartment" => "Căn hộ",
+                                "House"     => "Nhà riêng",
+                                "Room"      => "Phòng trọ",
+                                "Villa"     => "Biệt thự",
+                                "Office"    => "Văn phòng",
+                                _           => p.PropertyType.ToString()
+                            })
+                        </div>
+                        <div class="property-title">@p.Title</div>
+                        <div class="property-address">
+                            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                                <circle cx="12" cy="10" r="3"/>
+                            </svg>
+                            @p.District, @p.City
+                        </div>
+                        <div class="property-meta">
+                            <span>
+                                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path d="M2 4v16M22 4v16M2 8h20M2 16h20M6 8v8M10 8v8M14 8v8M18 8v8"/>
+                                </svg>
+                                @p.Bedrooms PN
+                            </span>
+                            <span>
+                                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path d="M9 6 6.5 3.5a1.5 1.5 0 0 0-1-.5C4.683 3 4 3.683 4 4.5V17a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"/>
+                                    <line x1="10" y1="5" x2="8" y2="7"/>
+                                </svg>
+                                @p.Bathrooms WC
+                            </span>
+                            <span>
+                                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                </svg>
+                                @p.Area m²
+                            </span>
+                            @if (p.AllowPets)
+                            {
+                                <span title="Cho phép thú cưng">🐾</span>
+                            }
+                        </div>
+                        <div class="property-price">
+                            @((p.MonthlyRent / 1_000_000).ToString("N1")) triệu
+                            <span>/tháng</span>
+                        </div>
+                    </div>
+                </a>
+            }
+        </div>
+
+        <!-- Pagination -->
+        @if (props.TotalPages > 1)
+        {
+            <div class="pagination-row">
+                @if (Model.CurrentPage > 1)
+                {
+                    <a href="?Query=@Uri.EscapeDataString(Model.Query ?? "")&CurrentPage=@(Model.CurrentPage - 1)"
+                       class="page-btn">‹</a>
+                }
+                @for (int i = 1; i <= props.TotalPages; i++)
+                {
+                    <a href="?Query=@Uri.EscapeDataString(Model.Query ?? "")&CurrentPage=@i"
+                       class="page-btn @(i == Model.CurrentPage ? "active" : "")">@i</a>
+                }
+                @if (Model.CurrentPage < props.TotalPages)
+                {
+                    <a href="?Query=@Uri.EscapeDataString(Model.Query ?? "")&CurrentPage=@(Model.CurrentPage + 1)"
+                       class="page-btn">›</a>
+                }
+            </div>
+        }
+    }
+}
+else if (!Model.HasSearched)
+{
+    <!-- Placeholder khi chưa tìm kiếm -->
+    <div class="empty-state">
+        <div class="empty-state-icon">🤖</div>
+        <h3>Hãy mô tả nhu cầu tìm nhà của bạn</h3>
+        <p>AI sẽ phân tích và tìm những bất động sản phù hợp nhất với nhu cầu của bạn.</p>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        const form = document.getElementById('aiSearchForm');
+        const btn = document.getElementById('searchBtn');
+        const loading = document.getElementById('loadingSection');
+
+        function setSuggestion(el) {
+            // Lấy text gợi ý và bỏ emoji đầu
+            const text = el.textContent.trim().replace(/^[\u{1F000}-\u{1FFFF}\u{2600}-\u{27FF}]\s*/u, '').trim();
+            document.getElementById('queryInput').value = text;
+            document.getElementById('queryInput').focus();
+        }
+
+        form.addEventListener('submit', function () {
+            const query = document.getElementById('queryInput').value.trim();
+            if (!query) return;
+            btn.classList.add('loading');
+            btn.disabled = true;
+            btn.innerHTML = `
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                     style="animation: spin 0.8s linear infinite;">
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                </svg>
+                Đang phân tích...
+            `;
+            loading.style.display = 'block';
+        });
+
+        // Auto-resize textarea
+        const textarea = document.getElementById('queryInput');
+        textarea.addEventListener('input', function () {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 160) + 'px';
+        });
+    </script>
+}
