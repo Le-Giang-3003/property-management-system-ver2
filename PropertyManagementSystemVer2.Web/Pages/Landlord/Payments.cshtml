@@ -23,7 +23,7 @@
 </div>
 
 @{
-    var pendingConfirm = Model.Payments.Count(p => p.Status.ToString() == "Pending" && !string.IsNullOrEmpty(p.PaymentProof));
+    var pendingConfirm = Model.Payments.Count(p => (p.Status.ToString() == "Pending" || p.Status.ToString() == "Overdue") && (p.PaidDate.HasValue || !string.IsNullOrEmpty(p.TransactionId) || !string.IsNullOrEmpty(p.PaymentProof)));
     var overdue = Model.Payments.Count(p => p.Status.ToString() == "Overdue");
     var completed = Model.Payments.Count(p => p.Status.ToString() == "Completed");
     var totalRevenue = Model.Payments.Where(p => p.Status.ToString() == "Completed").Sum(p => p.Amount);
@@ -96,7 +96,8 @@
                     {
                         var isOverdue = p.DueDate < DateTime.Now && p.Status.ToString() == "Pending";
                         var hasProof = !string.IsNullOrEmpty(p.PaymentProof);
-                        var canConfirm = (p.Status.ToString() == "Pending" || p.Status.ToString() == "Overdue") && hasProof;
+                        var hasSignedOfPayment = p.PaidDate.HasValue || !string.IsNullOrEmpty(p.TransactionId) || hasProof;
+                        var canConfirm = (p.Status.ToString() == "Pending" || p.Status.ToString() == "Overdue") && hasSignedOfPayment;
 
                         <tr>
                             <td>
@@ -131,7 +132,7 @@
                                 }
                             </td>
                             <td>
-                                @if (p.Status.ToString() == "Pending" && hasProof)
+                                @if ((p.Status.ToString() == "Pending" || p.Status.ToString() == "Overdue") && hasSignedOfPayment)
                                 {
                                     <span class="badge badge-warning" style="animation: pulse 2s infinite;">Chờ xác nhận</span>
                                 }

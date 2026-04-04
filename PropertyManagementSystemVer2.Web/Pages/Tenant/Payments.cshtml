@@ -72,8 +72,10 @@
                 {
                     foreach (var payment in Model.Payments)
                     {
-                        var isPayable = payment.Status.ToString() == "Pending" || payment.Status.ToString() == "Overdue";
-                        var isOverdue = payment.DueDate < DateTime.Now && isPayable;
+                        var hasProof = !string.IsNullOrEmpty(payment.PaymentProof);
+                        var isReported = payment.PaidDate.HasValue || !string.IsNullOrEmpty(payment.TransactionId) || hasProof;
+                        var isPayable = (payment.Status.ToString() == "Pending" || payment.Status.ToString() == "Overdue") && !isReported;
+                        var isOverdue = payment.DueDate < DateTime.Now && (payment.Status.ToString() == "Pending" || payment.Status.ToString() == "Overdue");
                         var hasBank = !string.IsNullOrEmpty(payment.LandlordBankAccount) && !string.IsNullOrEmpty(payment.LandlordBankName);
                         <tr>
                             <td>
@@ -98,7 +100,11 @@
                                 }
                             </td>
                             <td>
-                                @if (payment.Status.ToString() == "Pending")
+                                @if ((payment.Status.ToString() == "Pending" || payment.Status.ToString() == "Overdue") && isReported)
+                                {
+                                    <span class="badge badge-warning" style="animation: pulse 2s infinite;">Chờ xác nhận</span>
+                                }
+                                else if (payment.Status.ToString() == "Pending")
                                 {
                                     <span class="badge badge-warning">Chờ thanh toán</span>
                                 }

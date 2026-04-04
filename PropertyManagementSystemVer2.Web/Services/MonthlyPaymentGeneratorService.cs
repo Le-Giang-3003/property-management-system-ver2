@@ -14,8 +14,8 @@ namespace PropertyManagementSystemVer2.Web.Services
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly ILogger<MonthlyPaymentGeneratorService> _logger;
 
-        // Chạy mỗi 24 tiếng (1 lần/ngày)
-        private static readonly TimeSpan CheckInterval = TimeSpan.FromHours(24);
+        // Giảm xuống 1 phút để hỗ trợ test nhanh khi đổi ngày hệ thống
+        private static readonly TimeSpan CheckInterval = TimeSpan.FromMinutes(1);
 
         // Múi giờ Việt Nam — dùng TimeZoneInfo thay vì hardcode +7
         private static readonly TimeZoneInfo VietnamTz =

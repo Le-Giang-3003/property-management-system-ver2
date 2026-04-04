@@ -209,9 +209,10 @@ namespace PropertyManagementSystemVer2.DAL.Data
 
                 entity.Property(e => e.Amount).HasPrecision(18, 2);
                 entity.Property(e => e.LateFeeAmount).HasPrecision(18, 2);
-                entity.Property(e => e.PaymentType).HasConversion<string>();
-                entity.Property(e => e.Status).HasConversion<string>();
-                entity.Property(e => e.PaymentMethod).HasConversion<string>();
+                // Enum stored as int in database — no string conversion
+                // entity.Property(e => e.PaymentType).HasConversion<string>();
+                // entity.Property(e => e.Status).HasConversion<string>();
+                // entity.Property(e => e.PaymentMethod).HasConversion<string>();
 
                 entity.HasOne(e => e.Lease)
                     .WithMany(l => l.Payments)
