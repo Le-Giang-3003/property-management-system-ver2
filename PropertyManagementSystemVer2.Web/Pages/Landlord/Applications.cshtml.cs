@@ -102,6 +102,7 @@ namespace PropertyManagementSystemVer2.Web.Pages.Landlord
             }
 
             // Then Create Lease
+            CreateLeaseForm.PaymentDueDay = 5; // Force backend to 5
             var leaseResult = await _leaseService.CreateLeaseAsync(userId, CreateLeaseForm);
             if (leaseResult.IsSuccess)
             {

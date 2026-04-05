@@ -49,9 +49,10 @@ namespace PropertyManagementSystemVer2.DAL.Repositories.Implementations
 
         public async Task<IEnumerable<Payment>> GetOverduePaymentsAsync(CancellationToken cancellationToken = default)
         {
+            var today = DateTime.UtcNow.AddHours(7).Date;
             return await _dbSet
                 .Include(p => p.Lease).ThenInclude(l => l.Tenant)
-                .Where(p => p.Status == PaymentStatus.Pending && p.DueDate < DateTime.UtcNow)
+                .Where(p => p.Status == PaymentStatus.Pending && p.DueDate < today)
                 .OrderBy(p => p.DueDate)
                 .ToListAsync(cancellationToken);
         }

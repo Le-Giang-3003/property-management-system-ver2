@@ -27,14 +27,22 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
             if (lease.Status != LeaseStatus.Active)
                 return ServiceResultDto.Failure("Hợp đồng không active.");
 
-            var now = DateTime.UtcNow.Date;
+            var now = DateTime.UtcNow.AddHours(7).Date;
             var billingMonth = now.Month;
             var billingYear = now.Year;
 
-            // Kiểm tra hợp đồng đã bắt đầu chưa (ngày hiện tại >= ngày bắt đầu)
-            // StartDate = 2026-02-28 → hóa đơn đầu tiên tạo từ 2026-03-01 trở đi
-            if (now < lease.StartDate.Date)
-                return ServiceResultDto.Failure("Hợp đồng chưa bắt đầu.");
+            // Hạn chót: mặc định luôn là ngày 5 của tháng
+            var dueDay = 5;
+            // Đảm bảo dueDay không vượt quá số ngày trong tháng
+            var daysInMonth = DateTime.DaysInMonth(billingYear, billingMonth);
+            dueDay = Math.Min(dueDay, daysInMonth);
+            var dueDate = new DateTime(billingYear, billingMonth, dueDay);
+
+            // Kiểm tra kỳ thanh toán đã tới chưa
+            // Thay vì dùng (now < StartDate), ta phải đảm bảo DueDate (hạn chót của kỳ này) >= StartDate
+            // Ví dụ StartDate = 28/02, now = 28/02 => dueDate = 05/02 (nhỏ hơn 28/02 nên bỏ qua kỳ 2, đợi sang tháng 3 mới tạo)
+            if (dueDate < lease.StartDate.Date)
+                return ServiceResultDto.Failure("Kỳ thanh toán đầu tiên chưa tới (DueDate < StartDate).");
 
             // Kiểm tra hợp đồng chưa hết hạn (EndDate là ngày cuối cùng tenant thuê)
             if (now > lease.EndDate.Date)
@@ -47,13 +55,6 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
 
             if (hasPaymentForMonth)
                 return ServiceResultDto.Failure("Đã tạo payment cho tháng này.");
-
-            // Hạn chót: ngày 5 của tháng billing (hoặc PaymentDueDay nếu muốn configurable)
-            var dueDay = lease.PaymentDueDay > 0 ? lease.PaymentDueDay : 5;
-            // Đảm bảo dueDay không vượt quá số ngày trong tháng
-            var daysInMonth = DateTime.DaysInMonth(billingYear, billingMonth);
-            dueDay = Math.Min(dueDay, daysInMonth);
-            var dueDate = new DateTime(billingYear, billingMonth, dueDay);
 
             // Tạo payment tiền thuê
             var rentPayment = new Payment
@@ -175,9 +176,10 @@ namespace PropertyManagementSystemVer2.BLL.Services.Implementations
             var overduePayments = await _unitOfWork.Payments.GetOverduePaymentsAsync();
             var processedCount = 0;
 
+            var now = DateTime.UtcNow.AddHours(7).Date;
             foreach (var payment in overduePayments)
             {
-                var daysOverdue = (int)(DateTime.UtcNow - payment.DueDate).TotalDays;
+                var daysOverdue = (now - payment.DueDate.Date).Days;
                 if (daysOverdue <= 0) continue;
 
                 // Tính phí quá hạn 1 lần khi lần đầu quá hạn
